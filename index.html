@@ -16,6 +16,12 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- PDF.js library for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
     <!-- Papers data -->
     <script src="papers-data.js"></script>
 
@@ -444,6 +450,21 @@
             // Load paper content when currentPaper changes
             useEffect(() => {
                 if (!currentPaper) return;
+
+                // Check for custom uploaded paper (stored in sessionStorage)
+                if (currentPaper === 'custom') {
+                    const customContent = sessionStorage.getItem('customPaperContent');
+                    if (customContent) {
+                        setPaperContent(customContent);
+                        // No pre-made quiz for custom papers
+                        setQuizQuestions([]);
+                        console.log('📄 Loaded custom PDF paper from sessionStorage');
+                        return;
+                    } else {
+                        setPaperContent('<p>No custom paper content found. Please upload a PDF.</p>');
+                        return;
+                    }
+                }
 
                 const paper = papers.find(p => p.id === currentPaper);
                 if (paper && paper.url) {

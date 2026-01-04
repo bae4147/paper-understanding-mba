@@ -9,6 +9,12 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- PDF.js library for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -42,6 +48,12 @@
             const [mode, setMode] = useState('experiment');
             const [audioAvailable, setAudioAvailable] = useState(false);
 
+            // PDF upload state
+            const [pdfFile, setPdfFile] = useState(null);
+            const [pdfProcessing, setPdfProcessing] = useState(false);
+            const [pdfError, setPdfError] = useState('');
+            const [pdfProgress, setPdfProgress] = useState('');
+
             // Get parameters from URL
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -60,6 +72,168 @@
             const [isLoading, setIsLoading] = useState(false);
 
             const papers = typeof AVAILABLE_PAPERS !== 'undefined' ? AVAILABLE_PAPERS : [];
+
+            // PDF text extraction using PDF.js
+            const extractTextFromPdf = async (file) => {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                let fullText = '';
+
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    setPdfProgress(`Extracting page ${pageNum}/${pdf.numPages}...`);
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+
+                    let pageText = '';
+                    let lastY = null;
+
+                    for (const item of textContent.items) {
+                        if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+                            pageText += '\n';
+                        }
+                        pageText += item.str;
+                        lastY = item.transform[5];
+                    }
+
+                    fullText += pageText + '\n\n';
+                }
+
+                return { fullText, numPages: pdf.numPages };
+            };
+
+            // Parse sections using GPT
+            const parseSectionsWithGpt = async (extractedText) => {
+                setPdfProgress('Analyzing paper structure with AI...');
+
+                const apiKey = '__OPENAI_API_KEY__';
+
+                const systemPrompt = `You are an expert at parsing academic papers. Given the raw text extracted from a PDF, identify the major sections of the paper.
+
+For each section, output a JSON object with:
+- "sectionName": The section heading (e.g., "Abstract", "Introduction", "Methods", "Results", "Discussion", "Conclusion", "References")
+- "content": The full text content of that section
+
+Rules:
+1. Preserve the original text as much as possible
+2. Identify standard academic paper sections
+3. If a section has subsections, include them within the parent section's content
+4. Clean up obvious formatting artifacts but keep the content intact
+5. Do NOT include page numbers, headers, footers as separate sections
+6. Return JSON with a "sections" array
+
+Return format: {"sections": [{"sectionName": "...", "content": "..."}]}`;
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: `Parse this academic paper text into sections:\n\n${extractedText.substring(0, 80000)}` }
+                        ],
+                        max_tokens: 16000,
+                        temperature: 0.3,
+                        response_format: { type: "json_object" }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`GPT API error: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                const result = JSON.parse(data.choices[0].message.content);
+                return result.sections || [];
+            };
+
+            // Convert sections to HTML with data-section attributes
+            const sectionsToHtml = (sections, paperTitle) => {
+                const escapeHtml = (text) => {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                };
+
+                let html = `<h1 class="text-3xl font-bold mb-6">${escapeHtml(paperTitle)}</h1>`;
+
+                for (const section of sections) {
+                    // Skip References section content (just keep heading)
+                    const isReferences = section.sectionName.toLowerCase().includes('reference');
+
+                    html += `<h2 class="text-2xl font-bold mb-4 mt-8" data-section="${escapeHtml(section.sectionName)}">${escapeHtml(section.sectionName)}</h2>`;
+
+                    if (!isReferences) {
+                        const paragraphs = section.content.split(/\n\n+/);
+                        for (const para of paragraphs) {
+                            if (para.trim()) {
+                                html += `<p class="mb-4 text-justify leading-relaxed">${escapeHtml(para.trim())}</p>`;
+                            }
+                        }
+                    } else {
+                        html += `<p class="mb-4 text-gray-500 italic">References section omitted for brevity.</p>`;
+                    }
+                }
+
+                return html;
+            };
+
+            // Handle PDF file selection
+            const handlePdfSelect = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (file.type !== 'application/pdf') {
+                    setPdfError('Please select a valid PDF file');
+                    return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) {
+                    setPdfError('PDF file size must be less than 10MB');
+                    return;
+                }
+
+                setPdfFile(file);
+                setPdfError('');
+                setPdfProcessing(true);
+                setPdfProgress('Starting PDF processing...');
+
+                try {
+                    // Step 1: Extract text
+                    const { fullText, numPages } = await extractTextFromPdf(file);
+                    console.log(`Extracted ${fullText.length} characters from ${numPages} pages`);
+
+                    // Step 2: Parse sections with GPT
+                    const sections = await parseSectionsWithGpt(fullText);
+                    console.log(`Identified ${sections.length} sections:`, sections.map(s => s.sectionName));
+
+                    // Step 3: Convert to HTML
+                    setPdfProgress('Generating HTML...');
+                    const paperTitle = file.name.replace('.pdf', '');
+                    const html = sectionsToHtml(sections, paperTitle);
+
+                    // Step 4: Store in sessionStorage
+                    sessionStorage.setItem('customPaperContent', html);
+                    sessionStorage.setItem('customPaperTitle', paperTitle);
+                    sessionStorage.setItem('customPaperSections', JSON.stringify(sections.map(s => s.sectionName)));
+
+                    // Set paper to custom
+                    setCurrentPaper('custom');
+                    setPdfProgress(`✓ Ready! Found ${sections.length} sections`);
+
+                } catch (error) {
+                    console.error('PDF processing error:', error);
+                    setPdfError(`Failed to process PDF: ${error.message}`);
+                    setPdfFile(null);
+                } finally {
+                    setPdfProcessing(false);
+                }
+            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -238,12 +412,66 @@
                                                             name="paper"
                                                             value={paper.id}
                                                             checked={currentPaper === paper.id}
-                                                            onChange={(e) => setCurrentPaper(e.target.value)}
+                                                            onChange={(e) => {
+                                                                setCurrentPaper(e.target.value);
+                                                                setPdfFile(null);
+                                                                setPdfProgress('');
+                                                            }}
                                                             className="w-4 h-4"
                                                         />
                                                         <span className="text-sm text-gray-700">{paper.name}</span>
                                                     </label>
                                                 ))}
+
+                                                {/* Custom PDF Upload Option */}
+                                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                                    <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="paper"
+                                                            value="custom"
+                                                            checked={currentPaper === 'custom'}
+                                                            onChange={(e) => setCurrentPaper(e.target.value)}
+                                                            className="w-4 h-4"
+                                                        />
+                                                        <span className="text-sm text-gray-700">📄 Upload Custom PDF</span>
+                                                    </label>
+
+                                                    {currentPaper === 'custom' && (
+                                                        <div className="mt-3 ml-7 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                                                            <input
+                                                                type="file"
+                                                                accept=".pdf"
+                                                                onChange={handlePdfSelect}
+                                                                disabled={pdfProcessing}
+                                                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                                                            />
+                                                            <p className="text-xs text-gray-400 mt-2">Max 10MB. AI will parse sections automatically.</p>
+
+                                                            {pdfProcessing && (
+                                                                <div className="mt-3 flex items-center text-sm text-blue-600">
+                                                                    <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                    </svg>
+                                                                    {pdfProgress}
+                                                                </div>
+                                                            )}
+
+                                                            {!pdfProcessing && pdfProgress && pdfProgress.startsWith('✓') && (
+                                                                <div className="mt-3 text-sm text-green-600">
+                                                                    {pdfProgress}
+                                                                </div>
+                                                            )}
+
+                                                            {pdfError && (
+                                                                <div className="mt-3 text-sm text-red-600">
+                                                                    ❌ {pdfError}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
