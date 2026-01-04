@@ -152,6 +152,28 @@
             const pdfCanvasRef = useRef(null);
             const pdfDocRef = useRef(null);
 
+            // IndexedDB helper for loading large PDF files
+            const loadPdfFromIndexedDB = async () => {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open('CustomPdfDB', 1);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        const db = request.result;
+                        const transaction = db.transaction(['pdfs'], 'readonly');
+                        const store = transaction.objectStore('pdfs');
+                        const getRequest = store.get('customPdf');
+                        getRequest.onerror = () => reject(getRequest.error);
+                        getRequest.onsuccess = () => resolve(getRequest.result);
+                    };
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains('pdfs')) {
+                            db.createObjectStore('pdfs', { keyPath: 'id' });
+                        }
+                    };
+                });
+            };
+
             // Focus state (for with_llm conditions)
             // 'reading' = paper panel, 'chat' = LLM chat (condition 2), or for condition 3: 'chat'/'audio'/'infographics'/'simplified'/'video'/'quiz'
             const [activeFocus, setActiveFocus] = useState('reading');
@@ -459,24 +481,31 @@
             useEffect(() => {
                 if (!currentPaper) return;
 
-                // Check for custom uploaded paper (stored in sessionStorage)
+                // Check for custom uploaded paper (stored in IndexedDB)
                 if (currentPaper === 'custom') {
-                    const pdfBase64 = sessionStorage.getItem('customPdfBase64');
-                    const pdfTitle = sessionStorage.getItem('customPaperTitle');
-                    const pdfSections = sessionStorage.getItem('customPaperSections');
-                    const pdfNumPages = sessionStorage.getItem('customPdfNumPages');
+                    const hasCustomPdf = sessionStorage.getItem('hasCustomPdf');
 
-                    if (pdfBase64) {
-                        setIsCustomPdf(true);
-                        setCustomPdfData({
-                            base64: pdfBase64,
-                            title: pdfTitle || 'Custom Paper',
-                            sections: pdfSections ? JSON.parse(pdfSections) : [],
-                            numPages: parseInt(pdfNumPages) || 1
+                    if (hasCustomPdf) {
+                        // Load from IndexedDB
+                        loadPdfFromIndexedDB().then(pdfData => {
+                            if (pdfData) {
+                                setIsCustomPdf(true);
+                                setCustomPdfData({
+                                    base64: pdfData.base64,
+                                    title: pdfData.title || 'Custom Paper',
+                                    sections: pdfData.sections || [],
+                                    numPages: pdfData.numPages || 1
+                                });
+                                // No pre-made quiz for custom papers
+                                setQuizQuestions([]);
+                                console.log('📄 Loaded custom PDF from IndexedDB');
+                            } else {
+                                setPaperContent('<p>No custom paper content found. Please upload a PDF.</p>');
+                            }
+                        }).catch(err => {
+                            console.error('Error loading PDF from IndexedDB:', err);
+                            setPaperContent('<p>Error loading custom paper. Please try uploading again.</p>');
                         });
-                        // No pre-made quiz for custom papers
-                        setQuizQuestions([]);
-                        console.log('📄 Loaded custom PDF from sessionStorage');
                         return;
                     } else {
                         setPaperContent('<p>No custom paper content found. Please upload a PDF.</p>');

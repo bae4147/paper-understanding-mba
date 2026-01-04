@@ -73,6 +73,32 @@
 
             const papers = typeof AVAILABLE_PAPERS !== 'undefined' ? AVAILABLE_PAPERS : [];
 
+            // IndexedDB helper for storing large PDF files
+            const openPdfDatabase = () => {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open('CustomPdfDB', 1);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains('pdfs')) {
+                            db.createObjectStore('pdfs', { keyPath: 'id' });
+                        }
+                    };
+                });
+            };
+
+            const savePdfToIndexedDB = async (pdfData) => {
+                const db = await openPdfDatabase();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(['pdfs'], 'readwrite');
+                    const store = transaction.objectStore('pdfs');
+                    const request = store.put({ id: 'customPdf', ...pdfData });
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve();
+                });
+            };
+
             // PDF text extraction using PDF.js
             const extractTextFromPdf = async (file) => {
                 const arrayBuffer = await file.arrayBuffer();
@@ -224,12 +250,20 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
                     const sections = await parseSectionsWithGpt(fullText, numPages);
                     console.log(`Identified ${sections.length} sections:`, sections.map(s => s.sectionName));
 
-                    // Step 4: Store in sessionStorage
+                    // Step 4: Store in IndexedDB (large file) and sessionStorage (metadata)
                     const paperTitle = file.name.replace('.pdf', '');
-                    sessionStorage.setItem('customPdfBase64', base64);
+
+                    // Store large PDF data in IndexedDB
+                    await savePdfToIndexedDB({
+                        base64: base64,
+                        title: paperTitle,
+                        sections: sections,
+                        numPages: numPages
+                    });
+
+                    // Store flag in sessionStorage to indicate custom PDF exists
+                    sessionStorage.setItem('hasCustomPdf', 'true');
                     sessionStorage.setItem('customPaperTitle', paperTitle);
-                    sessionStorage.setItem('customPaperSections', JSON.stringify(sections));
-                    sessionStorage.setItem('customPdfNumPages', numPages.toString());
 
                     // Set paper to custom
                     setCurrentPaper('custom');
