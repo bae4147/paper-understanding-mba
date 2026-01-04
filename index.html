@@ -549,11 +549,16 @@
                 }
             }, [currentPaper]);
 
-            // Load and render PDF when customPdfData changes
+            // State for rendered PDF pages
+            const [pdfRenderedPages, setPdfRenderedPages] = useState([]);
+            const pdfContainerScrollRef = useRef(null);
+            const pageRefs = useRef([]);
+
+            // Load and render ALL PDF pages when customPdfData changes
             useEffect(() => {
                 if (!isCustomPdf || !customPdfData) return;
 
-                const loadPdf = async () => {
+                const loadAndRenderAllPages = async () => {
                     try {
                         // Convert base64 to Uint8Array
                         const binaryString = atob(customPdfData.base64);
@@ -567,62 +572,98 @@
                         pdfDocRef.current = pdf;
                         console.log(`📄 PDF loaded: ${pdf.numPages} pages`);
 
-                        // Render first page
-                        renderPdfPage(1);
+                        // Render all pages with high quality
+                        const pages = [];
+                        const devicePixelRatio = window.devicePixelRatio || 1;
+                        const qualityScale = 2; // Higher scale for better quality
+
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            const viewport = page.getViewport({ scale: qualityScale * devicePixelRatio });
+
+                            // Create canvas for this page
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+
+                            await page.render({
+                                canvasContext: context,
+                                viewport: viewport
+                            }).promise;
+
+                            // Convert to data URL for display
+                            pages.push({
+                                pageNum,
+                                dataUrl: canvas.toDataURL('image/png'),
+                                width: viewport.width / (qualityScale * devicePixelRatio),
+                                height: viewport.height / (qualityScale * devicePixelRatio)
+                            });
+
+                            console.log(`📄 Rendered page ${pageNum}/${pdf.numPages}`);
+                        }
+
+                        setPdfRenderedPages(pages);
+                        pageRefs.current = new Array(pdf.numPages).fill(null);
                     } catch (error) {
                         console.error('Error loading PDF:', error);
                     }
                 };
 
-                loadPdf();
+                loadAndRenderAllPages();
             }, [isCustomPdf, customPdfData]);
 
-            // Render a specific PDF page
-            const renderPdfPage = async (pageNum) => {
-                if (!pdfDocRef.current) return;
+            // Track current page based on scroll position
+            const handlePdfScroll = () => {
+                if (pageRefs.current.length === 0) return;
 
-                const pdf = pdfDocRef.current;
-                const page = await pdf.getPage(pageNum);
+                // Use whichever container ref is available
+                const container = pdfContainerScrollRef.current || pdfContainerRef.current;
+                if (!container) return;
+                const scrollTop = container.scrollTop;
+                const containerHeight = container.clientHeight;
 
-                const canvas = pdfCanvasRef.current;
-                if (!canvas) return;
+                // Find which page is most visible
+                let currentPage = 1;
+                for (let i = 0; i < pageRefs.current.length; i++) {
+                    const pageEl = pageRefs.current[i];
+                    if (pageEl) {
+                        const rect = pageEl.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        const pageTop = rect.top - containerRect.top;
 
-                const context = canvas.getContext('2d');
-                const containerWidth = canvas.parentElement?.clientWidth || 800;
-                const scale = containerWidth / page.getViewport({ scale: 1 }).width;
-                const viewport = page.getViewport({ scale: Math.min(scale, 2) }); // Max scale 2 for quality
+                        if (pageTop < containerHeight / 2) {
+                            currentPage = i + 1;
+                        }
+                    }
+                }
 
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+                if (currentPage !== pdfCurrentPage) {
+                    setPdfCurrentPage(currentPage);
 
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-
-                setPdfCurrentPage(pageNum);
-
-                // Update current section based on page
-                if (customPdfData?.sections) {
-                    const section = customPdfData.sections.find(s =>
-                        pageNum >= s.startPage && pageNum <= s.endPage
-                    );
-                    if (section) {
-                        setCurrentSection(section.sectionName);
+                    // Update current section based on page
+                    if (customPdfData?.sections) {
+                        const section = customPdfData.sections.find(s =>
+                            currentPage >= s.startPage && currentPage <= s.endPage
+                        );
+                        if (section && section.sectionName !== currentSection) {
+                            setCurrentSection(section.sectionName);
+                        }
                     }
                 }
             };
 
-            // PDF navigation functions
-            const goToPdfPage = (pageNum) => {
-                if (!pdfDocRef.current) return;
-                const totalPages = pdfDocRef.current.numPages;
-                const targetPage = Math.max(1, Math.min(pageNum, totalPages));
-                renderPdfPage(targetPage);
+            // Scroll to specific page
+            const scrollToPdfPage = (pageNum) => {
+                const pageEl = pageRefs.current[pageNum - 1];
+                if (pageEl && pdfContainerScrollRef.current) {
+                    pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             };
 
-            const nextPdfPage = () => goToPdfPage(pdfCurrentPage + 1);
-            const prevPdfPage = () => goToPdfPage(pdfCurrentPage - 1);
+            const nextPdfPage = () => scrollToPdfPage(Math.min(pdfCurrentPage + 1, pdfRenderedPages.length));
+            const prevPdfPage = () => scrollToPdfPage(Math.max(pdfCurrentPage - 1, 1));
 
             // Extract text from PDF pages (for Socratic questions)
             const extractPdfPageText = async (startPage, endPage) => {
@@ -1362,6 +1403,11 @@
                 const scrollY = e.target.scrollTop;
                 const viewportHeight = e.target.clientHeight;
                 setScrollPosition(scrollY);
+
+                // For custom PDF, also track page based on scroll
+                if (isCustomPdf && pageRefs.current.length > 0) {
+                    handlePdfScroll();
+                }
 
                 const newSection = getCurrentSection(scrollY, viewportHeight);
                 if (newSection !== currentSection) {
@@ -2799,48 +2845,41 @@ Provide constructive feedback to help the reader think more critically about thi
                                         /* Socratic condition: paper centered with fixed right panel */
                                         <div className="flex h-full">
                                             {/* Paper - centered like without_llm */}
-                                            <div className="flex-1 overflow-y-auto">
+                                            <div
+                                                ref={isCustomPdf ? pdfContainerScrollRef : null}
+                                                onScroll={isCustomPdf ? handlePdfScroll : undefined}
+                                                className="flex-1 overflow-y-auto"
+                                            >
                                                 {isCustomPdf ? (
-                                                    /* Custom PDF: Show PDF viewer with page navigation */
+                                                    /* Custom PDF: Vertical scroll through all pages */
                                                     <div className="w-full max-w-[900px] mx-auto p-6">
-                                                        {/* PDF Navigation Controls */}
-                                                        <div className="flex items-center justify-between mb-4 bg-gray-100 rounded-lg p-3">
-                                                            <button
-                                                                onClick={prevPdfPage}
-                                                                disabled={pdfCurrentPage <= 1}
-                                                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                ← Previous
-                                                            </button>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-gray-600">Page</span>
-                                                                <input
-                                                                    type="number"
-                                                                    value={pdfCurrentPage}
-                                                                    onChange={(e) => goToPdfPage(parseInt(e.target.value) || 1)}
-                                                                    min={1}
-                                                                    max={pdfDocRef.current?.numPages || 1}
-                                                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
-                                                                />
-                                                                <span className="text-gray-600">of {pdfDocRef.current?.numPages || '?'}</span>
-                                                            </div>
-                                                            <button
-                                                                onClick={nextPdfPage}
-                                                                disabled={pdfCurrentPage >= (pdfDocRef.current?.numPages || 1)}
-                                                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                Next →
-                                                            </button>
+                                                        {/* Page indicator - sticky header */}
+                                                        <div className="sticky top-0 z-10 mb-4 px-4 py-2 bg-gray-800 text-white rounded-lg text-center font-medium shadow-lg">
+                                                            Page {pdfCurrentPage} of {pdfRenderedPages.length || '...'} {currentSection && `• ${currentSection}`}
                                                         </div>
-                                                        {/* Current Section Indicator */}
-                                                        {currentSection && (
-                                                            <div className="mb-4 px-4 py-2 bg-purple-100 text-purple-800 rounded-lg text-center font-medium">
-                                                                📖 {currentSection}
+                                                        {/* Loading state */}
+                                                        {pdfRenderedPages.length === 0 && (
+                                                            <div className="flex flex-col items-center justify-center py-20">
+                                                                <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+                                                                <p className="text-gray-600">Rendering PDF pages...</p>
                                                             </div>
                                                         )}
-                                                        {/* PDF Canvas */}
-                                                        <div className="flex justify-center bg-gray-50 rounded-lg p-4 shadow-inner">
-                                                            <canvas ref={pdfCanvasRef} className="max-w-full shadow-lg" />
+                                                        {/* All PDF pages */}
+                                                        <div className="space-y-4">
+                                                            {pdfRenderedPages.map((page, idx) => (
+                                                                <div
+                                                                    key={page.pageNum}
+                                                                    ref={el => pageRefs.current[idx] = el}
+                                                                    className="bg-white shadow-lg rounded-lg overflow-hidden"
+                                                                >
+                                                                    <img
+                                                                        src={page.dataUrl}
+                                                                        alt={`Page ${page.pageNum}`}
+                                                                        className="w-full h-auto"
+                                                                        style={{ maxWidth: '100%' }}
+                                                                    />
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -3060,46 +3099,35 @@ Provide constructive feedback to help the reader think more critically about thi
                                     ) : (
                                         /* Other conditions: centered paper */
                                         isCustomPdf ? (
-                                            /* Custom PDF viewer for non-Socratic conditions */
+                                            /* Custom PDF viewer for non-Socratic conditions - vertical scroll */
                                             <div className="w-full max-w-[900px] mx-auto p-6">
-                                                {/* PDF Navigation Controls */}
-                                                <div className="flex items-center justify-between mb-4 bg-gray-100 rounded-lg p-3">
-                                                    <button
-                                                        onClick={prevPdfPage}
-                                                        disabled={pdfCurrentPage <= 1}
-                                                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        ← Previous
-                                                    </button>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-gray-600">Page</span>
-                                                        <input
-                                                            type="number"
-                                                            value={pdfCurrentPage}
-                                                            onChange={(e) => goToPdfPage(parseInt(e.target.value) || 1)}
-                                                            min={1}
-                                                            max={pdfDocRef.current?.numPages || 1}
-                                                            className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
-                                                        />
-                                                        <span className="text-gray-600">of {pdfDocRef.current?.numPages || '?'}</span>
-                                                    </div>
-                                                    <button
-                                                        onClick={nextPdfPage}
-                                                        disabled={pdfCurrentPage >= (pdfDocRef.current?.numPages || 1)}
-                                                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        Next →
-                                                    </button>
+                                                {/* Page indicator - sticky header */}
+                                                <div className="sticky top-0 z-10 mb-4 px-4 py-2 bg-gray-800 text-white rounded-lg text-center font-medium shadow-lg">
+                                                    Page {pdfCurrentPage} of {pdfRenderedPages.length || '...'} {currentSection && `• ${currentSection}`}
                                                 </div>
-                                                {/* Current Section Indicator */}
-                                                {currentSection && (
-                                                    <div className="mb-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-center font-medium">
-                                                        📖 {currentSection}
+                                                {/* Loading state */}
+                                                {pdfRenderedPages.length === 0 && (
+                                                    <div className="flex flex-col items-center justify-center py-20">
+                                                        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                                                        <p className="text-gray-600">Rendering PDF pages...</p>
                                                     </div>
                                                 )}
-                                                {/* PDF Canvas */}
-                                                <div className="flex justify-center bg-gray-50 rounded-lg p-4 shadow-inner">
-                                                    <canvas ref={pdfCanvasRef} className="max-w-full shadow-lg" />
+                                                {/* All PDF pages */}
+                                                <div className="space-y-4">
+                                                    {pdfRenderedPages.map((page, idx) => (
+                                                        <div
+                                                            key={page.pageNum}
+                                                            ref={el => pageRefs.current[idx] = el}
+                                                            className="bg-white shadow-lg rounded-lg overflow-hidden"
+                                                        >
+                                                            <img
+                                                                src={page.dataUrl}
+                                                                alt={`Page ${page.pageNum}`}
+                                                                className="w-full h-auto"
+                                                                style={{ maxWidth: '100%' }}
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ) : (
