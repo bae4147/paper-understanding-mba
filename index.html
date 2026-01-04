@@ -145,6 +145,13 @@
             const [readingActive, setReadingActive] = useState(false);
             const [paperContent, setPaperContent] = useState('');
 
+            // Custom PDF state
+            const [isCustomPdf, setIsCustomPdf] = useState(false);
+            const [customPdfData, setCustomPdfData] = useState(null); // {base64, title, sections, numPages}
+            const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+            const pdfCanvasRef = useRef(null);
+            const pdfDocRef = useRef(null);
+
             // Focus state (for with_llm conditions)
             // 'reading' = paper panel, 'chat' = LLM chat (condition 2), or for condition 3: 'chat'/'audio'/'infographics'/'simplified'/'video'/'quiz'
             const [activeFocus, setActiveFocus] = useState('reading');
@@ -454,18 +461,32 @@
 
                 // Check for custom uploaded paper (stored in sessionStorage)
                 if (currentPaper === 'custom') {
-                    const customContent = sessionStorage.getItem('customPaperContent');
-                    if (customContent) {
-                        setPaperContent(customContent);
+                    const pdfBase64 = sessionStorage.getItem('customPdfBase64');
+                    const pdfTitle = sessionStorage.getItem('customPaperTitle');
+                    const pdfSections = sessionStorage.getItem('customPaperSections');
+                    const pdfNumPages = sessionStorage.getItem('customPdfNumPages');
+
+                    if (pdfBase64) {
+                        setIsCustomPdf(true);
+                        setCustomPdfData({
+                            base64: pdfBase64,
+                            title: pdfTitle || 'Custom Paper',
+                            sections: pdfSections ? JSON.parse(pdfSections) : [],
+                            numPages: parseInt(pdfNumPages) || 1
+                        });
                         // No pre-made quiz for custom papers
                         setQuizQuestions([]);
-                        console.log('📄 Loaded custom PDF paper from sessionStorage');
+                        console.log('📄 Loaded custom PDF from sessionStorage');
                         return;
                     } else {
                         setPaperContent('<p>No custom paper content found. Please upload a PDF.</p>');
                         return;
                     }
                 }
+
+                // Regular paper loading
+                setIsCustomPdf(false);
+                setCustomPdfData(null);
 
                 const paper = papers.find(p => p.id === currentPaper);
                 if (paper && paper.url) {
@@ -498,6 +519,95 @@
                         .catch(() => {});
                 }
             }, [currentPaper]);
+
+            // Load and render PDF when customPdfData changes
+            useEffect(() => {
+                if (!isCustomPdf || !customPdfData) return;
+
+                const loadPdf = async () => {
+                    try {
+                        // Convert base64 to Uint8Array
+                        const binaryString = atob(customPdfData.base64);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+
+                        // Load PDF document
+                        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+                        pdfDocRef.current = pdf;
+                        console.log(`📄 PDF loaded: ${pdf.numPages} pages`);
+
+                        // Render first page
+                        renderPdfPage(1);
+                    } catch (error) {
+                        console.error('Error loading PDF:', error);
+                    }
+                };
+
+                loadPdf();
+            }, [isCustomPdf, customPdfData]);
+
+            // Render a specific PDF page
+            const renderPdfPage = async (pageNum) => {
+                if (!pdfDocRef.current) return;
+
+                const pdf = pdfDocRef.current;
+                const page = await pdf.getPage(pageNum);
+
+                const canvas = pdfCanvasRef.current;
+                if (!canvas) return;
+
+                const context = canvas.getContext('2d');
+                const containerWidth = canvas.parentElement?.clientWidth || 800;
+                const scale = containerWidth / page.getViewport({ scale: 1 }).width;
+                const viewport = page.getViewport({ scale: Math.min(scale, 2) }); // Max scale 2 for quality
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                setPdfCurrentPage(pageNum);
+
+                // Update current section based on page
+                if (customPdfData?.sections) {
+                    const section = customPdfData.sections.find(s =>
+                        pageNum >= s.startPage && pageNum <= s.endPage
+                    );
+                    if (section) {
+                        setCurrentSection(section.sectionName);
+                    }
+                }
+            };
+
+            // PDF navigation functions
+            const goToPdfPage = (pageNum) => {
+                if (!pdfDocRef.current) return;
+                const totalPages = pdfDocRef.current.numPages;
+                const targetPage = Math.max(1, Math.min(pageNum, totalPages));
+                renderPdfPage(targetPage);
+            };
+
+            const nextPdfPage = () => goToPdfPage(pdfCurrentPage + 1);
+            const prevPdfPage = () => goToPdfPage(pdfCurrentPage - 1);
+
+            // Extract text from PDF pages (for Socratic questions)
+            const extractPdfPageText = async (startPage, endPage) => {
+                if (!pdfDocRef.current) return '';
+
+                let text = '';
+                for (let i = startPage; i <= endPage; i++) {
+                    const page = await pdfDocRef.current.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    text += pageText + '\n\n';
+                }
+                return text.trim();
+            };
 
             // Expose current phase to window for feedback widget
             useEffect(() => {
@@ -1415,13 +1525,24 @@ Use markdown formatting for better readability:
                 console.log('🔵 [Socratic] Category:', category);
 
                 // Get section content from the paper
-                const sectionElement = document.querySelector(`[data-section="${sectionName}"]`);
                 let sectionContent = '';
-                if (sectionElement) {
-                    let currentEl = sectionElement;
-                    while (currentEl.nextElementSibling && !currentEl.nextElementSibling.hasAttribute('data-section')) {
-                        currentEl = currentEl.nextElementSibling;
-                        sectionContent += currentEl.textContent + '\n';
+
+                if (isCustomPdf && customPdfData?.sections) {
+                    // Custom PDF: Extract text from page range
+                    const section = customPdfData.sections.find(s => s.sectionName === sectionName);
+                    if (section) {
+                        sectionContent = await extractPdfPageText(section.startPage, section.endPage);
+                        console.log('🔵 [Socratic] Extracted PDF text for pages', section.startPage, '-', section.endPage);
+                    }
+                } else {
+                    // HTML paper: Get from DOM
+                    const sectionElement = document.querySelector(`[data-section="${sectionName}"]`);
+                    if (sectionElement) {
+                        let currentEl = sectionElement;
+                        while (currentEl.nextElementSibling && !currentEl.nextElementSibling.hasAttribute('data-section')) {
+                            currentEl = currentEl.nextElementSibling;
+                            sectionContent += currentEl.textContent + '\n';
+                        }
                     }
                 }
 
@@ -2650,13 +2771,59 @@ Provide constructive feedback to help the reader think more critically about thi
                                         <div className="flex h-full">
                                             {/* Paper - centered like without_llm */}
                                             <div className="flex-1 overflow-y-auto">
-                                                <div className="w-full max-w-[900px] mx-auto p-12">
-                                                    <div
-                                                        id="paper-content"
-                                                        className="prose max-w-none"
-                                                        dangerouslySetInnerHTML={{ __html: paperContent || '<p>Loading paper...</p>' }}
-                                                    />
-                                                </div>
+                                                {isCustomPdf ? (
+                                                    /* Custom PDF: Show PDF viewer with page navigation */
+                                                    <div className="w-full max-w-[900px] mx-auto p-6">
+                                                        {/* PDF Navigation Controls */}
+                                                        <div className="flex items-center justify-between mb-4 bg-gray-100 rounded-lg p-3">
+                                                            <button
+                                                                onClick={prevPdfPage}
+                                                                disabled={pdfCurrentPage <= 1}
+                                                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                ← Previous
+                                                            </button>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-gray-600">Page</span>
+                                                                <input
+                                                                    type="number"
+                                                                    value={pdfCurrentPage}
+                                                                    onChange={(e) => goToPdfPage(parseInt(e.target.value) || 1)}
+                                                                    min={1}
+                                                                    max={pdfDocRef.current?.numPages || 1}
+                                                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                                                />
+                                                                <span className="text-gray-600">of {pdfDocRef.current?.numPages || '?'}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={nextPdfPage}
+                                                                disabled={pdfCurrentPage >= (pdfDocRef.current?.numPages || 1)}
+                                                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                Next →
+                                                            </button>
+                                                        </div>
+                                                        {/* Current Section Indicator */}
+                                                        {currentSection && (
+                                                            <div className="mb-4 px-4 py-2 bg-purple-100 text-purple-800 rounded-lg text-center font-medium">
+                                                                📖 {currentSection}
+                                                            </div>
+                                                        )}
+                                                        {/* PDF Canvas */}
+                                                        <div className="flex justify-center bg-gray-50 rounded-lg p-4 shadow-inner">
+                                                            <canvas ref={pdfCanvasRef} className="max-w-full shadow-lg" />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    /* Standard HTML paper content */
+                                                    <div className="w-full max-w-[900px] mx-auto p-12">
+                                                        <div
+                                                            id="paper-content"
+                                                            className="prose max-w-none"
+                                                            dangerouslySetInnerHTML={{ __html: paperContent || '<p>Loading paper...</p>' }}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                             {/* Right panel for Socratic questions - fixed width */}
                                             <div className="w-[400px] flex-shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
@@ -2816,6 +2983,41 @@ Provide constructive feedback to help the reader think more critically about thi
                                                             <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
                                                             <p className="text-gray-600">Generating question...</p>
                                                         </div>
+                                                    ) : isCustomPdf && customPdfData?.sections ? (
+                                                        /* Custom PDF: Show section list to select */
+                                                        <div className="space-y-4">
+                                                            <p className="text-sm text-gray-600 mb-4">Select a section to generate a critical thinking question:</p>
+                                                            <div className="space-y-2">
+                                                                {customPdfData.sections.map((section, idx) => (
+                                                                    <button
+                                                                        key={idx}
+                                                                        onClick={() => {
+                                                                            setSocraticActiveSection(section.sectionName);
+                                                                            setSocraticShowCategorySelector(true);
+                                                                            goToPdfPage(section.startPage);
+                                                                        }}
+                                                                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                                                                            socraticQuestions[section.sectionName]
+                                                                                ? 'bg-green-50 border-green-300 hover:bg-green-100'
+                                                                                : 'bg-gray-50 border-gray-200 hover:bg-purple-50 hover:border-purple-300'
+                                                                        }`}
+                                                                    >
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="font-medium text-gray-800">{section.sectionName}</span>
+                                                                            <span className="text-xs text-gray-500">p.{section.startPage}-{section.endPage}</span>
+                                                                        </div>
+                                                                        {section.summary && (
+                                                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{section.summary}</p>
+                                                                        )}
+                                                                        {socraticQuestions[section.sectionName] && (
+                                                                            <span className="inline-block mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                                                                ✓ Question answered
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     ) : (
                                                         <div className="flex flex-col items-center justify-center h-full text-center">
                                                             <div className="text-5xl mb-4">🤔</div>
@@ -2828,13 +3030,59 @@ Provide constructive feedback to help the reader think more critically about thi
                                         </div>
                                     ) : (
                                         /* Other conditions: centered paper */
-                                        <div className="w-full max-w-[900px] mx-auto p-12">
-                                            <div
-                                                id="paper-content"
-                                                className="prose max-w-none"
-                                                dangerouslySetInnerHTML={{ __html: paperContent || '<p>Loading paper...</p>' }}
-                                            />
-                                        </div>
+                                        isCustomPdf ? (
+                                            /* Custom PDF viewer for non-Socratic conditions */
+                                            <div className="w-full max-w-[900px] mx-auto p-6">
+                                                {/* PDF Navigation Controls */}
+                                                <div className="flex items-center justify-between mb-4 bg-gray-100 rounded-lg p-3">
+                                                    <button
+                                                        onClick={prevPdfPage}
+                                                        disabled={pdfCurrentPage <= 1}
+                                                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        ← Previous
+                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-600">Page</span>
+                                                        <input
+                                                            type="number"
+                                                            value={pdfCurrentPage}
+                                                            onChange={(e) => goToPdfPage(parseInt(e.target.value) || 1)}
+                                                            min={1}
+                                                            max={pdfDocRef.current?.numPages || 1}
+                                                            className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                                        />
+                                                        <span className="text-gray-600">of {pdfDocRef.current?.numPages || '?'}</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={nextPdfPage}
+                                                        disabled={pdfCurrentPage >= (pdfDocRef.current?.numPages || 1)}
+                                                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        Next →
+                                                    </button>
+                                                </div>
+                                                {/* Current Section Indicator */}
+                                                {currentSection && (
+                                                    <div className="mb-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-center font-medium">
+                                                        📖 {currentSection}
+                                                    </div>
+                                                )}
+                                                {/* PDF Canvas */}
+                                                <div className="flex justify-center bg-gray-50 rounded-lg p-4 shadow-inner">
+                                                    <canvas ref={pdfCanvasRef} className="max-w-full shadow-lg" />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            /* Standard HTML paper content */
+                                            <div className="w-full max-w-[900px] mx-auto p-12">
+                                                <div
+                                                    id="paper-content"
+                                                    className="prose max-w-none"
+                                                    dangerouslySetInnerHTML={{ __html: paperContent || '<p>Loading paper...</p>' }}
+                                                />
+                                            </div>
+                                        )
                                     )}
                                 </div>
                             </div>
