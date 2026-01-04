@@ -24,29 +24,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject API Key into index.html
+      - name: Inject API Keys
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: |
-          echo "Before injection:"
-          grep "const apiKey" index.html || echo "Pattern not found"
+          echo "Injecting API keys into all files..."
 
-          # Use awk for safe replacement with special characters
-          awk -v key="$OPENAI_API_KEY" '{gsub(/__OPENAI_API_KEY__/, key); print}' index.html > index.html.tmp && mv index.html.tmp index.html
+          # List of files to process
+          FILES="index.html pre-task.html post-task.html post-study-survey.html landing.html consent.html admin.html feedback-widget.js"
 
-          echo "After injection:"
-          grep "const apiKey" index.html || echo "Pattern not found"
-          echo "✅ API key injected into index.html"
+          for file in $FILES; do
+            if [ -f "$file" ]; then
+              echo "Processing $file..."
+              # Replace OpenAI API key
+              awk -v key="$OPENAI_API_KEY" '{gsub(/__OPENAI_API_KEY__/, key); print}' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+              # Replace Firebase API key
+              awk -v key="$FIREBASE_API_KEY" '{gsub(/__FIREBASE_API_KEY__/, key); print}' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+              echo "✅ $file processed"
+            fi
+          done
 
       - name: Verify injection
         run: |
-          if grep -q "__OPENAI_API_KEY__" index.html; then
-            echo "❌ ERROR: API key placeholder still exists!"
-            grep -n "__OPENAI_API_KEY__" index.html
-            exit 1
-          else
-            echo "✅ API key placeholder replaced successfully"
-          fi
+          echo "Verifying API key placeholders are replaced..."
+
+          FILES="index.html pre-task.html post-task.html post-study-survey.html landing.html consent.html admin.html feedback-widget.js"
+
+          for file in $FILES; do
+            if [ -f "$file" ]; then
+              if grep -q "__OPENAI_API_KEY__\|__FIREBASE_API_KEY__" "$file"; then
+                echo "❌ ERROR: API key placeholder still exists in $file!"
+                grep -n "__OPENAI_API_KEY__\|__FIREBASE_API_KEY__" "$file"
+                exit 1
+              else
+                echo "✅ $file - all placeholders replaced"
+              fi
+            fi
+          done
+
+          echo "✅ All API key placeholders replaced successfully"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

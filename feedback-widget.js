@@ -6,7 +6,7 @@
     return; // Widget disabled
     // Firebase config (same as other pages)
     const firebaseConfig = {
-        apiKey: "AIzaSyClsZXLxKOXjUtB5loTfz0__GpJ8AQYEas",
+        apiKey: "__FIREBASE_API_KEY__",
         authDomain: "aom-paper-understanding.firebaseapp.com",
         projectId: "aom-paper-understanding",
         storageBucket: "aom-paper-understanding.firebasestorage.app",
