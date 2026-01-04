@@ -3059,7 +3059,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                                                 {customPdfData.sections
                                                                     .filter(section => {
                                                                         const name = section.sectionName.toLowerCase();
-                                                                        return !name.includes('abstract') && !name.includes('reference');
+                                                                        return !name.includes('abstract') && !name.includes('reference') && !name.includes('acknowledg');
                                                                     })
                                                                     .map((section, idx) => (
                                                                     <button
