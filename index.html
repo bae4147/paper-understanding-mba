@@ -3065,9 +3065,11 @@ Provide constructive feedback to help the reader think more critically about thi
                                                                             goToPdfPage(section.startPage);
                                                                         }}
                                                                         className={`w-full text-left p-3 rounded-lg border transition-all ${
-                                                                            socraticQuestions[section.sectionName]
+                                                                            socraticQuestions[section.sectionName]?.initialAnswer
                                                                                 ? 'bg-green-50 border-green-300 hover:bg-green-100'
-                                                                                : 'bg-gray-50 border-gray-200 hover:bg-purple-50 hover:border-purple-300'
+                                                                                : socraticQuestions[section.sectionName]
+                                                                                    ? 'bg-yellow-50 border-yellow-300 hover:bg-yellow-100'
+                                                                                    : 'bg-gray-50 border-gray-200 hover:bg-purple-50 hover:border-purple-300'
                                                                         }`}
                                                                     >
                                                                         <div className="flex items-center justify-between">
@@ -3077,9 +3079,13 @@ Provide constructive feedback to help the reader think more critically about thi
                                                                         {section.summary && (
                                                                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{section.summary}</p>
                                                                         )}
-                                                                        {socraticQuestions[section.sectionName] && (
+                                                                        {socraticQuestions[section.sectionName]?.initialAnswer ? (
                                                                             <span className="inline-block mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                                                                ✓ Question answered
+                                                                                ✓ Answered
+                                                                            </span>
+                                                                        ) : socraticQuestions[section.sectionName] && (
+                                                                            <span className="inline-block mt-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                                                                                ? Pending answer
                                                                             </span>
                                                                         )}
                                                                     </button>
