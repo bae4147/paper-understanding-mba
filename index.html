@@ -539,7 +539,7 @@
                     const sectionElements = paperContentEl.querySelectorAll('[data-section]');
                     sectionElements.forEach(el => {
                         const sectionName = el.getAttribute('data-section');
-                        if (sectionName === 'References') return;
+                        if (sectionName === 'References' || sectionName === 'Abstract') return;
 
                         const rect = el.getBoundingClientRect();
                         const containerRect = paperContentEl.getBoundingClientRect();
