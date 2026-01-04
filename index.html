@@ -1384,7 +1384,6 @@ Use markdown formatting for better readability:
                 console.log('🔵 [Socratic] Starting question generation...');
                 console.log('🔵 [Socratic] Section:', sectionName);
                 console.log('🔵 [Socratic] Category:', category);
-                console.log('🔵 [Socratic] API Key present:', apiKey !== '__OPENAI_API_KEY__');
 
                 // Get section content from the paper
                 const sectionElement = document.querySelector(`[data-section="${sectionName}"]`);
@@ -1408,25 +1407,8 @@ Use markdown formatting for better readability:
                 try {
                     let generatedQuestion;
 
-                    // Only use mock if API key is not set (placeholder still exists)
-                    if (apiKey === '__OPENAI_API_KEY__') {
-                        console.log('⚠️ [Socratic] Using MOCK questions (no API key)');
-
-                        // Mock questions for testing by category
-                        const mockQuestionsByCategory = {
-                            'CLARIFICATION': `What exactly do the authors mean when they refer to "${sectionName}" in this context?`,
-                            'PROBING_ASSUMPTIONS': `What underlying assumption in this section might need further examination?`,
-                            'PROBING_REASONS': `What evidence or reasoning supports the main claim in this section?`,
-                            'PROBING_IMPLICATIONS': `If the claims in this section are true, what consequences might follow?`,
-                            'PROBING_ALTERNATIVES': `What alternative interpretation or approach might the authors have considered?`
-                        };
-                        generatedQuestion = mockQuestionsByCategory[category] || `What are the key implications of this section?`;
-
-                        // Simulate API delay
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    } else {
-                        console.log('✅ [Socratic] Calling OpenAI API...');
-                        const systemPrompt = `You are an AI assistant trained to generate Socratic questions following an educational taxonomy.
+                    console.log('✅ [Socratic] Calling OpenAI API...');
+                    const systemPrompt = `You are an AI assistant trained to generate Socratic questions following an educational taxonomy.
 
 A Socratic question:
 - Asks a question only (no explanation or answer)
@@ -1462,39 +1444,38 @@ Rules:
 - Do NOT introduce external knowledge.
 - Use neutral, non-leading language.`;
 
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${apiKey}`
-                            },
-                            body: JSON.stringify({
-                                model: 'gpt-4o-mini',
-                                messages: [
-                                    {
-                                        role: 'system',
-                                        content: systemPrompt
-                                    },
-                                    {
-                                        role: 'user',
-                                        content: `Section:\n${sectionContent}\n\nQuestion Category:\n${category}\n\nSocratic Question:`
-                                    }
-                                ],
-                                max_tokens: 200,
-                                temperature: 0.7
-                            })
-                        });
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o-mini',
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: systemPrompt
+                                },
+                                {
+                                    role: 'user',
+                                    content: `Section:\n${sectionContent}\n\nQuestion Category:\n${category}\n\nSocratic Question:`
+                                }
+                            ],
+                            max_tokens: 200,
+                            temperature: 0.7
+                        })
+                    });
 
-                        if (!response.ok) {
-                            console.error('❌ [Socratic] API request failed:', response.status, response.statusText);
-                            throw new Error(`API request failed: ${response.status}`);
-                        }
-
-                        const data = await response.json();
-                        console.log('✅ [Socratic] API response received:', data);
-                        generatedQuestion = data.choices[0].message.content.trim();
-                        console.log('✅ [Socratic] Generated question:', generatedQuestion);
+                    if (!response.ok) {
+                        console.error('❌ [Socratic] API request failed:', response.status, response.statusText);
+                        throw new Error(`API request failed: ${response.status}`);
                     }
+
+                    const data = await response.json();
+                    console.log('✅ [Socratic] API response received:', data);
+                    generatedQuestion = data.choices[0].message.content.trim();
+                    console.log('✅ [Socratic] Generated question:', generatedQuestion);
 
                     const responseTime = Date.now();
                     console.log('🔵 [Socratic] Total time:', responseTime - requestTime, 'ms');
@@ -1608,27 +1589,19 @@ Rules:
                 try {
                     let feedback;
 
-                    // Only use mock if API key is not set
-                    if (apiKey === '__OPENAI_API_KEY__') {
-                        console.log('⚠️ [Socratic] Using MOCK feedback (no API key)');
-                        feedback = `Good start! You've touched on some important points. However, consider exploring the broader implications more deeply. For instance, how might the authors' perspective on this topic change if applied to different organizational contexts? Also, think about what counterarguments might challenge the authors' main claims. Try to revise your answer with these considerations in mind.`;
-
-                        // Simulate API delay
-                        await new Promise(resolve => setTimeout(resolve, 800));
-                    } else {
-                        console.log('✅ [Socratic] Calling OpenAI API for feedback...');
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${apiKey}`
-                            },
-                            body: JSON.stringify({
-                                model: 'gpt-4o-mini',
-                                messages: [
-                                    {
-                                        role: 'system',
-                                        content: `You are an expert research mentor providing constructive feedback to help junior researchers develop critical thinking skills.
+                    console.log('✅ [Socratic] Calling OpenAI API for feedback...');
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o-mini',
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: `You are an expert research mentor providing constructive feedback to help junior researchers develop critical thinking skills.
 
 Your task is to evaluate a reader's answer to a critical thinking question about an academic paper section and provide helpful feedback.
 
@@ -1640,10 +1613,10 @@ Your feedback should:
 5. Be concise (3-5 sentences)
 
 Focus on helping the reader develop their analytical skills, not just giving them the "correct" answer. Ask follow-up questions or suggest alternative perspectives they might consider.`
-                                    },
-                                    {
-                                        role: 'user',
-                                        content: `Section: ${socraticActiveSection}
+                                },
+                                {
+                                    role: 'user',
+                                    content: `Section: ${socraticActiveSection}
 
 Section Content:
 ${sectionContent}
@@ -1653,20 +1626,21 @@ Critical Thinking Question: ${sectionData.question}
 Reader's Answer: ${currentAnswer}
 
 Provide constructive feedback to help the reader think more critically about this question.`
-                                    }
-                                ],
-                                max_tokens: 400,
-                                temperature: 0.7
-                            })
-                        });
+                                }
+                            ],
+                            max_tokens: 400,
+                            temperature: 0.7
+                        })
+                    });
 
-                        if (!response.ok) {
-                            throw new Error('API request failed');
-                        }
-
-                        const data = await response.json();
-                        feedback = data.choices[0].message.content.trim();
+                    if (!response.ok) {
+                        throw new Error('API request failed');
                     }
+
+                    const data = await response.json();
+                    console.log('✅ [Socratic] Feedback received:', data);
+                    feedback = data.choices[0].message.content.trim();
+
                     const responseTime = Date.now();
 
                     setSocraticQuestions(prev => ({
