@@ -1381,6 +1381,11 @@ Use markdown formatting for better readability:
                 const apiKey = '__OPENAI_API_KEY__';
                 const requestTime = Date.now();
 
+                console.log('🔵 [Socratic] Starting question generation...');
+                console.log('🔵 [Socratic] Section:', sectionName);
+                console.log('🔵 [Socratic] Category:', category);
+                console.log('🔵 [Socratic] API Key present:', apiKey !== '__OPENAI_API_KEY__');
+
                 // Get section content from the paper
                 const sectionElement = document.querySelector(`[data-section="${sectionName}"]`);
                 let sectionContent = '';
@@ -1408,6 +1413,10 @@ Use markdown formatting for better readability:
                     let generatedQuestion;
 
                     if (isTestMode || apiKey === '__OPENAI_API_KEY__') {
+                        console.log('⚠️ [Socratic] Using MOCK questions (test mode or no API key)');
+                        console.log('⚠️ [Socratic] isTestMode:', isTestMode);
+                        console.log('⚠️ [Socratic] apiKey placeholder:', apiKey === '__OPENAI_API_KEY__');
+
                         // Mock questions for testing by category
                         const mockQuestionsByCategory = {
                             'CLARIFICATION': `What exactly do the authors mean when they refer to "${sectionName}" in this context?`,
@@ -1421,6 +1430,7 @@ Use markdown formatting for better readability:
                         // Simulate API delay
                         await new Promise(resolve => setTimeout(resolve, 500));
                     } else {
+                        console.log('✅ [Socratic] Calling OpenAI API...');
                         const systemPrompt = `You are an AI assistant trained to generate Socratic questions following an educational taxonomy.
 
 A Socratic question:
@@ -1481,14 +1491,18 @@ Rules:
                         });
 
                         if (!response.ok) {
-                            throw new Error('API request failed');
+                            console.error('❌ [Socratic] API request failed:', response.status, response.statusText);
+                            throw new Error(`API request failed: ${response.status}`);
                         }
 
                         const data = await response.json();
+                        console.log('✅ [Socratic] API response received:', data);
                         generatedQuestion = data.choices[0].message.content.trim();
+                        console.log('✅ [Socratic] Generated question:', generatedQuestion);
                     }
 
                     const responseTime = Date.now();
+                    console.log('🔵 [Socratic] Total time:', responseTime - requestTime, 'ms');
 
                     setSocraticQuestions(prev => ({
                         ...prev,
@@ -2636,18 +2650,18 @@ Provide constructive feedback to help the reader think more critically about thi
                                     className="flex-1 overflow-y-auto p-8"
                                 >
                                     {condition === 'with_socratic' ? (
-                                        /* Socratic condition: paper on left, questions on right margin */
-                                        <div className="flex gap-6 max-w-[1400px] mx-auto">
-                                            {/* Paper content - narrower to make room for margin */}
-                                            <div className="flex-1 max-w-[700px] p-8">
+                                        /* Socratic condition: paper centered, questions panel fixed on right */
+                                        <div className="relative">
+                                            {/* Paper content - centered */}
+                                            <div className="w-full max-w-[800px] mx-auto p-8">
                                                 <div
                                                     id="paper-content"
                                                     className="prose max-w-none"
                                                     dangerouslySetInnerHTML={{ __html: paperContent || '<p>Loading paper...</p>' }}
                                                 />
                                             </div>
-                                            {/* Right margin for Socratic questions */}
-                                            <div className="w-[320px] flex-shrink-0 sticky top-0 h-fit pt-8">
+                                            {/* Right margin for Socratic questions - fixed position */}
+                                            <div className="fixed right-8 top-1/2 transform -translate-y-1/2 w-[340px] z-50">
                                                 {socraticActiveSection && socraticQuestions[socraticActiveSection] ? (
                                                     <div className="bg-white rounded-xl shadow-lg border border-purple-200 overflow-hidden">
                                                         {/* Header */}
