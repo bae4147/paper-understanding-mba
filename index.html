@@ -129,7 +129,7 @@
             const [participantId, setParticipantId] = useState('');
             const [experimentId, setExperimentId] = useState('');
             const [condition, setCondition] = useState('without_llm'); // without_llm, with_llm, with_llm_extended, with_socratic
-            const [currentPaper, setCurrentPaper] = useState('mroz2018'); // Default paper
+            const [currentPaper, setCurrentPaper] = useState(''); // Will be set from URL params
             // Use experimentId as experimentId for consistent data storage
             const [showFinishPopup, setShowFinishPopup] = useState(false);
             const [showAiUsagePopup, setShowAiUsagePopup] = useState(false); // AI usage check popup for without_llm
@@ -439,7 +439,8 @@
                 if (pid) setParticipantId(pid);
                 if (expId) setExperimentId(expId);
                 if (cond) setCondition(cond);
-                if (paper) setCurrentPaper(paper);
+                // Set paper from URL, default to mroz2018 if not custom
+                setCurrentPaper(paper || 'mroz2018');
 
                 // Skip setup phase if coming from landing.html (has experimentId)
                 if (expId) {
