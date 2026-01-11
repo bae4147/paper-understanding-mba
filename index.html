@@ -81,36 +81,45 @@
             </svg>
         );
 
-        // Timer Component
+        // Timer Component - supports both countdown (seconds > 0) and count-up (seconds === 0) modes
         function Timer({ seconds, onComplete, isActive, phase, onTimeUpdate }) {
-            const [timeLeft, setTimeLeft] = useState(seconds);
+            const [time, setTime] = useState(seconds);
+            const isCountUp = seconds === 0;
 
             useEffect(() => {
-                setTimeLeft(seconds);
+                setTime(seconds);
             }, [phase, seconds]);
 
             useEffect(() => {
                 if (!isActive) return;
 
                 const interval = setInterval(() => {
-                    setTimeLeft(prev => {
-                        const newTime = prev - 1;
-                        if (onTimeUpdate) onTimeUpdate(newTime);
-                        if (newTime <= 0) {
-                            clearInterval(interval);
-                            if (onComplete) onComplete();
-                            return 0;
+                    setTime(prev => {
+                        if (isCountUp) {
+                            // Count up mode - elapsed time
+                            const newTime = prev + 1;
+                            if (onTimeUpdate) onTimeUpdate(newTime);
+                            return newTime;
+                        } else {
+                            // Countdown mode
+                            const newTime = prev - 1;
+                            if (onTimeUpdate) onTimeUpdate(newTime);
+                            if (newTime <= 0) {
+                                clearInterval(interval);
+                                if (onComplete) onComplete();
+                                return 0;
+                            }
+                            return newTime;
                         }
-                        return newTime;
                     });
                 }, 1000);
 
                 return () => clearInterval(interval);
-            }, [isActive, onComplete, onTimeUpdate]);
+            }, [isActive, onComplete, onTimeUpdate, isCountUp]);
 
-            const minutes = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
-            const isLowTime = timeLeft < 300;
+            const minutes = Math.floor(time / 60);
+            const secs = time % 60;
+            const isLowTime = !isCountUp && time < 300;
 
             return (
                 <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-mono text-lg ${
@@ -128,15 +137,15 @@
             const [phase, setPhase] = useState('setup'); // setup, reading-guide, reading, quiz-guide, quiz, review-guide, review, complete
             const [participantId, setParticipantId] = useState('');
             const [experimentId, setExperimentId] = useState('');
-            const [condition, setCondition] = useState('without_llm'); // without_llm, with_llm, with_llm_extended, with_socratic
+            const [condition, setCondition] = useState('control'); // control, ebm
             const [currentPaper, setCurrentPaper] = useState(''); // Will be set from URL params
             // Use experimentId as experimentId for consistent data storage
             const [showFinishPopup, setShowFinishPopup] = useState(false);
-            const [showAiUsagePopup, setShowAiUsagePopup] = useState(false); // AI usage check popup for without_llm
+            const [showAiUsagePopup, setShowAiUsagePopup] = useState(false); // Legacy - not used
             const [usedAiDuringReading, setUsedAiDuringReading] = useState(null); // null, 'yes', 'no'
-            const [noAiAgreed, setNoAiAgreed] = useState(false); // For without_llm condition warning
+            const [noAiAgreed, setNoAiAgreed] = useState(false); // Legacy - not used
             const [isRedirecting, setIsRedirecting] = useState(false); // To skip beforeunload during redirect
-            const [readingTimeLeft, setReadingTimeLeft] = useState(20 * 60); // Track remaining time (20 minutes)
+            const [readingTimeLeft, setReadingTimeLeft] = useState(0); // Track elapsed time (count up mode)
 
             // Reading phase state
             const [scrollPosition, setScrollPosition] = useState(0);
@@ -174,13 +183,13 @@
                 });
             };
 
-            // Focus state (for with_llm conditions)
+            // Focus state (for LLM conditions)
             // 'reading' = paper panel, 'chat' = LLM chat (condition 2), or for condition 3: 'chat'/'audio'/'infographics'/'simplified'/'video'/'quiz'
             const [activeFocus, setActiveFocus] = useState('reading');
             const [focusTimes, setFocusTimes] = useState({ reading: 0, chat: 0, audio: 0, infographics: 0, simplified: 0, video: 0, quiz: 0 });
             const focusStartTimeRef = useRef(Date.now());
 
-            // Right panel tab state (for with_llm_extended)
+            // Right panel tab state (for both conditions)
             const [activeTab, setActiveTab] = useState(null); // 'infographics', 'video', 'audio', 'simplified', 'chat', 'quiz' or null for initial state
 
             // Resource state for extended condition
@@ -285,7 +294,7 @@
             const chatMessagesEndRef = useRef(null);
             const textareaRef = useRef(null);
 
-            // Socratic Question state (for with_socratic condition)
+            // Socratic Question state (legacy - not used)
             const [socraticPanelOpen, setSocraticPanelOpen] = useState(false);
             const [socraticActiveSection, setSocraticActiveSection] = useState(null);
             const [socraticQuestions, setSocraticQuestions] = useState({}); // { sectionName: { question, initialAnswer, feedback, revisedAnswer, status, category } }
@@ -844,7 +853,7 @@
 
             // Load resources for extended condition
             useEffect(() => {
-                if (condition === 'with_llm_extended' && currentPaper) {
+                if ((condition === 'control' || condition === 'ebm') && currentPaper) {
                     // Load infographics
                     const infographicPath = `papers_resources/${currentPaper}/infographic.png`;
                     fetch(infographicPath)
@@ -1235,7 +1244,7 @@
                 focusStartTimeRef.current = Date.now();
 
                 // For extended condition: sync activeTab with activeFocus when entering right panel
-                if (condition === 'with_llm_extended' && goingToRightPanel && !wasOnRightPanel) {
+                if ((condition === 'control' || condition === 'ebm') && goingToRightPanel && !wasOnRightPanel) {
                     if (activeTab === null) {
                         setActiveTab(newFocus);
                     }
@@ -1257,7 +1266,7 @@
                 });
 
                 // Update focusTimes for the previous focus
-                if (condition === 'with_llm_extended') {
+                if (condition === 'control' || condition === 'ebm') {
                     const elapsed = now - focusStartTimeRef.current;
                     setFocusTimes(prev => ({
                         ...prev,
@@ -1484,6 +1493,166 @@
                 }
 
                 try {
+                    // Define system prompts based on condition
+                    const controlSystemPrompt = `You are an academic assistant.
+Provide clear, concise explanations, summaries, and direct answers to the user's questions.
+Do not require the user to explain their own reasoning first.
+Focus on efficiency and clarity.
+
+**Paper Content:**
+${paperContent.replace(/<[^>]*>/g, '')}
+
+**FORMAT RULES (for all responses):**
+- Use Markdown formatting for clarity and readability.
+- When providing structured content, use the following conventions:
+  - Headings: use ### for main sections.
+  - Bullet points: use - for lists.
+  - Emphasis: use **bold** for key concepts.
+  - Short paragraphs: avoid long blocks of text.
+- If you provide explanations, organize them as:
+  ### Summary
+  - ...
+  ### Key Points
+  - ...
+  ### Implications (if relevant)
+  - ...
+- Keep responses concise, structured, and easy to scan.
+- Use Korean if the user asks in Korean, English if they ask in English.`;
+
+                    const ebmSystemPrompt = `You are not an answer-giving chatbot.
+You are an Evidence-Based Management (EBM) reasoning coach.
+
+Your primary goal is NOT to provide information directly,
+but to enforce evidence-based thinking by guiding the user through the following cognitive process:
+
+1. Asking – clarify what is being claimed or questioned
+2. Acquiring – identify what evidence is relevant
+3. Appraising – evaluate the quality and relevance of the evidence
+4. Aggregating – consider alternative explanations and integrate multiple perspectives
+5. Applying – translate evidence into context-sensitive decisions
+6. Assessing – reflect on learning and decision quality
+
+**Paper Content:**
+${paperContent.replace(/<[^>]*>/g, '')}
+
+You must follow these rules:
+
+GENERAL RULES:
+- Never provide a direct answer immediately.
+- Always require the user to externalize their own reasoning first.
+- Your responses must be structured as:
+  (1) a thinking prompt to the user,
+  (2) followed by feedback and refinement after the user responds.
+- If the user asks for information, explanations, or summaries, treat it as a request to start the EBM process, not as a request for an immediate answer.
+- If the user resists and asks for "just the answer," request at least one minimal personal judgment (one sentence) before continuing.
+
+---
+
+First, classify the user's input into one of the following six intent types:
+
+TYPE 1 – Understanding / Information Seeking (Asking → Acquiring)
+TYPE 2 – Evidence Location / Evidence Seeking (Acquiring)
+TYPE 3 – Quality / Credibility Evaluation (Appraising)
+TYPE 4 – Synthesis / Alternative Explanations (Aggregating)
+TYPE 5 – Application / Decision Making (Applying)
+TYPE 6 – Reflection / Learning Assessment (Assessing)
+
+---
+
+For each type, you must follow the corresponding interaction policy:
+
+TYPE 1 – Understanding / Information Seeking
+If the user asks for a summary, explanation, or clarification:
+- Ask:
+  "Before I summarize, write one sentence describing what you think the main claim of the paper is."
+- After the user responds:
+  - Point out missing or inaccurate elements
+  - Provide a refined version of the explanation
+  - Ask:
+    "What assumptions must hold for this claim to be valid?"
+
+TYPE 2 – Evidence Location / Evidence Seeking
+If the user asks where evidence is or asks for proof:
+- Ask:
+  "Select or describe one sentence from the paper that you believe serves as evidence."
+- After the user responds:
+  - Confirm or correct the evidence location
+  - Ask:
+    "How strong do you think this evidence is, and why?"
+
+TYPE 3 – Quality / Credibility Evaluation
+If the user asks whether the paper is trustworthy or well designed:
+- Ask:
+  "What two criteria do you think are most important for evaluating this study?"
+- After the user responds:
+  - Evaluate the paper using those criteria
+  - Ask:
+    "What additional evidence would increase your confidence?"
+
+TYPE 4 – Synthesis / Alternative Explanations
+If the user asks about alternative interpretations or future research:
+- Ask:
+  "Propose one alternative explanation for the findings."
+- After the user responds:
+  - Add one or two additional alternatives
+  - Ask:
+    "What kind of evidence would distinguish between these explanations?"
+
+TYPE 5 – Application / Decision Making
+If the user asks how to apply the findings in practice:
+- Ask:
+  "Describe your context in three lines: your organization, your goal, and your constraints."
+- After the user responds:
+  - Check whether the assumptions of the study hold in that context
+  - Provide conditional recommendations using if–then logic
+  - Ask:
+    "What risks or unintended consequences might arise?"
+
+TYPE 6 – Reflection / Learning Assessment
+If the user asks about their learning or confidence:
+- Ask:
+  "How has your understanding changed compared to before reading the paper?"
+- After the user responds:
+  - Highlight key learning shifts
+  - Ask:
+    "What evidence would help you become more confident in your judgment?"
+
+---
+
+Resistance handling:
+If the user insists on getting a direct answer:
+- Respond:
+  "In this mode, you must first write at least one sentence expressing your own judgment. Then I can help refine and evaluate it."
+
+Tone:
+- Calm, professional, and coaching-oriented
+- Never condescending
+- Never give the impression that you are refusing help
+- Emphasize that this interaction is designed to improve decision quality, not speed
+
+Your role is to act as a cognitive scaffold for evidence-based reasoning, not as an information vending machine.
+
+**FORMAT RULES (for all responses):**
+- Use Markdown formatting for clarity and readability.
+- When providing structured content, use the following conventions:
+  - Headings: use ### for main sections.
+  - Bullet points: use - for lists.
+  - Emphasis: use **bold** for key concepts.
+  - Short paragraphs: avoid long blocks of text.
+- If you provide feedback on the user's response, organize it as:
+  ### What You Did Well
+  - ...
+  ### What Needs Improvement
+  - ...
+  ### Refined Version
+  - ...
+  ### Next Question
+  - ...
+- Keep responses concise, structured, and easy to scan.
+- Use Korean if the user asks in Korean, English if they ask in English.`;
+
+                    const systemPrompt = condition === 'ebm' ? ebmSystemPrompt : controlSystemPrompt;
+
                     const response = await fetch('https://api.openai.com/v1/chat/completions', {
                         method: 'POST',
                         headers: {
@@ -1495,26 +1664,7 @@
                             messages: [
                                 {
                                     role: 'system',
-                                    content: `You are an expert research assistant helping a researcher understand an academic paper.
-
-**Paper Content:**
-${paperContent.replace(/<[^>]*>/g, '')}
-
-**Your Role:**
-- Provide clear, accurate, and insightful answers based on the paper
-- Use specific examples and details from the paper when relevant
-- Structure your responses well (use headings, bullet points, numbering when appropriate)
-- If asked to summarize, focus on key contributions, methods, and findings
-- If information is not in the paper, clearly state that
-- Use Korean if the user asks in Korean, English if they ask in English
-- Be concise but thorough - aim for clarity over length
-
-**Response Format:**
-Use markdown formatting for better readability:
-- **Bold** for key terms or important points
-- Bullet points for lists
-- Numbered lists for steps or sequences
-- Code blocks for technical details if needed`
+                                    content: systemPrompt
                                 },
                                 ...messages.map(msg => ({
                                     role: msg.role,
@@ -2248,13 +2398,13 @@ Provide constructive feedback to help the reader think more critically about thi
                             'reading.completedAt': window.firebaseServerTimestamp()
                         };
 
-                        if ((condition === 'with_llm' || condition === 'with_llm_extended') && chatHistory.length > 0) {
+                        if ((condition === 'control' || condition === 'ebm') && chatHistory.length > 0) {
                             updateData['llmInteraction.messages'] = chatHistory;
                             updateData['llmInteraction.totalQueries'] = chatHistory.length;
                         }
 
                         // Save extended condition data
-                        if (condition === 'with_llm_extended') {
+                        if (condition === 'control' || condition === 'ebm') {
                             updateData['extendedResources.resourcesAvailable'] = {
                                 infographics: !!resourceContent.infographics,
                                 video: !!resourceContent.video,
@@ -2290,13 +2440,7 @@ Provide constructive feedback to help the reader think more critically about thi
                             }
                         }
 
-                        // Save Socratic question data
-                        if (condition === 'with_socratic' && Object.keys(socraticQuestions).length > 0) {
-                            updateData['socraticInteraction.questions'] = socraticQuestions;
-                            updateData['socraticInteraction.totalQuestionsGenerated'] = Object.keys(socraticQuestions).length;
-                            updateData['socraticInteraction.questionsAnswered'] = Object.values(socraticQuestions).filter(q => q.initialAnswer).length;
-                            updateData['socraticInteraction.revisedAnswers'] = Object.values(socraticQuestions).filter(q => q.revisedAnswer).length;
-                        }
+                        // Socratic question data saving removed (condition no longer used)
 
                         await window.firebaseUpdateDoc(experimentRef, updateData);
                         console.log('✅ Reading phase data saved');
@@ -2448,7 +2592,7 @@ Provide constructive feedback to help the reader think more critically about thi
                 // Reset all state
                 setPhase('setup');
                 setParticipantId('');
-                setCondition('without_llm');
+                setCondition('control');
                 setCurrentPaper('');
                 setPaperContent('');
                 setMessages([]);
@@ -2498,9 +2642,8 @@ Provide constructive feedback to help the reader think more critically about thi
                                         onChange={(e) => setCondition(e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     >
-                                        <option value="without_llm">Without LLM (Control)</option>
-                                        <option value="with_llm">With LLM</option>
-                                        <option value="with_llm_extended">With LLM + Extended Resources</option>
+                                        <option value="control">Control (Direct Answer LLM)</option>
+                                        <option value="ebm">EBM (Evidence-Based Reasoning Coach)</option>
                                     </select>
                                 </div>
 
@@ -2515,7 +2658,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                                     <p className="text-sm text-gray-700">
                                         <strong>Experiment Structure:</strong><br/>
-                                        1. Reading (20 min)<br/>
+                                        1. Reading (No time limit)<br/>
                                         2. Quiz (5 min)<br/>
                                     </p>
                                 </div>
@@ -2545,29 +2688,10 @@ Provide constructive feedback to help the reader think more critically about thi
 
                                 <div className="bg-gray-50 rounded-lg p-6">
                                     <h3 className="font-bold text-lg text-gray-800 mb-2">Reading Time</h3>
-                                    <p className="text-3xl font-bold text-blue-600">20 min</p>
-                                    <p className="text-base text-gray-600 mt-2">⚠️ You can proceed after the time is up. Please use the full 20 minutes to read the paper.</p>
+                                    <p className="text-3xl font-bold text-blue-600">No time limit</p>
+                                    <p className="text-base text-gray-600 mt-2">Take your time to read and understand the paper thoroughly.</p>
                                 </div>
 
-                                {/* AI Usage Warning for without_llm condition */}
-                                {condition === 'without_llm' && (
-                                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6">
-                                        <p className="text-red-700 mb-4 font-bold">
-                                            ⚠️ You must not use any AI-based tools (e.g., ChatGPT, Claude, and extensions) during this task.
-                                        </p>
-                                        <label className="flex items-start space-x-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={noAiAgreed}
-                                                onChange={(e) => setNoAiAgreed(e.target.checked)}
-                                                className="w-5 h-5 mt-0.5 rounded border-red-300 text-red-600 focus:ring-red-500"
-                                            />
-                                            <span className="text-sm font-medium text-red-800">
-                                                I understand and will not to use any AI tools during this task.
-                                            </span>
-                                        </label>
-                                    </div>
-                                )}
                             </div>
 
                             <button
@@ -2580,12 +2704,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                     focusStartTimeRef.current = now;
                                     logEvent('reading_started');
                                 }}
-                                disabled={condition === 'without_llm' && !noAiAgreed}
-                                className={`w-full px-8 py-4 rounded-lg text-lg font-medium transition-colors ${
-                                    condition === 'without_llm' && !noAiAgreed
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
+                                className="w-full px-8 py-4 rounded-lg text-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                             >
                                 Start Reading →
                             </button>
@@ -2596,8 +2715,8 @@ Provide constructive feedback to help the reader think more critically about thi
 
             // READING PHASE
             if (phase === 'reading') {
-                const showRightPanel = condition === 'with_llm' || condition === 'with_llm_extended';
-                const showSocraticPanel = condition === 'with_socratic';
+                const showRightPanel = condition === 'control' || condition === 'ebm';
+                const showSocraticPanel = false; // Socratic condition removed
 
                 // Socratic Question Icon component
                 const SocraticQuestionIcon = () => (
@@ -2793,36 +2912,19 @@ Provide constructive feedback to help the reader think more critically about thi
                             </div>
                             <div className="flex items-center space-x-4">
                                 <Timer
-                                    seconds={20 * 60}
+                                    seconds={0}
                                     isActive={readingActive}
                                     phase="reading"
                                     onTimeUpdate={(time) => setReadingTimeLeft(time)}
-                                    onComplete={() => {
-                                        // Time's up - show popup and proceed
-                                        setShowFinishPopup(true);
-                                    }}
+                                    onComplete={() => {}}
                                 />
-                                <div className="relative group">
-                                    <button
-                                        onClick={() => setShowFinishPopup(true)}
-                                        disabled={readingTimeLeft > 0}
-                                        className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${
-                                            readingTimeLeft > 0
-                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                : 'bg-green-600 text-white hover:bg-green-700'
-                                        }`}
-                                    >
-                                        <CheckIcon />
-                                        <span>Finish Reading</span>
-                                    </button>
-                                    {readingTimeLeft > 0 && (
-                                        <div className="absolute top-full right-0 mt-2 px-4 py-3 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
-                                            <div className="absolute bottom-full right-4 border-8 border-transparent border-b-gray-800"></div>
-                                            <div className="font-bold mb-1">You cannot proceed during reading time.</div>
-                                            <div className="text-gray-300">Please continue reading the paper for the remaining time.</div>
-                                        </div>
-                                    )}
-                                </div>
+                                <button
+                                    onClick={() => setShowFinishPopup(true)}
+                                    className="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700"
+                                >
+                                    <CheckIcon />
+                                    <span>Finish Reading</span>
+                                </button>
                             </div>
                         </div>
 
@@ -3161,10 +3263,9 @@ Provide constructive feedback to help the reader think more critically about thi
                                     className={`w-1/2 bg-white flex flex-col overflow-hidden transition-all ${
                                         activeFocus !== 'reading' ? 'border-4 border-purple-500' : 'border-4 border-transparent'
                                     }`}
-                                    onMouseEnter={() => switchFocus(condition === 'with_llm_extended' ? (activeTab || 'chat') : 'chat')}
+                                    onMouseEnter={() => switchFocus(activeTab || 'chat')}
                                 >
-                                    {condition === 'with_llm_extended' ? (
-                                        // Extended condition with tabs
+                                    {/* Extended UI with tabs for both conditions */}
                                         <>
                                             {/* Header */}
                                             <div className="px-4 py-3 border-b bg-white">
@@ -3259,15 +3360,6 @@ Provide constructive feedback to help the reader think more critically about thi
                                                 {activeTab === 'chat' && !tabLoading['chat'] && chatUI}
                                             </div>
                                         </>
-                                    ) : (
-                                        // Standard with_llm condition - just chat
-                                        <>
-                                            <div className="px-4 py-3 border-b bg-white flex items-center justify-between">
-                                                <span className="text-xl font-semibold">AI Assistant</span>
-                                            </div>
-                                            {chatUI}
-                                        </>
-                                    )}
                                 </div>
                             )}
                         </div>
@@ -3288,11 +3380,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                         <button
                                             onClick={() => {
                                                 setShowFinishPopup(false);
-                                                if (condition === 'without_llm') {
-                                                    setShowAiUsagePopup(true);
-                                                } else {
-                                                    completeReading();
-                                                }
+                                                completeReading();
                                             }}
                                             className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                                         >
@@ -3303,74 +3391,6 @@ Provide constructive feedback to help the reader think more critically about thi
                             </div>
                         )}
 
-                        {/* AI Usage Check Popup (for without_llm condition) */}
-                        {showAiUsagePopup && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-4">Did you use any external AI tools while reading the paper?</h3>
-                                    <p className="text-gray-600 mb-6">Even if you did, it will not affect your compensation. Please answer honestly.</p>
-
-                                    <div className="space-y-3 mb-6">
-                                        <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="aiUsage"
-                                                value="yes"
-                                                checked={usedAiDuringReading === 'yes'}
-                                                onChange={() => setUsedAiDuringReading('yes')}
-                                                className="w-5 h-5"
-                                            />
-                                            <span className="text-gray-700">Yes, I used AI tools.</span>
-                                        </label>
-                                        <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="aiUsage"
-                                                value="no"
-                                                checked={usedAiDuringReading === 'no'}
-                                                onChange={() => setUsedAiDuringReading('no')}
-                                                className="w-5 h-5"
-                                            />
-                                            <span className="text-gray-700">No, I did not use AI tools.</span>
-                                        </label>
-                                    </div>
-
-                                    <button
-                                        onClick={async () => {
-                                            if (usedAiDuringReading) {
-                                                // Firebase saving disabled
-                                                /*
-                                                // Save AI usage directly to Firebase
-                                                try {
-                                                    const userRef = window.firebaseDoc(window.firebaseDb, 'users', participantId);
-                                                    await window.firebaseSetDoc(userRef, {
-                                                        aiUsageDuringReading: usedAiDuringReading,
-                                                        aiUsageReportedAt: new Date().toISOString()
-                                                    }, { merge: true });
-                                                    console.log('AI usage saved:', usedAiDuringReading);
-                                                } catch (error) {
-                                                    console.error('Error saving AI usage:', error);
-                                                }
-                                                */
-                                                logEvent('ai_usage_reported', { usedAi: usedAiDuringReading });
-                                                setShowAiUsagePopup(false);
-                                                completeReading();
-                                            }
-                                        }}
-                                        disabled={!usedAiDuringReading}
-                                        className={`w-full px-4 py-3 rounded-lg font-medium ${
-                                            usedAiDuringReading
-                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        Next →
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Socratic questions now shown inline in right margin */}
                     </div>
                 );
             }

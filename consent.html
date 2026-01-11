@@ -60,16 +60,12 @@
                 const assignedCondition = await db.runTransaction(async (transaction) => {
                     const doc = await transaction.get(counterRef);
                     const counts = doc.data() || {
-                        without_llm: 0,
-                        with_llm: 0,
-                        with_llm_extended: 0,
-                        with_socratic: 0
+                        control: 0,
+                        ebm: 0
                     };
 
-                    // Determine which conditions are available based on audio
-                    const availableConditions = audioAvailable
-                        ? ['without_llm', 'with_llm', 'with_llm_extended', 'with_socratic']
-                        : ['without_llm', 'with_llm', 'with_socratic'];
+                    // Two conditions available: control, ebm
+                    const availableConditions = ['control', 'ebm'];
 
                     // Find condition with minimum count among available ones
                     let minCondition = availableConditions[0];
@@ -110,9 +106,7 @@
                         assignedCondition = condition;
                     } else {
                         // Firebase saving disabled - use random assignment
-                        const availableConditions = audioAvailable
-                            ? ['without_llm', 'with_llm', 'with_llm_extended', 'with_socratic']
-                            : ['without_llm', 'with_llm', 'with_socratic'];
+                        const availableConditions = ['control', 'ebm'];
                         assignedCondition = availableConditions[Math.floor(Math.random() * availableConditions.length)];
                     }
 
