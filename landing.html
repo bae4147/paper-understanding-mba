@@ -48,11 +48,32 @@
             const [mode, setMode] = useState('experiment');
             const [audioAvailable, setAudioAvailable] = useState(false);
 
+            // OpenAI API key from Firebase
+            const [openaiApiKey, setOpenaiApiKey] = useState(null);
+
             // PDF upload state
             const [pdfFile, setPdfFile] = useState(null);
             const [pdfProcessing, setPdfProcessing] = useState(false);
             const [pdfError, setPdfError] = useState('');
             const [pdfProgress, setPdfProgress] = useState('');
+
+            // Fetch OpenAI API key from Firebase
+            useEffect(() => {
+                const fetchApiKey = async () => {
+                    try {
+                        const docRef = db.collection('config').doc('apiKeys');
+                        const docSnap = await docRef.get();
+                        if (docSnap.exists) {
+                            setOpenaiApiKey(docSnap.data().openai);
+                        } else {
+                            console.error('API keys config not found in Firebase');
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch API key:', error);
+                    }
+                };
+                fetchApiKey();
+            }, []);
 
             // Get parameters from URL
             useEffect(() => {
@@ -132,7 +153,9 @@
             const parseSectionsWithGpt = async (extractedText, numPages) => {
                 setPdfProgress('Analyzing paper structure ...');
 
-                const apiKey = '__OPENAI_API_KEY__';
+                if (!openaiApiKey) {
+                    throw new Error('OpenAI API key not loaded');
+                }
 
                 const systemPrompt = `You are an expert at parsing academic papers. Given the raw text extracted from a PDF, identify the major sections.
 
@@ -155,7 +178,7 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        'Authorization': `Bearer ${openaiApiKey}`
                     },
                     body: JSON.stringify({
                         model: 'gpt-4o',

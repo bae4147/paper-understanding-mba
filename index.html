@@ -161,6 +161,9 @@
 
             // Podcast generation state (for custom PDFs)
             const [podcastGenerating, setPodcastGenerating] = useState(false);
+
+            // OpenAI API key from Firebase
+            const [openaiApiKey, setOpenaiApiKey] = useState(null);
             const [podcastError, setPodcastError] = useState(null);
 
             // Infographic generation state (for custom PDFs)
@@ -475,6 +478,24 @@
                 'The Future of Meeting Science': { start: 3000, end: 4000 },
                 'References': { start: 4000, end: 5000 }
             });
+
+            // Fetch OpenAI API key from Firebase
+            useEffect(() => {
+                const fetchApiKey = async () => {
+                    try {
+                        const docRef = window.firebaseDoc(window.firebaseDb, 'config', 'apiKeys');
+                        const docSnap = await window.firebaseGetDoc(docRef);
+                        if (docSnap.exists()) {
+                            setOpenaiApiKey(docSnap.data().openai);
+                        } else {
+                            console.error('API keys config not found in Firebase');
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch API key:', error);
+                    }
+                };
+                fetchApiKey();
+            }, []);
 
             // Initialize from URL parameters (when coming from pre-task)
             useEffect(() => {
@@ -1644,9 +1665,8 @@
             // Send LLM message
             const handleSendMessage = async (e) => {
                 e.preventDefault();
-                if (!inputMessage.trim()) return;
+                if (!inputMessage.trim() || !openaiApiKey) return;
 
-                const apiKey = '__OPENAI_API_KEY__';
                 const questionTime = Date.now();
 
                 const userMessage = {
@@ -1817,7 +1837,7 @@ Your role is to act as a cognitive scaffold for evidence-based reasoning, not as
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
+                            'Authorization': `Bearer ${openaiApiKey}`
                         },
                         body: JSON.stringify({
                             model: 'gpt-4o-mini',
@@ -1902,7 +1922,11 @@ Your role is to act as a cognitive scaffold for evidence-based reasoning, not as
                 setSocraticIsGenerating(true);
                 setSocraticPanelOpen(true);
 
-                const apiKey = '__OPENAI_API_KEY__';
+                if (!openaiApiKey) {
+                    console.error('OpenAI API key not loaded');
+                    setSocraticIsGenerating(false);
+                    return;
+                }
                 const requestTime = Date.now();
 
                 console.log('🔵 [Socratic] Starting question generation...');
@@ -1983,7 +2007,7 @@ Rules:
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
+                            'Authorization': `Bearer ${openaiApiKey}`
                         },
                         body: JSON.stringify({
                             model: 'gpt-4o-mini',
@@ -2065,7 +2089,11 @@ Rules:
                     setSocraticIsFeedbackLoading(true);
                 }
 
-                const apiKey = '__OPENAI_API_KEY__';
+                if (!openaiApiKey) {
+                    console.error('OpenAI API key not loaded');
+                    setSocraticIsFeedbackLoading(false);
+                    return;
+                }
                 const requestTime = Date.now();
 
                 // Get section content
@@ -2129,7 +2157,7 @@ Rules:
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
+                            'Authorization': `Bearer ${openaiApiKey}`
                         },
                         body: JSON.stringify({
                             model: 'gpt-4o-mini',
