@@ -310,7 +310,7 @@ ${paperText.substring(0, 15000)}
 Generate a visually appealing, informative infographic now.`;
 
       const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey.value()}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${geminiApiKey.value()}`,
         {
           method: "POST",
           headers: {
@@ -321,8 +321,7 @@ Generate a visually appealing, informative infographic now.`;
               parts: [{ text: prompt }]
             }],
             generationConfig: {
-              responseModalities: ["image", "text"],
-              responseMimeType: "image/png"
+              responseModalities: ["image", "text"]
             }
           })
         }
