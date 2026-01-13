@@ -166,6 +166,8 @@
             // Infographic generation state (for custom PDFs)
             const [infographicGenerating, setInfographicGenerating] = useState(false);
             const [infographicError, setInfographicError] = useState(null);
+            const [infographicReady, setInfographicReady] = useState(true);
+            const [generationStatus, setGenerationStatus] = useState('');
             const pdfCanvasRef = useRef(null);
             const pdfDocRef = useRef(null);
 
@@ -630,6 +632,62 @@
 
                 loadAndRenderAllPages();
             }, [isCustomPdf, customPdfData]);
+
+            // Check infographic generation status for custom PDFs
+            useEffect(() => {
+                if (!isCustomPdf) {
+                    setInfographicReady(true);
+                    return;
+                }
+
+                const checkStatus = () => {
+                    const generating = sessionStorage.getItem('infographicGenerating');
+                    const data = sessionStorage.getItem('infographicData');
+                    const error = sessionStorage.getItem('infographicError');
+
+                    if (data) {
+                        setInfographicReady(true);
+                        setGenerationStatus('✓ Infographic ready');
+                        // Load infographic into resourceContent
+                        try {
+                            const parsed = JSON.parse(data);
+                            const imageBlob = new Blob(
+                                [Uint8Array.from(atob(parsed.imageBase64), c => c.charCodeAt(0))],
+                                { type: parsed.mimeType || 'image/png' }
+                            );
+                            const imageUrl = URL.createObjectURL(imageBlob);
+                            setResourceContent(prev => ({ ...prev, infographics: imageUrl }));
+                        } catch (e) {
+                            console.error('Error loading infographic:', e);
+                        }
+                        return true;
+                    } else if (error) {
+                        setInfographicReady(true);
+                        setGenerationStatus('⚠ Infographic generation failed, but you can continue');
+                        return true;
+                    } else if (generating) {
+                        setInfographicReady(false);
+                        setGenerationStatus('Generating infographic with AI...');
+                        return false;
+                    } else {
+                        // No status found, assume ready
+                        setInfographicReady(true);
+                        return true;
+                    }
+                };
+
+                // Initial check
+                if (checkStatus()) return;
+
+                // Poll every 2 seconds
+                const interval = setInterval(() => {
+                    if (checkStatus()) {
+                        clearInterval(interval);
+                    }
+                }, 2000);
+
+                return () => clearInterval(interval);
+            }, [isCustomPdf]);
 
             // Track current page based on scroll position
             const handlePdfScroll = () => {
@@ -2773,65 +2831,6 @@ Provide constructive feedback to help the reader think more critically about thi
             // READING GUIDE PHASE
             if (phase === 'reading-guide') {
                 const paper = papers.find(p => p.id === currentPaper);
-
-                // Check if infographic is still generating (for custom PDFs)
-                const [infographicReady, setInfographicReady] = useState(!isCustomPdf);
-                const [generationStatus, setGenerationStatus] = useState('');
-
-                // Poll for infographic generation status
-                useEffect(() => {
-                    if (!isCustomPdf) {
-                        setInfographicReady(true);
-                        return;
-                    }
-
-                    const checkStatus = () => {
-                        const generating = sessionStorage.getItem('infographicGenerating');
-                        const data = sessionStorage.getItem('infographicData');
-                        const error = sessionStorage.getItem('infographicError');
-
-                        if (data) {
-                            setInfographicReady(true);
-                            setGenerationStatus('✓ Infographic ready');
-                            // Load infographic into resourceContent
-                            try {
-                                const parsed = JSON.parse(data);
-                                const imageBlob = new Blob(
-                                    [Uint8Array.from(atob(parsed.imageBase64), c => c.charCodeAt(0))],
-                                    { type: parsed.mimeType || 'image/png' }
-                                );
-                                const imageUrl = URL.createObjectURL(imageBlob);
-                                setResourceContent(prev => ({ ...prev, infographics: imageUrl }));
-                            } catch (e) {
-                                console.error('Error loading infographic:', e);
-                            }
-                            return true;
-                        } else if (error) {
-                            setInfographicReady(true);
-                            setGenerationStatus('⚠ Infographic generation failed, but you can continue');
-                            return true;
-                        } else if (generating) {
-                            setGenerationStatus('Generating infographic with AI...');
-                            return false;
-                        } else {
-                            // No status found, assume ready
-                            setInfographicReady(true);
-                            return true;
-                        }
-                    };
-
-                    // Initial check
-                    if (checkStatus()) return;
-
-                    // Poll every 2 seconds
-                    const interval = setInterval(() => {
-                        if (checkStatus()) {
-                            clearInterval(interval);
-                        }
-                    }, 2000);
-
-                    return () => clearInterval(interval);
-                }, [isCustomPdf]);
 
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
