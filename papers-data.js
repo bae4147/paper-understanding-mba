@@ -9,10 +9,5 @@ const AVAILABLE_PAPERS = [
         id: 'mroz2018',
         name: 'Do We Really Need Another Meeting? The Science of Workplace Meetings',
         url: 'papers_html/mroz2018.html'
-    },
-    {
-        id: 'custom',
-        name: 'Custom Uploaded Paper',
-        url: null  // Content loaded from sessionStorage
     }
 ];
