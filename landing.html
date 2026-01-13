@@ -276,7 +276,7 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
                     console.log(`Extracted ${fullText.length} characters from ${numPages} pages`);
 
                     // Step 3: Parse sections with GPT (get section names and page ranges)
-                    setPdfProgress('Detecting sections with AI...');
+                    setPdfProgress('Detecting sections...');
                     const sections = await parseSectionsWithGpt(fullText, numPages);
                     console.log(`Identified ${sections.length} sections:`, sections.map(s => s.sectionName));
 
