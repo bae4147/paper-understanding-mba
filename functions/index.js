@@ -8,8 +8,9 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-// Define the OpenAI API key as a secret
+// Define API keys as secrets
 const openaiApiKey = defineSecret("OPENAI_API_KEY");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // CORS headers
 const corsHeaders = {
@@ -245,6 +246,132 @@ Generate the podcast script now:`;
 
     } catch (error) {
       console.error("Podcast generation error:", error);
+      res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+  }
+);
+
+// Generate Infographic from PDF using Gemini
+exports.generateInfographic = onRequest(
+  {
+    cors: true,
+    secrets: [geminiApiKey],
+    timeoutSeconds: 120,
+    memory: "512MiB"
+  },
+  async (req, res) => {
+    // Handle preflight
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { pdfBase64 } = req.body;
+
+      if (!pdfBase64) {
+        res.status(400).json({ error: "pdfBase64 is required" });
+        return;
+      }
+
+      console.log("Starting infographic generation...");
+
+      // Step 1: Parse PDF to extract text
+      console.log("Step 1: Parsing PDF...");
+      const pdfBuffer = Buffer.from(pdfBase64, "base64");
+      const pdfData = await pdfParse(pdfBuffer);
+      const paperText = pdfData.text;
+      console.log(`Extracted ${paperText.length} characters from PDF`);
+
+      // Step 2: Generate infographic with Gemini
+      console.log("Step 2: Generating infographic with Gemini...");
+
+      const prompt = `Create a professional academic infographic that visually summarizes this research paper.
+
+Design requirements:
+- Clean, modern layout with clear visual hierarchy
+- Title prominently displayed at the top
+- Organize into clear sections: Research Question, Methods, Key Findings, Implications
+- Use simple icons and diagrams to illustrate concepts
+- Include visual representations of key statistics or data
+- Professional color scheme (blues, teals, grays)
+- Make it suitable for academic presentation or poster session
+- Ensure all text is readable and well-organized
+- Balance between visual elements and text
+- Size: suitable for display on screen (landscape orientation preferred)
+
+Paper content to visualize:
+${paperText.substring(0, 15000)}
+
+Generate a visually appealing, informative infographic now.`;
+
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey.value()}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+              responseModalities: ["image", "text"],
+              responseMimeType: "image/png"
+            }
+          })
+        }
+      );
+
+      if (!geminiResponse.ok) {
+        const error = await geminiResponse.text();
+        console.error("Gemini API error:", error);
+        res.status(500).json({ error: "Failed to generate infographic", details: error });
+        return;
+      }
+
+      const geminiData = await geminiResponse.json();
+      console.log("Gemini response received");
+
+      // Extract image from response
+      let imageBase64 = null;
+      let mimeType = "image/png";
+
+      if (geminiData.candidates && geminiData.candidates[0]) {
+        const parts = geminiData.candidates[0].content?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData) {
+            imageBase64 = part.inlineData.data;
+            mimeType = part.inlineData.mimeType || "image/png";
+            break;
+          }
+        }
+      }
+
+      if (!imageBase64) {
+        console.error("No image in Gemini response:", JSON.stringify(geminiData));
+        res.status(500).json({ error: "No image generated", details: "Gemini did not return an image" });
+        return;
+      }
+
+      console.log("Infographic generation complete!");
+
+      res.set(corsHeaders);
+      res.json({
+        success: true,
+        imageBase64: imageBase64,
+        mimeType: mimeType
+      });
+
+    } catch (error) {
+      console.error("Infographic generation error:", error);
       res.status(500).json({ error: "Internal server error", message: error.message });
     }
   }
