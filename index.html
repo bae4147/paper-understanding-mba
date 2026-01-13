@@ -2774,6 +2774,65 @@ Provide constructive feedback to help the reader think more critically about thi
             if (phase === 'reading-guide') {
                 const paper = papers.find(p => p.id === currentPaper);
 
+                // Check if infographic is still generating (for custom PDFs)
+                const [infographicReady, setInfographicReady] = useState(!isCustomPdf);
+                const [generationStatus, setGenerationStatus] = useState('');
+
+                // Poll for infographic generation status
+                useEffect(() => {
+                    if (!isCustomPdf) {
+                        setInfographicReady(true);
+                        return;
+                    }
+
+                    const checkStatus = () => {
+                        const generating = sessionStorage.getItem('infographicGenerating');
+                        const data = sessionStorage.getItem('infographicData');
+                        const error = sessionStorage.getItem('infographicError');
+
+                        if (data) {
+                            setInfographicReady(true);
+                            setGenerationStatus('✓ Infographic ready');
+                            // Load infographic into resourceContent
+                            try {
+                                const parsed = JSON.parse(data);
+                                const imageBlob = new Blob(
+                                    [Uint8Array.from(atob(parsed.imageBase64), c => c.charCodeAt(0))],
+                                    { type: parsed.mimeType || 'image/png' }
+                                );
+                                const imageUrl = URL.createObjectURL(imageBlob);
+                                setResourceContent(prev => ({ ...prev, infographics: imageUrl }));
+                            } catch (e) {
+                                console.error('Error loading infographic:', e);
+                            }
+                            return true;
+                        } else if (error) {
+                            setInfographicReady(true);
+                            setGenerationStatus('⚠ Infographic generation failed, but you can continue');
+                            return true;
+                        } else if (generating) {
+                            setGenerationStatus('Generating infographic with AI...');
+                            return false;
+                        } else {
+                            // No status found, assume ready
+                            setInfographicReady(true);
+                            return true;
+                        }
+                    };
+
+                    // Initial check
+                    if (checkStatus()) return;
+
+                    // Poll every 2 seconds
+                    const interval = setInterval(() => {
+                        if (checkStatus()) {
+                            clearInterval(interval);
+                        }
+                    }, 2000);
+
+                    return () => clearInterval(interval);
+                }, [isCustomPdf]);
+
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
                         <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-3xl w-full">
@@ -2785,7 +2844,7 @@ Provide constructive feedback to help the reader think more critically about thi
                             <div className="space-y-6 mb-8">
                                 <div className="bg-gray-50 rounded-lg p-6">
                                     <h3 className="font-bold text-lg text-gray-800 mb-2">Title</h3>
-                                    <p className="text-gray-700">{paper?.name}</p>
+                                    <p className="text-gray-700">{isCustomPdf ? customPdfData?.title : paper?.name}</p>
                                 </div>
 
                                 <div className="bg-gray-50 rounded-lg p-6">
@@ -2793,6 +2852,23 @@ Provide constructive feedback to help the reader think more critically about thi
                                     <p className="text-3xl font-bold text-blue-600">No time limit</p>
                                     <p className="text-base text-gray-600 mt-2">Take your time to read and understand the paper thoroughly.</p>
                                 </div>
+
+                                {isCustomPdf && (
+                                    <div className={`rounded-lg p-6 ${infographicReady ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2">AI Content Generation</h3>
+                                        <div className="flex items-center">
+                                            {!infographicReady && (
+                                                <svg className="animate-spin h-5 w-5 mr-3 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            <p className={`text-base ${infographicReady ? 'text-green-700' : 'text-yellow-700'}`}>
+                                                {generationStatus || 'Checking status...'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
 
                             </div>
 
@@ -2806,9 +2882,14 @@ Provide constructive feedback to help the reader think more critically about thi
                                     focusStartTimeRef.current = now;
                                     logEvent('reading_started');
                                 }}
-                                className="w-full px-8 py-4 rounded-lg text-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                                disabled={!infographicReady}
+                                className={`w-full px-8 py-4 rounded-lg text-lg font-medium transition-colors ${
+                                    infographicReady
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
                             >
-                                Start Reading →
+                                {infographicReady ? 'Start Reading →' : 'Please wait...'}
                             </button>
                         </div>
                     </div>
