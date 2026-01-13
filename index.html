@@ -32,12 +32,12 @@
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
-        apiKey: "__FIREBASE_API_KEY__",
-        authDomain: "aom-paper-understanding.firebaseapp.com",
-        projectId: "aom-paper-understanding",
-        storageBucket: "aom-paper-understanding.firebasestorage.app",
-        messagingSenderId: "668607386746",
-        appId: "1:668607386746:web:dc6711c596542fe1b217c3"
+        apiKey: "AIzaSyBeBZVsyiwBmOUPAFyOF6xkq0o43ylYc-Q",
+        authDomain: "mba-paper-reading.firebaseapp.com",
+        projectId: "mba-paper-reading",
+        storageBucket: "mba-paper-reading.firebasestorage.app",
+        messagingSenderId: "562003057084",
+        appId: "1:562003057084:web:f57043a9250f588049b3b9"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -1306,7 +1306,7 @@
                 logEvent('podcast_generation_started');
 
                 try {
-                    const response = await fetch('https://generatepodcast-iqljy5svdq-uc.a.run.app', {
+                    const response = await fetch('https://us-central1-mba-paper-reading.cloudfunctions.net/generatePodcast', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1362,7 +1362,7 @@
                 logEvent('infographic_generation_started');
 
                 try {
-                    const response = await fetch('https://generateinfographic-iqljy5svdq-uc.a.run.app', {
+                    const response = await fetch('https://us-central1-mba-paper-reading.cloudfunctions.net/generateInfographic', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

@@ -292,19 +292,17 @@ exports.generateInfographic = onRequest(
       // Step 2: Generate infographic with Gemini
       console.log("Step 2: Generating infographic with Gemini...");
 
-      const prompt = `Create a professional academic infographic that visually summarizes this research paper.
+      const prompt = `Create a professional infographic that visually summarizes this research paper.
 
 Design requirements:
 - Clean, modern layout with clear visual hierarchy
 - Title prominently displayed at the top
-- Organize into clear sections: Research Question, Methods, Key Findings, Implications
-- Use simple icons and diagrams to illustrate concepts
-- Include visual representations of key statistics or data
-- Professional color scheme (blues, teals, grays)
-- Make it suitable for academic presentation or poster session
+- Freely summarize the key points of the paper in a visually engaging way
+- Use icons, diagrams, and visual elements to illustrate important concepts
+- Professional color scheme
 - Ensure all text is readable and well-organized
-- Balance between visual elements and text
 - Size: suitable for display on screen (landscape orientation preferred)
+- Style: Academic, clean, suitable for conference presentation
 
 Paper content to visualize:
 ${paperText.substring(0, 15000)}
