@@ -99,36 +99,6 @@
                 });
             };
 
-            // Generate infographic using Cloud Function
-            const generateInfographicAsync = async (pdfBase64) => {
-                try {
-                    console.log('🎨 Starting infographic generation...');
-                    const response = await fetch('https://us-central1-mba-paper-reading.cloudfunctions.net/generateInfographic', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ pdfBase64 })
-                    });
-
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.message || 'Failed to generate infographic');
-                    }
-
-                    const data = await response.json();
-                    if (data.success && data.imageBase64) {
-                        console.log('✅ Infographic generated successfully');
-                        return { success: true, imageBase64: data.imageBase64, mimeType: data.mimeType };
-                    } else {
-                        throw new Error('No image returned from server');
-                    }
-                } catch (error) {
-                    console.error('❌ Infographic generation failed:', error);
-                    return { success: false, error: error.message };
-                }
-            };
-
             // PDF text extraction using PDF.js
             const extractTextFromPdf = async (file) => {
                 const arrayBuffer = await file.arrayBuffer();
@@ -297,28 +267,12 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
 
                     // Set paper to custom
                     setCurrentPaper('custom');
-                    setPdfProgress(`✓ PDF processed! Now generating infographic...`);
+                    setPdfProgress(`✓ Ready! ${numPages} pages, ${sections.length} sections`);
 
-                    // Start infographic generation in background
-                    sessionStorage.setItem('infographicGenerating', 'true');
+                    // Clear any previous infographic data - will be generated in consent.html
+                    sessionStorage.removeItem('infographicGenerating');
                     sessionStorage.removeItem('infographicData');
                     sessionStorage.removeItem('infographicError');
-
-                    // Generate infographic asynchronously
-                    generateInfographicAsync(base64).then(result => {
-                        if (result.success) {
-                            sessionStorage.setItem('infographicData', JSON.stringify({
-                                imageBase64: result.imageBase64,
-                                mimeType: result.mimeType
-                            }));
-                            sessionStorage.removeItem('infographicGenerating');
-                            setPdfProgress(`✓ Ready! ${numPages} pages, ${sections.length} sections, infographic generated`);
-                        } else {
-                            sessionStorage.setItem('infographicError', result.error);
-                            sessionStorage.removeItem('infographicGenerating');
-                            setPdfProgress(`✓ Ready! ${numPages} pages, ${sections.length} sections (infographic failed)`);
-                        }
-                    });
 
                 } catch (error) {
                     console.error('PDF processing error:', error);

@@ -12,6 +12,9 @@
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Papers data -->
+    <script src="papers-data.js"></script>
 </head>
 <body>
     <div id="root"></div>
@@ -32,6 +35,62 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // IndexedDB helper for reading PDF data
+        const openPdfDatabase = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('CustomPdfDB', 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('pdfs')) {
+                        db.createObjectStore('pdfs', { keyPath: 'id' });
+                    }
+                };
+            });
+        };
+
+        const getPdfFromIndexedDB = async () => {
+            const db = await openPdfDatabase();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['pdfs'], 'readonly');
+                const store = transaction.objectStore('pdfs');
+                const request = store.get('customPdf');
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        };
+
+        // Generate infographic using Cloud Function
+        const generateInfographicAsync = async (pdfBase64) => {
+            try {
+                console.log('🎨 Starting infographic generation...');
+                const response = await fetch('https://us-central1-mba-paper-reading.cloudfunctions.net/generateInfographic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pdfBase64 })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to generate infographic');
+                }
+
+                const data = await response.json();
+                if (data.success && data.imageBase64) {
+                    console.log('✅ Infographic generated successfully');
+                    return { success: true, imageBase64: data.imageBase64, mimeType: data.mimeType };
+                } else {
+                    throw new Error('No image returned from server');
+                }
+            } catch (error) {
+                console.error('❌ Infographic generation failed:', error);
+                return { success: false, error: error.message };
+            }
+        };
+
         function Consent() {
             const [participantId, setParticipantId] = useState('');
             const [mode, setMode] = useState('experiment');
@@ -39,6 +98,7 @@
             const [paper, setPaper] = useState('');
             const [audioAvailable, setAudioAvailable] = useState(false);
             const [isLoading, setIsLoading] = useState(false);
+            const [loadingStatus, setLoadingStatus] = useState('');
 
             // Consent selection (null = not selected, true = agree, false = disagree)
             const [consentGiven, setConsentGiven] = useState(null);
@@ -112,6 +172,43 @@
 
                     // Firebase saving disabled - generate local experimentId
                     const experimentId = 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+                    // Step 2: If custom PDF, generate infographic now
+                    if (paper === 'custom') {
+                        const hasCustomPdf = sessionStorage.getItem('hasCustomPdf');
+                        if (hasCustomPdf === 'true') {
+                            setLoadingStatus('Generating infographic for your paper...');
+
+                            try {
+                                const pdfData = await getPdfFromIndexedDB();
+                                if (pdfData && pdfData.base64) {
+                                    // Start infographic generation
+                                    sessionStorage.setItem('infographicGenerating', 'true');
+                                    sessionStorage.removeItem('infographicData');
+                                    sessionStorage.removeItem('infographicError');
+
+                                    const result = await generateInfographicAsync(pdfData.base64);
+
+                                    if (result.success) {
+                                        sessionStorage.setItem('infographicData', JSON.stringify({
+                                            imageBase64: result.imageBase64,
+                                            mimeType: result.mimeType
+                                        }));
+                                        sessionStorage.removeItem('infographicGenerating');
+                                        console.log('✅ Infographic ready before navigation');
+                                    } else {
+                                        sessionStorage.setItem('infographicError', result.error);
+                                        sessionStorage.removeItem('infographicGenerating');
+                                        console.log('⚠️ Infographic generation failed, continuing without');
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error generating infographic:', error);
+                                sessionStorage.setItem('infographicError', error.message);
+                                sessionStorage.removeItem('infographicGenerating');
+                            }
+                        }
+                    }
 
                     /* Firebase saving disabled
                     // Step 2: Create new experiment document
@@ -300,7 +397,7 @@
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
-                                            Processing...
+                                            {loadingStatus || 'Processing...'}
                                         </>
                                     ) : (
                                         'Continue →'
