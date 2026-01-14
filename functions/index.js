@@ -22,13 +22,16 @@ const corsHeaders = {
 // OpenAI Chat Completion Proxy
 exports.chatCompletion = onRequest(
   {
-    cors: true,
     secrets: [openaiApiKey]
   },
   async (req, res) => {
+    // Set CORS headers for all responses
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
     // Handle preflight
     if (req.method === "OPTIONS") {
-      res.set(corsHeaders);
       res.status(204).send("");
       return;
     }
@@ -68,7 +71,6 @@ exports.chatCompletion = onRequest(
       }
 
       const data = await response.json();
-      res.set(corsHeaders);
       res.json(data);
 
     } catch (error) {
