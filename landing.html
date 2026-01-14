@@ -174,7 +174,10 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
                 }
 
                 const data = await response.json();
-                const result = JSON.parse(data.choices[0].message.content);
+                let content = data.choices[0].message.content;
+                // Remove markdown code blocks if present
+                content = content.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+                const result = JSON.parse(content);
                 return result.sections || [];
             };
 
