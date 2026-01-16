@@ -220,6 +220,7 @@
 
             const audioRef = useRef(null);
             const videoRef = useRef(null);
+            const narrationAudioRef = useRef(null);
 
             // Fake loading state for each tab (first time only)
             const [tabLoading, setTabLoading] = useState({
@@ -3369,9 +3370,6 @@ Provide constructive feedback to help the reader think more critically about thi
                         )}
                     </div>
                 );
-
-                // Ref for narration audio sync
-                const narrationAudioRef = useRef(null);
 
                 // Sync narration with video playback
                 const handleVideoPlayWithNarration = () => {
