@@ -304,7 +304,7 @@ Design requirements:
 - Use icons, diagrams, and visual elements to illustrate important concepts
 - Professional color scheme
 - Ensure all text is readable and well-organized
-- Size: suitable for display on screen (landscape orientation preferred)
+- Size: suitable for display on screen (portrait/vertical orientation preferred)
 - Style: Academic, clean, suitable for conference presentation
 
 Paper content to visualize:

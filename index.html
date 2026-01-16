@@ -2120,7 +2120,24 @@ When users interact with you, first identify what type of request they're making
 - Emphasis: use **bold** for key concepts.
 - Short paragraphs: avoid long blocks of text.
 - Keep responses concise, structured, and easy to scan.
-- Use Korean if the user asks in Korean, English if they ask in English.`;
+- Use Korean if the user asks in Korean, English if they ask in English.
+
+**CRITICAL - EBM Question Format:**
+When you include a Critical Appraisal or Contextualization question at the end of your response, you MUST format it EXACTLY like this:
+
+---
+
+**Critical Appraisal Question:**
+[Your question here]
+
+OR
+
+---
+
+**Contextualization Question:**
+[Your question here]
+
+This exact format with the horizontal rule (---), bold label, and question on a new line is REQUIRED for proper UI rendering.`;
 
                     const systemPrompt = condition === 'ebm_coach'
                         ? ebmCoachSystemPrompt
@@ -3216,19 +3233,63 @@ Provide constructive feedback to help the reader think more critically about thi
                                 </div>
                             ) : (
                                 <div className="space-y-4 p-4">
-                                    {messages.map((msg, idx) => (
-                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                                                msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
-                                            }`}>
-                                                {msg.role === 'assistant' ? (
-                                                    <div className="text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
-                                                ) : (
-                                                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                                                )}
+                                    {messages.map((msg, idx) => {
+                                        // For ebm_coach condition, split assistant messages if they contain EBM questions
+                                        if (condition === 'ebm_coach' && msg.role === 'assistant') {
+                                            // Pattern to detect EBM questions at the end
+                                            // Matches various formats:
+                                            // - "Critical Appraisal Question\nQuestion text"
+                                            // - "**Critical Appraisal Question:**\nQuestion text"
+                                            // - "---\n\n**Critical Appraisal Question:**\nQuestion text"
+                                            const ebmQuestionPattern = /\n+(?:---\n+)?(?:\*\*)?(Critical Appraisal|Contextualization)\s*Question(?:\*\*)?[:\s]*\n+([\s\S]+?)$/i;
+
+                                            let mainContent = msg.content;
+                                            let ebmQuestion = null;
+                                            let questionType = null;
+
+                                            const match = msg.content.match(ebmQuestionPattern);
+                                            if (match) {
+                                                questionType = match[1];
+                                                ebmQuestion = match[2].trim();
+                                                // Remove the EBM question part from main content
+                                                mainContent = msg.content.replace(ebmQuestionPattern, '').trim();
+                                            }
+
+                                            if (ebmQuestion) {
+                                                return (
+                                                    <React.Fragment key={idx}>
+                                                        {/* Main answer bubble */}
+                                                        <div className="flex justify-start">
+                                                            <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-gray-100 text-gray-900">
+                                                                <div className="text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(mainContent) }} />
+                                                            </div>
+                                                        </div>
+                                                        {/* EBM Question bubble - distinct style */}
+                                                        <div className="flex justify-start">
+                                                            <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-amber-50 border-l-4 border-amber-400 text-gray-900">
+                                                                <div className="text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(ebmQuestion) }} />
+                                                            </div>
+                                                        </div>
+                                                    </React.Fragment>
+                                                );
+                                            }
+                                        }
+
+                                        // Default rendering for other messages
+                                        return (
+                                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                                                    msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
+                                                }`}>
+                                                    {msg.role === 'assistant' ? (
+                                                        <div className="text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
+                                                    ) : (
+                                                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                     {isLoading && (
                                         <div className="flex justify-start">
                                             <div className="bg-gray-100 rounded-2xl px-4 py-3">
