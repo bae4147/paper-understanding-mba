@@ -2122,22 +2122,25 @@ When users interact with you, first identify what type of request they're making
 - Keep responses concise, structured, and easy to scan.
 - Use Korean if the user asks in Korean, English if they ask in English.
 
-**CRITICAL - EBM Question Format:**
-When you include a Critical Appraisal or Contextualization question at the end of your response, you MUST format it EXACTLY like this:
+**CRITICAL OUTPUT FORMAT - You MUST follow this exactly:**
+Your response MUST have TWO parts separated by "|||EBM_QUESTION|||":
 
----
+[Your main answer content here]
 
-**Critical Appraisal Question:**
-[Your question here]
+|||EBM_QUESTION|||
 
-OR
+[Your Critical Appraisal or Contextualization question here - just the question text, no labels]
 
----
+Example:
+Here is a summary of the key findings...
+- Point 1
+- Point 2
 
-**Contextualization Question:**
-[Your question here]
+|||EBM_QUESTION|||
 
-This exact format with the horizontal rule (---), bold label, and question on a new line is REQUIRED for proper UI rendering.`;
+What was the sample size and context of this study?
+
+IMPORTANT: Always include the |||EBM_QUESTION||| separator and a question at the end, unless the query type is "Information → Learn" which doesn't require a question.`;
 
                     const systemPrompt = condition === 'ebm_coach'
                         ? ebmCoachSystemPrompt
@@ -3236,23 +3239,16 @@ Provide constructive feedback to help the reader think more critically about thi
                                     {messages.map((msg, idx) => {
                                         // For ebm_coach condition, split assistant messages if they contain EBM questions
                                         if (condition === 'ebm_coach' && msg.role === 'assistant') {
-                                            // Pattern to detect EBM questions at the end
-                                            // Matches various formats:
-                                            // - "Critical Appraisal Question\nQuestion text"
-                                            // - "**Critical Appraisal Question:**\nQuestion text"
-                                            // - "---\n\n**Critical Appraisal Question:**\nQuestion text"
-                                            const ebmQuestionPattern = /\n+(?:---\n+)?(?:\*\*)?(Critical Appraisal|Contextualization)\s*Question(?:\*\*)?[:\s]*\n+([\s\S]+?)$/i;
+                                            // Split by the |||EBM_QUESTION||| delimiter
+                                            const delimiter = '|||EBM_QUESTION|||';
 
                                             let mainContent = msg.content;
                                             let ebmQuestion = null;
-                                            let questionType = null;
 
-                                            const match = msg.content.match(ebmQuestionPattern);
-                                            if (match) {
-                                                questionType = match[1];
-                                                ebmQuestion = match[2].trim();
-                                                // Remove the EBM question part from main content
-                                                mainContent = msg.content.replace(ebmQuestionPattern, '').trim();
+                                            if (msg.content.includes(delimiter)) {
+                                                const parts = msg.content.split(delimiter);
+                                                mainContent = parts[0].trim();
+                                                ebmQuestion = parts[1]?.trim() || null;
                                             }
 
                                             if (ebmQuestion) {
