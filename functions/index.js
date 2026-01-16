@@ -2,6 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const pdfParse = require("pdf-parse");
+const { GoogleAuth } = require("google-auth-library");
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -371,6 +372,253 @@ Generate a visually appealing, informative infographic now.`;
 
     } catch (error) {
       console.error("Infographic generation error:", error);
+      res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+  }
+);
+
+// Generate Video from PDF using Veo 2 with narration
+exports.generateVideo = onRequest(
+  {
+    cors: true,
+    secrets: [openaiApiKey],
+    timeoutSeconds: 540, // 9 minutes (video generation can take time)
+    memory: "1GiB"
+  },
+  async (req, res) => {
+    // Handle preflight
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { pdfBase64 } = req.body;
+
+      if (!pdfBase64) {
+        res.status(400).json({ error: "pdfBase64 is required" });
+        return;
+      }
+
+      console.log("Starting video generation with narration...");
+
+      // Step 1: Parse PDF to extract text
+      console.log("Step 1: Parsing PDF...");
+      const pdfBuffer = Buffer.from(pdfBase64, "base64");
+      const pdfData = await pdfParse(pdfBuffer);
+      const paperText = pdfData.text;
+      console.log(`Extracted ${paperText.length} characters from PDF`);
+
+      // Step 2: Generate video prompt AND narration script with GPT-4o
+      console.log("Step 2: Generating video prompt and narration script...");
+      const promptGenerationRequest = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openaiApiKey.value()}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert at creating video content. You need to create TWO things:
+1. A video generation prompt for an 8-second educational video
+2. A narration script that takes exactly 8 seconds to read (about 20-25 words)
+
+The video and narration should complement each other - the visuals should match what's being narrated.
+
+Return your response in this exact JSON format:
+{
+  "videoPrompt": "detailed cinematic prompt for video generation",
+  "narrationScript": "short 8-second narration script (20-25 words)"
+}`
+            },
+            {
+              role: "user",
+              content: `Based on this research paper, create a video prompt and narration script that summarizes the key finding.
+
+Paper content:
+${paperText.substring(0, 10000)}
+
+Return ONLY the JSON, nothing else.`
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.7
+        })
+      });
+
+      if (!promptGenerationRequest.ok) {
+        const error = await promptGenerationRequest.text();
+        console.error("GPT prompt generation error:", error);
+        res.status(500).json({ error: "Failed to generate prompts", details: error });
+        return;
+      }
+
+      const promptData = await promptGenerationRequest.json();
+      let content = promptData.choices[0].message.content.trim();
+      // Remove markdown code blocks if present
+      content = content.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+
+      const { videoPrompt, narrationScript } = JSON.parse(content);
+      console.log("Generated video prompt:", videoPrompt);
+      console.log("Generated narration:", narrationScript);
+
+      // Step 3: Generate narration audio with TTS (run in parallel with video)
+      console.log("Step 3: Starting narration generation...");
+      const ttsPromise = fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openaiApiKey.value()}`
+        },
+        body: JSON.stringify({
+          model: "tts-1-hd",
+          input: narrationScript,
+          voice: "onyx", // Professional, warm voice
+          response_format: "mp3"
+        })
+      });
+
+      // Step 4: Get Google Cloud access token
+      console.log("Step 4: Getting access token...");
+      const auth = new GoogleAuth({
+        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
+      });
+      const client = await auth.getClient();
+      const accessToken = await client.getAccessToken();
+
+      // Step 5: Call Veo 2 API
+      console.log("Step 5: Calling Veo 2 API...");
+      const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+
+      const veoResponse = await fetch(
+        `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/veo-2.0-generate-001:predictLongRunning`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken.token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            instances: [{
+              prompt: videoPrompt
+            }],
+            parameters: {
+              aspectRatio: "16:9",
+              sampleCount: 1
+            }
+          })
+        }
+      );
+
+      if (!veoResponse.ok) {
+        const error = await veoResponse.text();
+        console.error("Veo 2 API error:", error);
+        res.status(500).json({ error: "Failed to start video generation", details: error });
+        return;
+      }
+
+      const veoData = await veoResponse.json();
+      console.log("Veo 2 response:", JSON.stringify(veoData));
+
+      const operationName = veoData.name;
+
+      if (!operationName) {
+        console.error("No operation name in response:", veoData);
+        res.status(500).json({ error: "No operation started", details: veoData });
+        return;
+      }
+
+      // Step 6: Wait for TTS to complete
+      console.log("Step 6: Waiting for narration audio...");
+      const ttsResponse = await ttsPromise;
+      let audioBase64 = null;
+
+      if (ttsResponse.ok) {
+        const audioBuffer = await ttsResponse.arrayBuffer();
+        audioBase64 = Buffer.from(audioBuffer).toString("base64");
+        console.log("Narration audio generated successfully");
+      } else {
+        console.error("TTS failed:", await ttsResponse.text());
+        // Continue without narration
+      }
+
+      // Step 7: Poll for video completion
+      console.log("Step 7: Polling for video completion...");
+      let videoResult = null;
+      const maxAttempts = 60; // 5 minutes with 5-second intervals
+
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+
+        const statusResponse = await fetch(
+          `https://us-central1-aiplatform.googleapis.com/v1/${operationName}`,
+          {
+            headers: {
+              "Authorization": `Bearer ${accessToken.token}`
+            }
+          }
+        );
+
+        if (!statusResponse.ok) {
+          console.error("Status check failed:", await statusResponse.text());
+          continue;
+        }
+
+        const statusData = await statusResponse.json();
+        console.log(`Poll ${i + 1}: done=${statusData.done}`);
+
+        if (statusData.done) {
+          if (statusData.error) {
+            console.error("Operation failed:", statusData.error);
+            res.status(500).json({ error: "Video generation failed", details: statusData.error });
+            return;
+          }
+          videoResult = statusData.response;
+          break;
+        }
+      }
+
+      if (!videoResult) {
+        res.status(500).json({ error: "Video generation timed out" });
+        return;
+      }
+
+      // Step 8: Extract video from result
+      console.log("Step 8: Extracting video...");
+      let videoUri = null;
+
+      if (videoResult.predictions && videoResult.predictions[0]) {
+        videoUri = videoResult.predictions[0].videoUri;
+      }
+
+      if (!videoUri) {
+        console.error("No video in response:", videoResult);
+        res.status(500).json({ error: "No video generated", details: videoResult });
+        return;
+      }
+
+      console.log("Video generation complete! URI:", videoUri);
+
+      res.set(corsHeaders);
+      res.json({
+        success: true,
+        videoUri: videoUri,
+        audioBase64: audioBase64,
+        narrationScript: narrationScript,
+        prompt: videoPrompt
+      });
+
+    } catch (error) {
+      console.error("Video generation error:", error);
       res.status(500).json({ error: "Internal server error", message: error.message });
     }
   }

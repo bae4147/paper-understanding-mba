@@ -171,6 +171,10 @@
             const [infographicError, setInfographicError] = useState(null);
             const [infographicReady, setInfographicReady] = useState(true);
             const [generationStatus, setGenerationStatus] = useState('');
+
+            // Video generation state (for custom PDFs)
+            const [videoGenerating, setVideoGenerating] = useState(false);
+            const [videoError, setVideoError] = useState(null);
             const pdfCanvasRef = useRef(null);
             const pdfDocRef = useRef(null);
 
@@ -203,7 +207,7 @@
             const focusStartTimeRef = useRef(Date.now());
 
             // Right panel tab state (for both conditions)
-            const [activeTab, setActiveTab] = useState(null); // 'infographics', 'video', 'audio', 'simplified', 'chat', 'quiz' or null for initial state
+            const [activeTab, setActiveTab] = useState('chat'); // 'infographics', 'video', 'audio', 'simplified', 'chat', 'quiz' - chat is default
 
             // Resource state for extended condition
             const [resourceContent, setResourceContent] = useState({
@@ -235,7 +239,7 @@
                 quiz: false
             });
 
-            // Random tab order (shuffle content tabs, chat always at end)
+            // Random tab order (shuffle content tabs, chat always first)
             const [tabOrder] = useState(() => {
                 const shuffleTabs = ['video', 'audio', 'infographics'];
                 // Fisher-Yates shuffle
@@ -243,7 +247,7 @@
                     const j = Math.floor(Math.random() * (i + 1));
                     [shuffleTabs[i], shuffleTabs[j]] = [shuffleTabs[j], shuffleTabs[i]];
                 }
-                return [...shuffleTabs, 'chat'];
+                return ['chat', ...shuffleTabs];
             });
 
             // Quiz phase state
@@ -922,7 +926,7 @@
 
             // Load resources for extended condition
             useEffect(() => {
-                if ((condition === 'control' || condition === 'ebm') && currentPaper) {
+                if ((condition === 'control' || condition === 'ebm' || condition === 'ebm_coach') && currentPaper) {
                     // Load infographics
                     const infographicPath = `papers_resources/${currentPaper}/infographic.png`;
                     fetch(infographicPath)
@@ -1313,7 +1317,7 @@
                 focusStartTimeRef.current = Date.now();
 
                 // For extended condition: sync activeTab with activeFocus when entering right panel
-                if ((condition === 'control' || condition === 'ebm') && goingToRightPanel && !wasOnRightPanel) {
+                if ((condition === 'control' || condition === 'ebm' || condition === 'ebm_coach') && goingToRightPanel && !wasOnRightPanel) {
                     if (activeTab === null) {
                         setActiveTab(newFocus);
                     }
@@ -1335,7 +1339,7 @@
                 });
 
                 // Update focusTimes for the previous focus
-                if (condition === 'control' || condition === 'ebm') {
+                if (condition === 'control' || condition === 'ebm' || condition === 'ebm_coach') {
                     const elapsed = now - focusStartTimeRef.current;
                     setFocusTimes(prev => ({
                         ...prev,
@@ -1411,6 +1415,66 @@
                     logEvent('podcast_generation_failed', { error: error.message });
                 } finally {
                     setPodcastGenerating(false);
+                }
+            };
+
+            // Generate video for custom PDF using Veo 2 with narration
+            const generateVideo = async () => {
+                if (!customPdfData?.base64 || videoGenerating) return;
+
+                setVideoGenerating(true);
+                setVideoError(null);
+                logEvent('video_generation_started');
+
+                try {
+                    const response = await fetch('https://generatevideo-noiydfdfbq-uc.a.run.app', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            pdfBase64: customPdfData.base64
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || error.details || 'Failed to generate video');
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success && data.videoUri) {
+                        // Create narration audio URL if available
+                        let narrationUrl = null;
+                        if (data.audioBase64) {
+                            const audioBlob = new Blob(
+                                [Uint8Array.from(atob(data.audioBase64), c => c.charCodeAt(0))],
+                                { type: 'audio/mpeg' }
+                            );
+                            narrationUrl = URL.createObjectURL(audioBlob);
+                        }
+
+                        setResourceContent(prev => ({
+                            ...prev,
+                            video: data.videoUri,
+                            videoNarration: narrationUrl,
+                            videoNarrationScript: data.narrationScript
+                        }));
+
+                        logEvent('video_generation_completed', {
+                            prompt: data.prompt,
+                            hasNarration: !!data.audioBase64
+                        });
+                    } else {
+                        throw new Error('No video returned from server');
+                    }
+                } catch (error) {
+                    console.error('Video generation error:', error);
+                    setVideoError(error.message);
+                    logEvent('video_generation_failed', { error: error.message });
+                } finally {
+                    setVideoGenerating(false);
                 }
             };
 
@@ -1813,7 +1877,270 @@ Your role is to act as a cognitive scaffold for evidence-based reasoning, not as
 - Keep responses concise, structured, and easy to scan.
 - Use Korean if the user asks in Korean, English if they ask in English.`;
 
-                    const systemPrompt = condition === 'ebm' ? ebmSystemPrompt : controlSystemPrompt;
+                    const ebmCoachSystemPrompt = `You are an Evidence-Based Management (EBM) Coach. Your purpose is to help practitioners (managers, consultants, business professionals) apply scientific evidence to solve real-world problems through academic paper reading.
+
+Your role is NOT to give answers, but to:
+1. Help users translate their practical problems into answerable questions
+2. Guide critical evaluation of evidence from papers they read
+3. Connect research findings to their specific organizational context
+4. Facilitate thoughtful decision-making using multiple evidence sources
+
+---
+
+## Core EBM Framework
+
+### Definition
+Evidence-based management is making decisions through the conscientious, explicit, and judicious use of four sources of information:
+1. **Scientific literature** - findings from academic research
+2. **Organizational evidence** - data and facts from the user's organization
+3. **Practitioner expertise** - professional experience and judgment
+4. **Stakeholder perspectives** - values and concerns of affected people
+
+### The 6A Process
+
+**1. ASK** - Transform problems into answerable questions
+**2. ACQUIRE** - Gather evidence systematically
+**3. APPRAISE** - Critically evaluate evidence
+**4. AGGREGATE** - Synthesize and weigh evidence
+**5. APPLY** - Incorporate evidence into decisions
+**6. ASSESS** - Evaluate outcomes
+
+---
+
+## Paper Context
+
+<paper>
+${paperContent.replace(/<[^>]*>/g, '')}
+</paper>
+
+When responding:
+1. **Reference specific parts** - When asking Critical Appraisal questions, point to specific sections (e.g., "In the Methods section, they mention...")
+2. **Note what's missing** - If key information (sample size, context, limitations) isn't explicitly stated in the paper, point this out
+3. **Connect paper to questions** - Your EBM questions should be grounded in the actual content of the paper
+4. **Don't assume beyond the paper** - If something isn't stated in the paper, don't invent it
+5. **Use paper details for contextualization** - When asking about the user's context, reference specific details from the paper
+
+---
+
+## User Query Type → EBM Response Strategy
+
+When users interact with you, first identify what type of request they're making, then follow the corresponding response strategy.
+
+### Query Type Classification
+
+| Category | Sub-Type | User is asking to... |
+|----------|----------|---------------------|
+| **Creation** | Artifact | Generate a new output (code, document, template) |
+| **Creation** | Idea | Brainstorm ideas or suggestions |
+| **Information** | Search | Find specific facts or information |
+| **Information** | Learn | Understand a new topic broadly |
+| **Information** | Summarize | Get a shorter version of content |
+| **Information** | Analyze | Discover insights from information/data |
+| **Advice** | Improve | Get a better version of something |
+| **Advice** | Guidance | Get recommendations on decisions |
+| **Advice** | Validation | Check if something meets criteria |
+| **Automation** | Automation | Complete a task with minimal effort |
+
+### Response Strategy by Query Type
+
+**IMPORTANT: Always provide what the user asks for FIRST, then ask your EBM question.**
+
+---
+
+#### Creation → Artifact
+**User example:** "Create a team guideline draft based on this paper"
+
+**Response pattern:**
+1. Generate the requested artifact
+2. Then ask **Contextualization** question:
+   - "Are there any unique aspects of your team's situation that we should consider?"
+
+---
+
+#### Creation → Idea
+**User example:** "Give me some ideas on how to apply this research"
+
+**Response pattern:**
+1. Provide ideas as requested
+2. Then ask **Contextualization** question:
+   - "Which of these ideas seem most feasible given your specific situation?"
+
+---
+
+#### Information → Search
+**User example:** "What was the effect size in this study?"
+
+**Response pattern:**
+1. Provide the information found
+2. Then ask **Critical Appraisal** question:
+   - "Have you looked into the sample or context that produced this finding?"
+
+---
+
+#### Information → Learn
+**User example:** "Explain what psychological safety means"
+
+**Response pattern:**
+1. Provide clear explanation
+2. **(No EBM question needed - pure learning purpose)**
+
+---
+
+#### Information → Summarize
+**User example:** "Summarize the key points of this paper"
+
+**Response pattern:**
+1. Provide summary
+2. Then ask **Critical Appraisal** question:
+   - "Would you like to examine the methodology or limitations of this study as well?"
+
+---
+
+#### Information → Analyze
+**User example:** "Compare the findings of these two papers"
+
+**Response pattern:**
+1. Provide analysis
+2. Then ask **Critical Appraisal** question:
+   - "How might the contextual differences between these studies have affected their results?"
+
+---
+
+#### Advice → Improve
+**User example:** "Help me refine this implementation plan"
+
+**Response pattern:**
+1. Provide improved version
+2. Then ask **Contextualization** question:
+   - "Is this improved version feasible within your organization's realities?"
+
+---
+
+#### Advice → Guidance
+**User example:** "How should I apply this research to my team?"
+
+**Response pattern:**
+1. Provide guidance/recommendations
+2. Then ask **Contextualization** question:
+   - "What are the similarities and differences between the research setting and your team?"
+
+---
+
+#### Advice → Validation
+**User example:** "Check if our hypothesis aligns with this paper's findings"
+
+**Response pattern:**
+1. Provide validation assessment
+2. Then ask **Critical Appraisal** question:
+   - "Have you checked what other studies found on this topic?"
+
+---
+
+#### Automation → ⚠️ WARNING
+**User example:** "Read this paper and create a complete action plan for me"
+
+**Response pattern:**
+1. **Pause and redirect** - Do NOT fully automate
+2. Say: "I can help you with an action plan, but let's first examine a few things together."
+3. Then ask **BOTH Critical Appraisal AND Contextualization**:
+   - "Shall we first look at the key assumptions and limitations of this research?"
+   - "What are the differences between your organizational context and the research setting?"
+4. Only after user engages with these questions, help with the plan
+
+---
+
+## Handling User Responses to EBM Questions
+
+### If user answers thoughtfully:
+- Acknowledge their reflection
+- Build on their answer
+- Continue the conversation
+
+### If user ignores the question:
+- Gently bring it back: "What do you think about that question? It might be helpful to consider before applying this."
+- If ignored twice, respect their choice but note: "Feel free to revisit this later if it becomes relevant."
+
+### If user says "I don't know":
+- Help them think through it: "Let's think about it together. What characteristics does your organization have?"
+
+### If user pushes back ("Just give me the answer"):
+- Acknowledge their need, then explain briefly: "Of course, I'll help you right away. I just want to ask one thing to make sure this research fits your situation."
+
+---
+
+## Question Bank by Type
+
+### Critical Appraisal Questions (Quality/Trustworthiness of Research)
+- "What was the sample size and population in this study?"
+- "Are there any methodological concerns to be aware of?"
+- "What was the context (industry, country, time period) of this research?"
+- "Did the authors mention any limitations?"
+- "Could there be alternative explanations for these findings?"
+
+### Contextualization Questions (Application Context)
+- "How does your organization/team situation differ from the research context?"
+- "What preconditions would be needed to apply this?"
+- "Do you have any relevant organizational data on this topic?"
+- "How might stakeholders react to this change?"
+- "What are the realistic constraints on implementation?"
+
+---
+
+## Warning Signs to Address
+
+### 1. Over-reliance on Single Studies
+- "This paper says..." → "Have you checked if other studies found similar results?"
+
+### 2. Ignoring Context
+- "Google does it this way..." → "What are the differences between Google and your organization?"
+
+### 3. Confirmation Bias
+- User only cites evidence supporting their preference → "Was there any contradicting evidence?"
+
+### 4. Shallow Processing
+- Quick acceptance without critical evaluation → "Let's pause and look more closely at the methodology..."
+
+---
+
+## Language and Tone
+
+### Do:
+- Ask questions with genuine curiosity
+- Ask more questions than give answers
+- Use phrases like "Shall we...?", "What do you think about...?"
+- Respect the user's expertise
+
+### Don't:
+- "You should..." (prescriptive language)
+- "Research proves that..." (overconfidence)
+- "This is best practice" (ignoring context)
+- Adopt a lecturing tone
+
+---
+
+## Important Principles
+
+1. **Evidence ≠ Answer**: Evidence reduces uncertainty but doesn't eliminate it
+2. **Context matters**: What works "in general" may not work "here"
+3. **Multiple sources**: No single evidence source is sufficient
+4. **Healthy skepticism**: Question even popular claims
+5. **Humility**: The best practitioners know what they don't know
+6. **Learning orientation**: Treat decisions as opportunities to learn
+
+---
+
+**FORMAT RULES (for all responses):**
+- Use Markdown formatting for clarity and readability.
+- Headings: use ### for main sections.
+- Bullet points: use - for lists.
+- Emphasis: use **bold** for key concepts.
+- Short paragraphs: avoid long blocks of text.
+- Keep responses concise, structured, and easy to scan.
+- Use Korean if the user asks in Korean, English if they ask in English.`;
+
+                    const systemPrompt = condition === 'ebm_coach'
+                        ? ebmCoachSystemPrompt
+                        : (condition === 'ebm' ? ebmSystemPrompt : controlSystemPrompt);
 
                     const response = await fetch(CHAT_COMPLETION_URL, {
                         method: 'POST',
@@ -2555,13 +2882,13 @@ Provide constructive feedback to help the reader think more critically about thi
                             'reading.completedAt': window.firebaseServerTimestamp()
                         };
 
-                        if ((condition === 'control' || condition === 'ebm') && chatHistory.length > 0) {
+                        if ((condition === 'control' || condition === 'ebm' || condition === 'ebm_coach') && chatHistory.length > 0) {
                             updateData['llmInteraction.messages'] = chatHistory;
                             updateData['llmInteraction.totalQueries'] = chatHistory.length;
                         }
 
                         // Save extended condition data
-                        if (condition === 'control' || condition === 'ebm') {
+                        if (condition === 'control' || condition === 'ebm' || condition === 'ebm_coach') {
                             updateData['extendedResources.resourcesAvailable'] = {
                                 infographics: !!resourceContent.infographics,
                                 video: !!resourceContent.video,
@@ -2801,6 +3128,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                     >
                                         <option value="control">Control (Direct Answer LLM)</option>
                                         <option value="ebm">EBM (Evidence-Based Reasoning Coach)</option>
+                                        <option value="ebm_coach">EBM Coach (Answer First, Then Guide)</option>
                                     </select>
                                 </div>
 
@@ -2894,7 +3222,7 @@ Provide constructive feedback to help the reader think more critically about thi
 
             // READING PHASE
             if (phase === 'reading') {
-                const showRightPanel = condition === 'control' || condition === 'ebm';
+                const showRightPanel = condition === 'control' || condition === 'ebm' || condition === 'ebm_coach';
                 const showSocraticPanel = false; // Socratic condition removed
 
                 // Socratic Question Icon component
@@ -3042,6 +3370,40 @@ Provide constructive feedback to help the reader think more critically about thi
                     </div>
                 );
 
+                // Ref for narration audio sync
+                const narrationAudioRef = useRef(null);
+
+                // Sync narration with video playback
+                const handleVideoPlayWithNarration = () => {
+                    handleVideoPlay();
+                    if (narrationAudioRef.current && resourceContent.videoNarration) {
+                        narrationAudioRef.current.currentTime = videoRef.current?.currentTime || 0;
+                        narrationAudioRef.current.play();
+                    }
+                };
+
+                const handleVideoPauseWithNarration = () => {
+                    handleVideoPause();
+                    if (narrationAudioRef.current) {
+                        narrationAudioRef.current.pause();
+                    }
+                };
+
+                const handleVideoEndedWithNarration = () => {
+                    handleVideoEnded();
+                    if (narrationAudioRef.current) {
+                        narrationAudioRef.current.pause();
+                        narrationAudioRef.current.currentTime = 0;
+                    }
+                };
+
+                const handleVideoSeekedWithNarration = () => {
+                    handleVideoSeeked();
+                    if (narrationAudioRef.current && videoRef.current) {
+                        narrationAudioRef.current.currentTime = videoRef.current.currentTime;
+                    }
+                };
+
                 // Video Tab - inline JSX
                 const videoTab = (
                     <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
@@ -3051,14 +3413,58 @@ Provide constructive feedback to help the reader think more critically about thi
                                     ref={videoRef}
                                     controls
                                     className="w-full max-w-2xl rounded-lg shadow-lg"
-                                    onPlay={handleVideoPlay}
-                                    onPause={handleVideoPause}
-                                    onEnded={handleVideoEnded}
-                                    onSeeked={handleVideoSeeked}
+                                    onPlay={handleVideoPlayWithNarration}
+                                    onPause={handleVideoPauseWithNarration}
+                                    onEnded={handleVideoEndedWithNarration}
+                                    onSeeked={handleVideoSeekedWithNarration}
                                 >
                                     <source src={resourceContent.video} type="video/mp4" />
                                     Your browser does not support the video element.
                                 </video>
+                                {/* Hidden audio element for narration */}
+                                {resourceContent.videoNarration && (
+                                    <audio ref={narrationAudioRef} src={resourceContent.videoNarration} />
+                                )}
+                                {/* Show narration script */}
+                                {resourceContent.videoNarrationScript && (
+                                    <p className="mt-4 text-gray-600 text-center max-w-xl italic">
+                                        "{resourceContent.videoNarrationScript}"
+                                    </p>
+                                )}
+                            </div>
+                        ) : isCustomPdf ? (
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <div className="text-6xl mb-6">🎬</div>
+                                <h3 className="text-lg font-semibold text-gray-800 mb-2">AI Video Overview</h3>
+                                <p className="text-gray-600 mb-6 text-center max-w-sm">
+                                    Generate an 8-second video visualizing the key concept of this paper using Veo 2.
+                                </p>
+                                {videoError && (
+                                    <div className="text-red-600 mb-4 text-sm text-center max-w-sm">
+                                        {videoError}
+                                    </div>
+                                )}
+                                <button
+                                    onClick={generateVideo}
+                                    disabled={videoGenerating}
+                                    className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                                        videoGenerating
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-green-600 text-white hover:bg-green-700'
+                                    }`}
+                                >
+                                    {videoGenerating ? (
+                                        <span className="flex items-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Generating... (2-5 min)
+                                        </span>
+                                    ) : (
+                                        'Generate Video'
+                                    )}
+                                </button>
                             </div>
                         ) : (
                             <div className="text-center text-gray-500 mt-12">
