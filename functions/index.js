@@ -551,7 +551,7 @@ Return ONLY the JSON, nothing else.`
         // Continue without narration
       }
 
-      // Step 7: Poll for video completion
+      // Step 7: Poll for video completion using fetchPredictOperation
       console.log("Step 7: Polling for video completion...");
       let videoResult = null;
       const maxAttempts = 60; // 5 minutes with 5-second intervals
@@ -560,11 +560,16 @@ Return ONLY the JSON, nothing else.`
         await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
 
         const statusResponse = await fetch(
-          `https://us-central1-aiplatform.googleapis.com/v1/${operationName}`,
+          `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/veo-2.0-generate-001:fetchPredictOperation`,
           {
+            method: "POST",
             headers: {
-              "Authorization": `Bearer ${accessToken.token}`
-            }
+              "Authorization": `Bearer ${accessToken.token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              operationName: operationName
+            })
           }
         );
 
@@ -594,23 +599,38 @@ Return ONLY the JSON, nothing else.`
 
       // Step 8: Extract video from result
       console.log("Step 8: Extracting video...");
+      let videoBase64 = null;
       let videoUri = null;
 
-      if (videoResult.predictions && videoResult.predictions[0]) {
-        videoUri = videoResult.predictions[0].videoUri;
+      // Veo 2 returns videos array with bytesBase64Encoded (direct video data)
+      if (videoResult.videos && videoResult.videos[0]) {
+        if (videoResult.videos[0].bytesBase64Encoded) {
+          videoBase64 = videoResult.videos[0].bytesBase64Encoded;
+          console.log("Video returned as base64, length:", videoBase64.length);
+        } else if (videoResult.videos[0].gcsUri) {
+          videoUri = videoResult.videos[0].gcsUri;
+          console.log("Video returned as GCS URI:", videoUri);
+        }
+      } else if (videoResult.predictions && videoResult.predictions[0]) {
+        if (videoResult.predictions[0].bytesBase64Encoded) {
+          videoBase64 = videoResult.predictions[0].bytesBase64Encoded;
+        } else if (videoResult.predictions[0].videoUri) {
+          videoUri = videoResult.predictions[0].videoUri;
+        }
       }
 
-      if (!videoUri) {
-        console.error("No video in response:", videoResult);
-        res.status(500).json({ error: "No video generated", details: videoResult });
+      if (!videoBase64 && !videoUri) {
+        console.error("No video in response:", JSON.stringify(videoResult).substring(0, 1000));
+        res.status(500).json({ error: "No video generated", details: "Could not extract video from response" });
         return;
       }
 
-      console.log("Video generation complete! URI:", videoUri);
+      console.log("Video generation complete!");
 
       res.set(corsHeaders);
       res.json({
         success: true,
+        videoBase64: videoBase64,
         videoUri: videoUri,
         audioBase64: audioBase64,
         narrationScript: narrationScript,

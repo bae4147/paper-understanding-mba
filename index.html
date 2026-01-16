@@ -359,8 +359,7 @@
             const typingTimeoutRef = useRef(null);
             const lastTypingActivityRef = useRef(Date.now());
 
-            // Papers - use from shared data file
-            const papers = typeof AVAILABLE_PAPERS !== 'undefined' ? AVAILABLE_PAPERS : [];
+            // Papers - now only uploaded PDFs are supported (no pre-defined papers)
 
             // Quiz questions state
             const [quizQuestions, setQuizQuestions] = useState([
@@ -504,75 +503,35 @@
                 }
             }, []);
 
-            // Load paper content when currentPaper changes
+            // Load uploaded PDF from IndexedDB when currentPaper is set
             useEffect(() => {
                 if (!currentPaper) return;
 
-                // Check for custom uploaded paper (stored in IndexedDB)
-                if (currentPaper === 'custom') {
-                    const hasCustomPdf = sessionStorage.getItem('hasCustomPdf');
+                const hasCustomPdf = sessionStorage.getItem('hasCustomPdf');
 
-                    if (hasCustomPdf) {
-                        // Load from IndexedDB
-                        loadPdfFromIndexedDB().then(pdfData => {
-                            if (pdfData) {
-                                setIsCustomPdf(true);
-                                setCustomPdfData({
-                                    base64: pdfData.base64,
-                                    title: pdfData.title || 'Custom Paper',
-                                    sections: pdfData.sections || [],
-                                    numPages: pdfData.numPages || 1
-                                });
-                                // No pre-made quiz for custom papers
-                                setQuizQuestions([]);
-                                console.log('📄 Loaded custom PDF from IndexedDB');
-                            } else {
-                                setPaperContent('<p>No custom paper content found. Please upload a PDF.</p>');
-                            }
-                        }).catch(err => {
-                            console.error('Error loading PDF from IndexedDB:', err);
-                            setPaperContent('<p>Error loading custom paper. Please try uploading again.</p>');
-                        });
-                        return;
-                    } else {
-                        setPaperContent('<p>No custom paper content found. Please upload a PDF.</p>');
-                        return;
-                    }
-                }
-
-                // Regular paper loading
-                setIsCustomPdf(false);
-                setCustomPdfData(null);
-
-                const paper = papers.find(p => p.id === currentPaper);
-                if (paper && paper.url) {
-                    fetch(paper.url)
-                        .then(response => response.text())
-                        .then(html => {
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(html, 'text/html');
-                            const proseDiv = doc.querySelector('.prose');
-
-                            if (proseDiv) {
-                                setPaperContent(proseDiv.innerHTML);
-                            } else {
-                                setPaperContent('<p>Error: Could not load paper content</p>');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error loading paper:', error);
-                            setPaperContent('<p>Error loading paper.</p>');
-                        });
-
-                    // Load quiz questions
-                    fetch(`questions_data/${currentPaper}.json`)
-                        .then(res => res.ok ? res.json() : null)
-                        .then(data => {
-                            if (data && data.questions) {
-                                setQuizQuestions(data.questions);
-                            }
-                        })
-                        .catch(() => {});
+                if (hasCustomPdf) {
+                    // Load from IndexedDB
+                    loadPdfFromIndexedDB().then(pdfData => {
+                        if (pdfData) {
+                            setIsCustomPdf(true);
+                            setCustomPdfData({
+                                base64: pdfData.base64,
+                                title: pdfData.title || 'Uploaded Paper',
+                                sections: pdfData.sections || [],
+                                numPages: pdfData.numPages || 1
+                            });
+                            // No pre-made quiz for uploaded papers
+                            setQuizQuestions([]);
+                            console.log('📄 Loaded PDF from IndexedDB');
+                        } else {
+                            setPaperContent('<p>No paper content found. Please upload a PDF.</p>');
+                        }
+                    }).catch(err => {
+                        console.error('Error loading PDF from IndexedDB:', err);
+                        setPaperContent('<p>Error loading paper. Please try uploading again.</p>');
+                    });
+                } else {
+                    setPaperContent('<p>No paper content found. Please upload a PDF.</p>');
                 }
             }, [currentPaper]);
 
@@ -604,9 +563,17 @@
                         const devicePixelRatio = window.devicePixelRatio || 1;
                         const qualityScale = 2; // Higher scale for better quality
 
+                        // Extract text from all pages for LLM context
+                        let fullPdfText = '';
+
                         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                             const page = await pdf.getPage(pageNum);
                             const viewport = page.getViewport({ scale: qualityScale * devicePixelRatio });
+
+                            // Extract text content from this page
+                            const textContent = await page.getTextContent();
+                            const pageText = textContent.items.map(item => item.str).join(' ');
+                            fullPdfText += pageText + '\n\n';
 
                             // Create canvas for this page
                             const canvas = document.createElement('canvas');
@@ -633,6 +600,12 @@
 
                         setPdfRenderedPages(pages);
                         pageRefs.current = new Array(pdf.numPages).fill(null);
+
+                        // Set paper content for LLM system prompt (same as other conditions)
+                        if (fullPdfText.trim()) {
+                            setPaperContent(fullPdfText.trim());
+                            console.log(`📄 Extracted ${fullPdfText.length} characters from PDF for LLM context`);
+                        }
                     } catch (error) {
                         console.error('Error loading PDF:', error);
                     }
@@ -1445,7 +1418,17 @@
 
                     const data = await response.json();
 
-                    if (data.success && data.videoUri) {
+                    if (data.success && (data.videoBase64 || data.videoUri)) {
+                        // Create video URL from base64 or use URI
+                        let videoUrl = data.videoUri;
+                        if (data.videoBase64) {
+                            const videoBlob = new Blob(
+                                [Uint8Array.from(atob(data.videoBase64), c => c.charCodeAt(0))],
+                                { type: 'video/mp4' }
+                            );
+                            videoUrl = URL.createObjectURL(videoBlob);
+                        }
+
                         // Create narration audio URL if available
                         let narrationUrl = null;
                         if (data.audioBase64) {
@@ -1458,7 +1441,7 @@
 
                         setResourceContent(prev => ({
                             ...prev,
-                            video: data.videoUri,
+                            video: videoUrl,
                             videoNarration: narrationUrl,
                             videoNarrationScript: data.narrationScript
                         }));
@@ -2691,41 +2674,11 @@ Provide constructive feedback to help the reader think more critically about thi
                 return html;
             };
 
-            // Start experiment
+            // Start experiment (legacy - now handled via landing.html)
             const startExperiment = async () => {
                 if (!participantId || !currentPaper) {
-                    alert('Please fill in all fields');
+                    alert('Please fill in all fields and upload a PDF');
                     return;
-                }
-
-                const paper = papers.find(p => p.id === currentPaper);
-                if (paper && paper.url) {
-                    try {
-                        const response = await fetch(paper.url);
-                        const html = await response.text();
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const proseDiv = doc.querySelector('.prose');
-
-                        if (proseDiv) {
-                            setPaperContent(proseDiv.innerHTML);
-
-                            // Load quiz questions
-                            fetch(`questions_data/${currentPaper}.json`)
-                                .then(res => res.ok ? res.json() : null)
-                                .then(data => {
-                                    if (data && data.questions) {
-                                        setQuizQuestions(data.questions);
-                                    }
-                                })
-                                .catch(() => {});
-                        } else {
-                            setPaperContent('<p>Error: Could not load paper content</p>');
-                        }
-                    } catch (error) {
-                        console.error('Error loading paper:', error);
-                        setPaperContent('<p>Error loading paper.</p>');
-                    }
                 }
 
                 setPhase('reading-guide');
@@ -3156,8 +3109,6 @@ Provide constructive feedback to help the reader think more critically about thi
 
             // READING GUIDE PHASE
             if (phase === 'reading-guide') {
-                const paper = papers.find(p => p.id === currentPaper);
-
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
                         <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-3xl w-full">
@@ -3169,7 +3120,7 @@ Provide constructive feedback to help the reader think more critically about thi
                             <div className="space-y-6 mb-8">
                                 <div className="bg-gray-50 rounded-lg p-6">
                                     <h3 className="font-bold text-lg text-gray-800 mb-2">Title</h3>
-                                    <p className="text-gray-700">{isCustomPdf ? customPdfData?.title : paper?.name}</p>
+                                    <p className="text-gray-700">{customPdfData?.title || 'Uploaded Paper'}</p>
                                 </div>
 
                                 <div className="bg-gray-50 rounded-lg p-6">
@@ -3558,7 +3509,7 @@ Provide constructive feedback to help the reader think more critically about thi
                         <div className="bg-white shadow-md px-6 py-4 flex items-center justify-between border-b-2">
                             <div>
                                 <h2 className="text-lg font-bold text-gray-800">
-                                    [Paper Reading] {papers.find(p => p.id === currentPaper)?.name}
+                                    [Paper Reading] {customPdfData?.title || 'Uploaded Paper'}
                                 </h2>
                                 <p className="text-sm text-gray-600">
                                     {participantId} | {condition} | Section: <strong>{currentSection}</strong>
@@ -4420,7 +4371,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                 <div className="space-y-2 text-gray-700">
                                     <p>• Participant: <strong>{participantId}</strong></p>
                                     <p>• Condition: <strong>{condition}</strong></p>
-                                    <p>• Paper: <strong>{papers.find(p => p.id === currentPaper)?.name}</strong></p>
+                                    <p>• Paper: <strong>{customPdfData?.title || 'Uploaded Paper'}</strong></p>
                                     <p>• Quiz responses: <strong>{Object.keys(quizAnswers).length} / {quizQuestions.length}</strong></p>
                                     <p>• Review rating: <strong>{reviewData.rating} / 5</strong></p>
                                 </div>
