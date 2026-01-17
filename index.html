@@ -137,7 +137,7 @@
         // Main Application Component
         function ReadingExperimentAOM() {
             // Experiment flow state
-            const [phase, setPhase] = useState('reading'); // reading, quiz-guide, quiz, review-guide, review, complete
+            const [phase, setPhase] = useState('reading'); // reading, complete
             const [participantId, setParticipantId] = useState('');
             const [experimentId, setExperimentId] = useState('');
             const [condition, setCondition] = useState('control'); // control, ebm
@@ -201,13 +201,13 @@
             };
 
             // Focus state (for LLM conditions)
-            // 'reading' = paper panel, 'chat' = LLM chat (condition 2), or for condition 3: 'chat'/'audio'/'infographics'/'simplified'/'video'/'quiz'
+            // 'reading' = paper panel, 'chat' = LLM chat (condition 2), or for condition 3: 'chat'/'audio'/'infographics'/'simplified'/'video'
             const [activeFocus, setActiveFocus] = useState('reading');
-            const [focusTimes, setFocusTimes] = useState({ reading: 0, chat: 0, audio: 0, infographics: 0, simplified: 0, video: 0, quiz: 0 });
+            const [focusTimes, setFocusTimes] = useState({ reading: 0, chat: 0, audio: 0, infographics: 0, simplified: 0, video: 0 });
             const focusStartTimeRef = useRef(Date.now());
 
             // Right panel tab state (for both conditions)
-            const [activeTab, setActiveTab] = useState('chat'); // 'infographics', 'video', 'audio', 'simplified', 'chat', 'quiz' - chat is default
+            const [activeTab, setActiveTab] = useState('chat'); // 'infographics', 'video', 'audio', 'simplified', 'chat' - chat is default
 
             // Resource state for extended condition
             const [resourceContent, setResourceContent] = useState({
@@ -251,51 +251,7 @@
                 return ['chat', ...shuffleTabs];
             });
 
-            // Quiz phase state
-            const [quizActive, setQuizActive] = useState(false);
-            const [quizAnswers, setQuizAnswers] = useState({});
-            const [quizConfidence, setQuizConfidence] = useState('');
-
-            // In-tab quiz state (for LLM-extended right panel quiz)
-            const [inTabQuizAnswers, setInTabQuizAnswers] = useState({});
-            const inTabQuizQuestions = [
-                {
-                    id: 'q1',
-                    question: "According to the article, what is the primary focus of 'meeting science'?",
-                    options: [
-                        "A) Developing new technologies for virtual meetings",
-                        "B) Studying what happens before, during, and after meetings",
-                        "C) Reducing the total number of meetings in organizations",
-                        "D) Training employees to take better meeting notes"
-                    ],
-                    correctAnswer: "B) Studying what happens before, during, and after meetings"
-                },
-                {
-                    id: 'q2',
-                    question: "Which of the following is identified in the paper as a critical 'after-meeting' action for ensuring meeting effectiveness?",
-                    options: [
-                        "A) Scheduling the next meeting immediately",
-                        "B) Sending out meeting minutes and action items",
-                        "C) Conducting a formal performance review",
-                        "D) Providing refreshments to attendees"
-                    ],
-                    correctAnswer: "B) Sending out meeting minutes and action items"
-                },
-                {
-                    id: 'q3',
-                    question: "According to the research cited, bad meetings can negatively impact employee well-being beyond the workplace, affecting general life satisfaction.",
-                    options: ["True", "False"],
-                    correctAnswer: "True"
-                },
-                {
-                    id: 'q4',
-                    question: "The article suggests that the best way to improve organizational effectiveness is to eliminate all meetings entirely.",
-                    options: ["True", "False"],
-                    correctAnswer: "False"
-                }
-            ];
-
-            // Review phase state
+            // Review phase state (legacy - not used)
             const [reviewActive, setReviewActive] = useState(false);
             const [reviewData, setReviewData] = useState({
                 rating: 0,
@@ -336,9 +292,7 @@
             // Timer tracking
             const phaseStartTime = useRef(Date.now());
             const phaseTimers = useRef({
-                reading: 0,
-                quiz: 0,
-                review: 0
+                reading: 0
             });
 
             // Logging state
@@ -360,118 +314,6 @@
             const lastTypingActivityRef = useRef(Date.now());
 
             // Papers - now only uploaded PDFs are supported (no pre-defined papers)
-
-            // Quiz questions state
-            const [quizQuestions, setQuizQuestions] = useState([
-                {
-                    id: 1,
-                    question: "What is the primary goal of this review on the science of workplace meetings?",
-                    options: [
-                        "To analyze the historical evolution of meeting structures since the early 20th century.",
-                        "To argue for the complete elimination of meetings in modern organizations.",
-                        "To apply scientific findings about activities before, during, and after meetings to improve their success.",
-                        "To introduce a new psychological theory explaining why managers schedule so many meetings."
-                    ],
-                    correctAnswer: "To apply scientific findings about activities before, during, and after meetings to improve their success.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 2,
-                    question: "The authors structure their evidence-based recommendations around which three key phases?",
-                    options: [
-                        "Design, Interaction, and Outcome.",
-                        "Planning, Execution, and Follow-up.",
-                        "Individual, Group, and Organization.",
-                        "Before, During, and After."
-                    ],
-                    correctAnswer: "Before, During, and After.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 3,
-                    question: "According to the abstract, what is a common perception of meetings among employees?",
-                    options: [
-                        "They are seen as a valuable opportunity for social interaction.",
-                        "They are the most productive part of the workday.",
-                        "They are considered essential for career advancement.",
-                        "Their value is often questioned and they are viewed as a routine necessity."
-                    ],
-                    correctAnswer: "Their value is often questioned and they are viewed as a routine necessity.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 4,
-                    question: "The 'Before the meeting' section advises against holding a meeting for which of the following purposes?",
-                    options: [
-                        "To solve a new problem that requires different expertise.",
-                        "To share routine, nonurgent information without discussion.",
-                        "To develop and implement an organizational strategy.",
-                        "To have a team debrief after a performance episode."
-                    ],
-                    correctAnswer: "To share routine, nonurgent information without discussion.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 5,
-                    question: "In the 'During the meeting' section, what effect of humor and laughter patterns is mentioned?",
-                    options: [
-                        "They can stimulate positive behaviors that predict team performance.",
-                        "They are effective only when initiated by the meeting leader.",
-                        "They are typically used by low-performing employees to avoid contributing to the discussion.",
-                        "They are a common cause of meetings getting off topic and running too long."
-                    ],
-                    correctAnswer: "They can stimulate positive behaviors that predict team performance.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 6,
-                    question: "According to the 'After the meeting' section, what is a primary reason for sending out meeting minutes?",
-                    options: [
-                        "To facilitate follow-through by clarifying action plans and responsibilities.",
-                        "To survey attendees about their satisfaction with the meeting's length.",
-                        "To serve as an official agenda for the next scheduled meeting.",
-                        "To allow attendees to dispute any decisions that were made."
-                    ],
-                    correctAnswer: "To facilitate follow-through by clarifying action plans and responsibilities.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 7,
-                    question: "By synthesizing information from the 'Before' and 'After' meeting sections, what can be inferred about the link between meeting attendance and job satisfaction?",
-                    options: [
-                        "Carefully selecting relevant attendees before a meeting can positively impact their long-term job satisfaction.",
-                        "Higher job satisfaction causes employees to seek out and attend more meetings.",
-                        "The more meetings an employee attends, regardless of quality, the lower their job satisfaction will be.",
-                        "Job satisfaction is primarily linked to meeting length, which is determined before the meeting begins."
-                    ],
-                    correctAnswer: "Carefully selecting relevant attendees before a meeting can positively impact their long-term job satisfaction.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 8,
-                    question: "Based on the article, a manager aiming to improve their team's meetings should focus on which two distinct areas of responsibility?",
-                    options: [
-                        "The psychological well-being of attendees and the financial cost of the meeting.",
-                        "The use of advanced technology and the enforcement of punctuality.",
-                        "The structural design before the meeting and active facilitation during the meeting.",
-                        "The frequency of meetings and the long-term career growth of participants."
-                    ],
-                    correctAnswer: "The structural design before the meeting and active facilitation during the meeting.",
-                    type: "multiple_choice"
-                },
-                {
-                    id: 9,
-                    question: "What long-term strategy, combining multiple evidence-based practices from the article, would most effectively improve an organization's overall meeting culture?",
-                    options: [
-                        "Train all high-performing employees on how to participate more effectively in meetings.",
-                        "Systematically survey meeting satisfaction, use the feedback to re-evaluate routine meetings, and adjust their design accordingly.",
-                        "Invest heavily in videoconferencing technology to reduce the need for in-person meetings.",
-                        "Implement a strict policy that all meetings must start on time and have an agenda."
-                    ],
-                    correctAnswer: "Systematically survey meeting satisfaction, use the feedback to re-evaluate routine meetings, and adjust their design accordingly.",
-                    type: "multiple_choice"
-                },
-            ]);
 
             // Section boundaries - will be populated dynamically from paper content
             const [sectionBoundaries, setSectionBoundaries] = useState({
@@ -532,8 +374,6 @@
                                 sections: pdfData.sections || [],
                                 numPages: pdfData.numPages || 1
                             });
-                            // No pre-made quiz for uploaded papers
-                            setQuizQuestions([]);
                             console.log('📄 Loaded PDF from IndexedDB');
                         } else {
                             setPaperContent('<p>No paper content found. Please upload a PDF.</p>');
@@ -994,7 +834,7 @@
                     //     saveEventsToFirebase(events, false);
                     // }
                     // Skip warning if we're intentionally redirecting
-                    if ((phase === 'reading' || phase === 'quiz' || phase === 'review') && !isRedirecting) {
+                    if (phase === 'reading' && !isRedirecting) {
                         e.preventDefault();
                         e.returnValue = '';
                         return '';
@@ -2981,11 +2821,6 @@ Provide constructive feedback to help the reader think more critically about thi
                             // Count tab switches
                             const tabSwitchEvents = events.filter(e => e.eventType === 'resource_tab_switch');
                             updateData['extendedResources.tabSwitchCount'] = tabSwitchEvents.length;
-
-                            // Save in-tab quiz answers
-                            if (Object.keys(inTabQuizAnswers).length > 0) {
-                                updateData['extendedResources.inTabQuizAnswers'] = inTabQuizAnswers;
-                            }
                         }
 
                         // Socratic question data saving removed (condition no longer used)
@@ -2999,138 +2834,6 @@ Provide constructive feedback to help the reader think more critically about thi
                 */
 
                 setShowFinishPopup(false);  // Reset popup state
-                setPhase('quiz-guide');
-                logEvent('quiz_guide_shown');
-            };
-
-            // Handle quiz answer
-            const handleQuizAnswer = (questionId, answer) => {
-                setQuizAnswers(prev => ({ ...prev, [questionId]: answer }));
-                logEvent('quiz_answer', { questionId, answer });
-            };
-
-            // Complete quiz phase
-            const completeQuiz = async () => {
-                setQuizActive(false);
-                const quizDuration = Date.now() - phaseStartTime.current;
-                phaseTimers.current.quiz = quizDuration;
-
-                // Auto-grade quiz
-                let correctCount = 0;
-                let notSureCount = 0;
-                const totalQuestions = quizQuestions.length;
-                const gradingDetails = {};
-
-                quizQuestions.forEach(q => {
-                    const userAnswer = quizAnswers[q.id];
-                    const isNotSure = userAnswer === "Not Sure";
-                    const isCorrect = userAnswer === q.correctAnswer;
-
-                    if (isNotSure) notSureCount++;
-                    if (isCorrect) correctCount++;
-
-                    gradingDetails[q.id] = {
-                        userAnswer: userAnswer || null,
-                        correctAnswer: q.correctAnswer,
-                        isCorrect: isCorrect,
-                        isNotSure: isNotSure
-                    };
-                });
-
-                const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions * 100).toFixed(1) : 0;
-
-                logEvent('quiz_phase_complete', {
-                    answers: quizAnswers,
-                    duration: quizDuration,
-                    correctCount,
-                    notSureCount,
-                    totalQuestions,
-                    accuracy
-                });
-
-                // Set redirecting flag to prevent beforeunload warning (don't change phase to avoid flash)
-                setIsRedirecting(true);
-
-                // Firebase saving disabled
-                /*
-                try {
-                    if (window.firebaseDb && participantId && experimentId) {
-                        const experimentRef = window.firebaseDoc(
-                            window.firebaseDb,
-                            `users/${participantId}/experiments/${experimentId}`
-                        );
-
-                        await window.firebaseUpdateDoc(experimentRef, {
-                            'quiz.answers': quizAnswers,
-                            'quiz.confidence': parseInt(quizConfidence) || null,
-                            'quiz.duration': quizDuration,
-                            'quiz.gradingDetails': gradingDetails,
-                            'quiz.correctCount': correctCount,
-                            'quiz.notSureCount': notSureCount,
-                            'quiz.totalQuestions': totalQuestions,
-                            'quiz.accuracy': parseFloat(accuracy),
-                            'quiz.submittedAt': window.firebaseServerTimestamp()
-                        });
-                        console.log('✅ Quiz data saved with grading:', { correctCount, totalQuestions, accuracy: accuracy + '%' });
-                    }
-                } catch (error) {
-                    console.error('❌ Failed to save quiz data:', error);
-                }
-                */
-
-                // Redirect to post-task.html
-                logEvent('quiz_completed_redirecting');
-
-                const urlParams = new URLSearchParams(window.location.search);
-                const mode = urlParams.get('mode') || 'experiment';
-                const params = new URLSearchParams({
-                    participantId,
-                    experimentId,
-                    mode,
-                    condition,
-                    paper: currentPaper
-                });
-                window.location.href = `post-task.html?${params.toString()}`;
-            };
-
-            // Handle review change
-            const handleReviewChange = (field, value) => {
-                setReviewData(prev => ({ ...prev, [field]: value }));
-            };
-
-            // Complete review phase
-            const completeReview = async () => {
-                setReviewActive(false);
-                const reviewDuration = Date.now() - phaseStartTime.current;
-                phaseTimers.current.review = reviewDuration;
-                logEvent('review_phase_complete', { reviewData, duration: reviewDuration });
-
-                // Firebase saving disabled
-                /*
-                try {
-                    if (window.firebaseDb && participantId && experimentId) {
-                        const experimentRef = window.firebaseDoc(
-                            window.firebaseDb,
-                            `users/${participantId}/experiments/${experimentId}`
-                        );
-
-                        await window.firebaseUpdateDoc(experimentRef, {
-                            'review.rating': reviewData.rating,
-                            'review.strengths': reviewData.strengths,
-                            'review.weaknesses': reviewData.weaknesses,
-                            'review.suggestions': reviewData.suggestions,
-                            'review.duration': reviewDuration,
-                            'review.submittedAt': window.firebaseServerTimestamp(),
-                            'status': 'completed',
-                            'completedAt': window.firebaseServerTimestamp()
-                        });
-                        console.log('✅ Experiment completed');
-                    }
-                } catch (error) {
-                    console.error('❌ Failed to complete experiment:', error);
-                }
-                */
-
                 setPhase('complete');
                 logEvent('experiment_complete');
             };
@@ -3145,12 +2848,10 @@ Provide constructive feedback to help the reader think more critically about thi
                 setPaperContent('');
                 setMessages([]);
                 setChatHistory([]);
-                setQuizAnswers({});
-                setReviewData({ rating: 0, strengths: '', weaknesses: '', suggestions: '' });
                 setEvents([]);
                 setActiveTab(null);
                 setResourceContent({ infographics: null, video: null, audio: null, audioType: null, simplified: null });
-                setFocusTimes({ reading: 0, chat: 0, audio: 0, infographics: 0, simplified: 0, video: 0, quiz: 0 });
+                setFocusTimes({ reading: 0, chat: 0, audio: 0, infographics: 0, simplified: 0, video: 0 });
                 eventIdCounter.current = 0;
                 unsavedEventsCount.current = 0;
                 focusStartTimeRef.current = Date.now();
@@ -4023,371 +3724,14 @@ Provide constructive feedback to help the reader think more critically about thi
                 );
             }
 
-            // QUIZ GUIDE PHASE
-            if (phase === 'quiz-guide') {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-3xl w-full">
-                            <div className="text-center mb-8">
-                                <div className="text-5xl mb-4">📝</div>
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2">Comprehension Quiz</h1>
-                            </div>
-
-                            <div className="space-y-6 mb-8">
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Guide</h3>
-                                    <ul>
-                                        <li>
-                                    <p className="text-gray-700">Answer the questions based on your understanding of the paper.</p>
-                                    </li>
-                                    <li>
-                                     <p className="text-gray-700">If you're unsure, please select "Not Sure" instead of guessing.</p>   
-                                    </li>
-                                    </ul>
-                                    </div>
-
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Time Limit</h3>
-                                    <p className="text-3xl font-bold text-purple-600">5min</p>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => {
-                                    setPhase('quiz');
-                                    setQuizActive(true);
-                                    phaseStartTime.current = Date.now();
-                                    logEvent('quiz_phase_start');
-                                }}
-                                className="w-full px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-lg font-medium"
-                            >
-                                Start →
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            // QUIZ PHASE
-            if (phase === 'quiz') {
-                return (
-                    <div className="min-h-screen bg-gray-50">
-                        <div className="bg-white shadow-md px-6 py-4 border-b-2 flex items-center justify-between sticky top-0 z-50">
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-800">Comprehension Quiz</h2>
-                                <p className="text-sm text-gray-600">Closed-book</p>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                                <Timer
-                                    seconds={5 * 60}
-                                    isActive={quizActive}
-                                    phase="quiz"
-                                    onComplete={() => alert('Quiz time is up!')}
-                                />
-                                <button
-                                    onClick={() => {
-                                        // Check if all questions are answered
-                                        const answeredCount = Object.keys(quizAnswers).length;
-                                        if (answeredCount < quizQuestions.length) {
-                                            alert(`Please answer all questions before submitting. (${answeredCount}/${quizQuestions.length} answered)`);
-                                            return;
-                                        }
-                                        // Check if confidence is rated
-                                        if (!quizConfidence) {
-                                            alert('Please rate your confidence in your quiz answers.');
-                                            return;
-                                        }
-                                        setShowFinishPopup(true);
-                                    }}
-                                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                                >
-                                    Submit Quiz
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="max-w-4xl mx-auto p-8">
-                            <div className="space-y-6">
-                                {quizQuestions.map((q, idx) => (
-                                    <div key={q.id} className="bg-white rounded-lg shadow-md p-6">
-                                        <div className="flex items-start space-x-3 mb-4">
-                                            <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                                                {idx + 1}
-                                            </span>
-                                            <div className="flex-1">
-                                                <p className="font-medium text-gray-900 mb-2">{q.question}</p>
-
-                                                {q.type === 'multiple_choice' ? (
-                                                    <div className="space-y-2 mt-4">
-                                                        {q.options?.map((option, optIdx) => (
-                                                            <label key={optIdx} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer border border-gray-200">
-                                                                <input
-                                                                    type="radio"
-                                                                    name={`question-${q.id}`}
-                                                                    value={option}
-                                                                    checked={quizAnswers[q.id] === option}
-                                                                    onChange={(e) => handleQuizAnswer(q.id, e.target.value)}
-                                                                    className="w-4 h-4"
-                                                                />
-                                                                <span className="text-gray-700">{option}</span>
-                                                            </label>
-                                                        ))}
-                                                        {/* Not Sure option */}
-                                                        <p className="text-xs text-gray-500 mt-4 mb-2">If you're not sure, please select 'Not Sure' below.</p>
-                                                        <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer border border-dashed border-gray-400 bg-gray-50">
-                                                            <input
-                                                                type="radio"
-                                                                name={`question-${q.id}`}
-                                                                value="Not Sure"
-                                                                checked={quizAnswers[q.id] === "Not Sure"}
-                                                                onChange={(e) => handleQuizAnswer(q.id, e.target.value)}
-                                                                className="w-4 h-4"
-                                                            />
-                                                            <span className="text-gray-500 italic">Not Sure</span>
-                                                        </label>
-                                                    </div>
-                                                ) : (
-                                                    <textarea
-                                                        className="w-full mt-4 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                                        rows="4"
-                                                        placeholder="Enter your answer..."
-                                                        value={quizAnswers[q.id] || ''}
-                                                        onChange={(e) => handleQuizAnswer(q.id, e.target.value)}
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {/* Quiz Confidence */}
-                                <div className="bg-white rounded-lg shadow-md p-6 mt-8 border-t-4 border-blue-500">
-                                    <div className="mb-4">
-                                        <p className="font-medium text-gray-900 mb-2">
-                                            How confident are you that you answered the quiz questions correctly? *
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-gray-500">Not at all confident</span>
-                                        <div className="flex space-x-1">
-                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
-                                                <button
-                                                    key={value}
-                                                    type="button"
-                                                    onClick={() => setQuizConfidence(value.toString())}
-                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
-                                                        quizConfidence === value.toString()
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    {value}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <span className="text-xs text-gray-500">Extremely confident</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-                                <p className="text-sm text-gray-600">
-                                    Progress: {Object.keys(quizAnswers).length} / {quizQuestions.length} questions answered
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Finish Quiz Popup */}
-                        {showFinishPopup && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-4">End quiz session?</h3>
-                                    <div className="flex space-x-4">
-                                        <button
-                                            onClick={() => setShowFinishPopup(false)}
-                                            className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowFinishPopup(false);
-                                                completeQuiz();
-                                            }}
-                                            className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
-                                        >
-                                            Confirm
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            }
-
-            // REVIEW GUIDE PHASE
-            if (phase === 'review-guide') {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-3xl w-full">
-                            <div className="text-center mb-8">
-                                <div className="text-5xl mb-4">✍️</div>
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2">Post-reading Task</h1>
-                            </div>
-
-                            <div className="space-y-6 mb-8">
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Guidance</h3>
-                                    <p className="text-gray-700">--</p>
-                                </div>
-
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Time Limit</h3>
-                                    <p className="text-3xl font-bold text-green-600">20min</p>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => {
-                                    setPhase('review');
-                                    setReviewActive(true);
-                                    phaseStartTime.current = Date.now();
-                                    logEvent('review_phase_start');
-                                }}
-                                className="w-full px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 text-lg font-medium"
-                            >
-                                Start →
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            // REVIEW PHASE
-            if (phase === 'review') {
-                return (
-                    <div className="h-screen flex flex-col bg-gray-50">
-                        <div className="bg-white shadow-md px-6 py-4 border-b-2 flex items-center justify-between flex-shrink-0">
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-800">Post-reading Task</h2>
-                                <p className="text-sm text-gray-600">Open-book</p>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                                <Timer
-                                    seconds={20 * 60}
-                                    isActive={reviewActive}
-                                    phase="review"
-                                    onComplete={() => alert('Review time is up!')}
-                                />
-                                <button
-                                    onClick={() => setShowFinishPopup(true)}
-                                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                                >
-                                    Submit Review
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-hidden px-4 py-6">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
-                                {/* Paper */}
-                                <div className="bg-white rounded-lg shadow-md p-6 overflow-y-auto">
-                                    <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: paperContent }} />
-                                </div>
-
-                                {/* Review Form */}
-                                <div className="overflow-y-auto space-y-6">
-                                    <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h3 className="text-xl font-bold mb-4">Rating</h3>
-                                        <div className="flex items-center space-x-4">
-                                            {[1, 2, 3, 4, 5].map(rating => (
-                                                <button
-                                                    key={rating}
-                                                    onClick={() => handleReviewChange('rating', rating)}
-                                                    className={`w-12 h-12 rounded-full font-bold transition-colors ${
-                                                        reviewData.rating === rating
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                    }`}
-                                                >
-                                                    {rating}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <p className="text-xs text-gray-600 mt-2">1=Reject, 5=Accept</p>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h3 className="text-lg font-bold mb-2">Strengths</h3>
-                                        <textarea
-                                            value={reviewData.strengths}
-                                            onChange={(e) => handleReviewChange('strengths', e.target.value)}
-                                            className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Strengths of this research..."
-                                        />
-                                    </div>
-
-                                    <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h3 className="text-lg font-bold mb-2">Weaknesses</h3>
-                                        <textarea
-                                            value={reviewData.weaknesses}
-                                            onChange={(e) => handleReviewChange('weaknesses', e.target.value)}
-                                            className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Weaknesses of this research..."
-                                        />
-                                    </div>
-
-                                    <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h3 className="text-lg font-bold mb-2">Suggestions</h3>
-                                        <textarea
-                                            value={reviewData.suggestions}
-                                            onChange={(e) => handleReviewChange('suggestions', e.target.value)}
-                                            className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Suggestions for improvement..."
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Finish Review Popup */}
-                        {showFinishPopup && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-4">End review session?</h3>
-                                    <div className="flex space-x-4">
-                                        <button
-                                            onClick={() => setShowFinishPopup(false)}
-                                            className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowFinishPopup(false);
-                                                completeReview();
-                                            }}
-                                            className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                                        >
-                                            Confirm
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            }
-
             // COMPLETE PHASE
             if (phase === 'complete') {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-2xl p-12 max-w-2xl w-full text-center">
                             <div className="text-6xl mb-6">🎉</div>
-                            <h1 className="text-4xl font-bold text-gray-800 mb-4">Experiment Complete!</h1>
-                            <p className="text-gray-600 mb-8">Thank you for participation.</p>
+                            <h1 className="text-4xl font-bold text-gray-800 mb-4">Reading Complete!</h1>
+                            <p className="text-gray-600 mb-8">Thank you for your participation.</p>
 
                             <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
                                 <h3 className="font-bold text-lg mb-4">Summary</h3>
@@ -4395,8 +3739,6 @@ Provide constructive feedback to help the reader think more critically about thi
                                     <p>• Participant: <strong>{participantId}</strong></p>
                                     <p>• Condition: <strong>{condition}</strong></p>
                                     <p>• Paper: <strong>{customPdfData?.title || 'Uploaded Paper'}</strong></p>
-                                    <p>• Quiz responses: <strong>{Object.keys(quizAnswers).length} / {quizQuestions.length}</strong></p>
-                                    <p>• Review rating: <strong>{reviewData.rating} / 5</strong></p>
                                 </div>
                             </div>
 
