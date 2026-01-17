@@ -172,9 +172,13 @@
             const [infographicReady, setInfographicReady] = useState(true);
             const [generationStatus, setGenerationStatus] = useState('');
 
-            // Video generation state (for custom PDFs)
+            // Video slideshow state (for custom PDFs)
             const [videoGenerating, setVideoGenerating] = useState(false);
             const [videoError, setVideoError] = useState(null);
+            const [videoSlideshow, setVideoSlideshow] = useState(null); // { title, scenes: [...] }
+            const [slideshowPlaying, setSlideshowPlaying] = useState(false);
+            const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
+            const slideshowAudioRef = useRef(null);
             const pdfCanvasRef = useRef(null);
             const pdfDocRef = useRef(null);
 
@@ -1244,16 +1248,17 @@
                 }
             };
 
-            // Generate video for custom PDF using Veo 2 with narration
+            // Generate video slideshow for custom PDF (NotebookLM-style)
             const generateVideo = async () => {
                 if (!customPdfData?.base64 || videoGenerating) return;
 
                 setVideoGenerating(true);
                 setVideoError(null);
-                logEvent('video_generation_started');
+                setVideoSlideshow(null);
+                logEvent('video_slideshow_generation_started');
 
                 try {
-                    const response = await fetch('https://generatevideo-noiydfdfbq-uc.a.run.app', {
+                    const response = await fetch('https://us-central1-mba-paper-reading.cloudfunctions.net/generateVideoSlideshow', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1265,54 +1270,84 @@
 
                     if (!response.ok) {
                         const error = await response.json();
-                        throw new Error(error.message || error.details || 'Failed to generate video');
+                        throw new Error(error.message || error.details || 'Failed to generate video slideshow');
                     }
 
                     const data = await response.json();
 
-                    if (data.success && (data.videoBase64 || data.videoUri)) {
-                        // Create video URL from base64 or use URI
-                        let videoUrl = data.videoUri;
-                        if (data.videoBase64) {
-                            const videoBlob = new Blob(
-                                [Uint8Array.from(atob(data.videoBase64), c => c.charCodeAt(0))],
-                                { type: 'video/mp4' }
-                            );
-                            videoUrl = URL.createObjectURL(videoBlob);
-                        }
-
-                        // Create narration audio URL if available
-                        let narrationUrl = null;
-                        if (data.audioBase64) {
-                            const audioBlob = new Blob(
-                                [Uint8Array.from(atob(data.audioBase64), c => c.charCodeAt(0))],
-                                { type: 'audio/mpeg' }
-                            );
-                            narrationUrl = URL.createObjectURL(audioBlob);
-                        }
-
-                        setResourceContent(prev => ({
-                            ...prev,
-                            video: videoUrl,
-                            videoNarration: narrationUrl,
-                            videoNarrationScript: data.narrationScript
+                    if (data.success && data.scenes && data.scenes.length > 0) {
+                        // Process scenes: convert base64 to blob URLs for images and audio
+                        const processedScenes = data.scenes.map(scene => ({
+                            sceneNumber: scene.sceneNumber,
+                            imageUrl: `data:image/png;base64,${scene.imageBase64}`,
+                            audioUrl: `data:audio/mpeg;base64,${scene.audioBase64}`,
+                            duration: scene.duration || 9,
+                            narration: scene.narration
                         }));
 
-                        logEvent('video_generation_completed', {
-                            prompt: data.prompt,
-                            hasNarration: !!data.audioBase64
+                        setVideoSlideshow({
+                            title: data.title,
+                            scenes: processedScenes,
+                            totalScenes: data.totalScenes
+                        });
+
+                        logEvent('video_slideshow_generation_completed', {
+                            title: data.title,
+                            totalScenes: data.totalScenes
                         });
                     } else {
-                        throw new Error('No video returned from server');
+                        throw new Error('No scenes returned from server');
                     }
                 } catch (error) {
-                    console.error('Video generation error:', error);
+                    console.error('Video slideshow generation error:', error);
                     setVideoError(error.message);
-                    logEvent('video_generation_failed', { error: error.message });
+                    logEvent('video_slideshow_generation_failed', { error: error.message });
                 } finally {
                     setVideoGenerating(false);
                 }
             };
+
+            // Slideshow player controls
+            const playSlideshow = () => {
+                if (!videoSlideshow || videoSlideshow.scenes.length === 0) return;
+                setSlideshowPlaying(true);
+                setCurrentSceneIndex(0);
+                playCurrentScene(0);
+            };
+
+            const pauseSlideshow = () => {
+                setSlideshowPlaying(false);
+                if (slideshowAudioRef.current) {
+                    slideshowAudioRef.current.pause();
+                }
+            };
+
+            const playCurrentScene = (index) => {
+                if (!videoSlideshow || index >= videoSlideshow.scenes.length) {
+                    setSlideshowPlaying(false);
+                    return;
+                }
+                setCurrentSceneIndex(index);
+            };
+
+            const handleSceneAudioEnded = () => {
+                if (!slideshowPlaying) return;
+                const nextIndex = currentSceneIndex + 1;
+                if (nextIndex < videoSlideshow.scenes.length) {
+                    playCurrentScene(nextIndex);
+                } else {
+                    setSlideshowPlaying(false);
+                    setCurrentSceneIndex(0);
+                }
+            };
+
+            // Auto-play next scene when audio ends
+            useEffect(() => {
+                if (slideshowPlaying && slideshowAudioRef.current && videoSlideshow) {
+                    slideshowAudioRef.current.src = videoSlideshow.scenes[currentSceneIndex]?.audioUrl;
+                    slideshowAudioRef.current.play().catch(e => console.log('Audio play failed:', e));
+                }
+            }, [currentSceneIndex, slideshowPlaying, videoSlideshow]);
 
             // Generate infographic for custom PDF
             const generateInfographic = async () => {
@@ -2795,7 +2830,7 @@ Provide constructive feedback to help the reader think more critically about thi
                         if (condition === 'control' || condition === 'ebm' || condition === 'ebm_coach') {
                             updateData['extendedResources.resourcesAvailable'] = {
                                 infographics: !!resourceContent.infographics,
-                                video: !!resourceContent.video,
+                                video: !!videoSlideshow,
                                 audio: !!resourceContent.audio,
                                 simplified: !!resourceContent.simplified
                             };
@@ -3090,31 +3125,69 @@ Provide constructive feedback to help the reader think more critically about thi
                     }
                 };
 
-                // Video Tab - inline JSX
+                // Video Tab - Slideshow Player
                 const videoTab = (
                     <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-                        {resourceContent.video ? (
-                            <div className="flex flex-col items-center justify-center h-full">
-                                <video
-                                    ref={videoRef}
-                                    controls
-                                    className="w-full max-w-2xl rounded-lg shadow-lg"
-                                    onPlay={handleVideoPlayWithNarration}
-                                    onPause={handleVideoPauseWithNarration}
-                                    onEnded={handleVideoEndedWithNarration}
-                                    onSeeked={handleVideoSeekedWithNarration}
-                                >
-                                    <source src={resourceContent.video} type="video/mp4" />
-                                    Your browser does not support the video element.
-                                </video>
-                                {/* Hidden audio element for narration */}
-                                {resourceContent.videoNarration && (
-                                    <audio ref={narrationAudioRef} src={resourceContent.videoNarration} />
-                                )}
-                                {/* Show narration script */}
-                                {resourceContent.videoNarrationScript && (
-                                    <p className="mt-4 text-gray-600 text-center max-w-xl italic">
-                                        "{resourceContent.videoNarrationScript}"
+                        {videoSlideshow ? (
+                            <div className="flex flex-col items-center h-full">
+                                {/* Title */}
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">{videoSlideshow.title}</h3>
+
+                                {/* Slideshow Display */}
+                                <div className="relative w-full max-w-2xl aspect-video bg-[#F9F7F2] rounded-lg shadow-lg overflow-hidden">
+                                    {videoSlideshow.scenes[currentSceneIndex] && (
+                                        <img
+                                            src={videoSlideshow.scenes[currentSceneIndex].imageUrl}
+                                            alt={`Scene ${currentSceneIndex + 1}`}
+                                            className="w-full h-full object-contain"
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Hidden audio element */}
+                                <audio
+                                    ref={slideshowAudioRef}
+                                    onEnded={handleSceneAudioEnded}
+                                    style={{ display: 'none' }}
+                                />
+
+                                {/* Controls */}
+                                <div className="flex items-center gap-4 mt-4">
+                                    <button
+                                        onClick={slideshowPlaying ? pauseSlideshow : playSlideshow}
+                                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                                    >
+                                        {slideshowPlaying ? 'Pause' : 'Play'}
+                                    </button>
+                                    <span className="text-gray-600">
+                                        Scene {currentSceneIndex + 1} / {videoSlideshow.totalScenes}
+                                    </span>
+                                </div>
+
+                                {/* Scene Navigation */}
+                                <div className="flex gap-2 mt-4 flex-wrap justify-center max-w-2xl">
+                                    {videoSlideshow.scenes.map((scene, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                pauseSlideshow();
+                                                setCurrentSceneIndex(idx);
+                                            }}
+                                            className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                                                idx === currentSceneIndex
+                                                    ? 'bg-green-600 text-white'
+                                                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                            }`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Current Narration */}
+                                {videoSlideshow.scenes[currentSceneIndex]?.narration && (
+                                    <p className="mt-4 text-gray-600 text-center max-w-xl italic text-sm">
+                                        "{videoSlideshow.scenes[currentSceneIndex].narration}"
                                     </p>
                                 )}
                             </div>
@@ -3123,7 +3196,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                 <div className="text-6xl mb-6">🎬</div>
                                 <h3 className="text-lg font-semibold text-gray-800 mb-2">AI Video Overview</h3>
                                 <p className="text-gray-600 mb-6 text-center max-w-sm">
-                                    Generate an 8-second video visualizing the key concept of this paper using Veo 2.
+                                    Generate a 2-minute video slideshow explaining this paper with narration.
                                 </p>
                                 {videoError && (
                                     <div className="text-red-600 mb-4 text-sm text-center max-w-sm">
@@ -3145,7 +3218,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
-                                            Generating... (2-5 min)
+                                            Generating... (3-5 min)
                                         </span>
                                     ) : (
                                         'Generate Video'

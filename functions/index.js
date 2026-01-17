@@ -181,9 +181,9 @@ Generate the podcast script now:`;
         const jordanMatch = line.match(/^(?:Jordan|HOST B|Host B)[:\s]+(.+)/i);
 
         if (alexMatch) {
-          segments.push({ speaker: "alex", text: alexMatch[1].trim(), voice: "onyx" });  // Male voice
+          segments.push({ speaker: "alex", text: alexMatch[1].trim(), voice: "onyx" });  // Deep male voice
         } else if (jordanMatch) {
-          segments.push({ speaker: "jordan", text: jordanMatch[1].trim(), voice: "nova" });  // Female voice
+          segments.push({ speaker: "jordan", text: jordanMatch[1].trim(), voice: "shimmer" });  // Female voice
         }
       }
 
@@ -639,6 +639,244 @@ Return ONLY the JSON, nothing else.`
 
     } catch (error) {
       console.error("Video generation error:", error);
+      res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+  }
+);
+
+// Generate Video Slideshow (1-minute whiteboard-style video with narration)
+// Pipeline: Gemini Brain → Imagen 3 → TTS → Video Assembly
+exports.generateVideoSlideshow = onRequest(
+  {
+    cors: true,
+    secrets: [openaiApiKey, geminiApiKey],
+    timeoutSeconds: 540, // 9 minutes
+    memory: "2GiB"
+  },
+  async (req, res) => {
+    // Handle preflight
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { pdfBase64 } = req.body;
+
+      if (!pdfBase64) {
+        res.status(400).json({ error: "pdfBase64 is required" });
+        return;
+      }
+
+      console.log("Starting video slideshow generation...");
+
+      // Step 1: Parse PDF to extract text
+      console.log("Step 1: Parsing PDF...");
+      const pdfBuffer = Buffer.from(pdfBase64, "base64");
+      const pdfData = await pdfParse(pdfBuffer);
+      const paperText = pdfData.text;
+      console.log(`Extracted ${paperText.length} characters from PDF`);
+
+      // Step 2: Generate scene breakdown with Gemini Brain
+      console.log("Step 2: Generating scene breakdown with Gemini...");
+      const brainPrompt = `# Role
+You are a video content architect specializing in educational whiteboard-style explainer videos, specifically mimicking the "NotebookLM" visual aesthetic.
+
+# Goal
+Based on the provided article, create a JSON structure for a **1-minute video** (6-8 scenes, each 8-10 seconds).
+
+# Output Format (return ONLY valid JSON, no markdown):
+{
+  "title": "Video title",
+  "scenes": [
+    {
+      "scene_number": 1,
+      "duration_sec": 9,
+      "narration": "Conversational, engaging, and paced for a 1-minute story. (2-3 sentences)",
+      "visual_prompt": "Detailed prompt for 'Nano Banana' image generation focusing on minimalist line art.",
+      "key_text_elements": ["Main Keyword", "Statistic"],
+      "layout_description": "Description of where icons and text should be placed on the 16:9 canvas"
+    }
+  ]
+}
+
+# Narration Style (OpenAI Shimmer)
+- Single female voice: Warm, professional, yet deeply conversational (like a friendly expert).
+- Structure:
+  1. Hook (Scene 1): Problem or surprising fact.
+  2. The Solution/Framework (Scene 2-6): Core concepts from the article.
+  3. Conclusion & Call to Action (Scene 7-8): Summary and a thought-provoking closing question.
+- Pacing: Avoid rushing. Use 25-35 words per 10-second scene.
+
+# Visual Style (NotebookLM Aesthetic)
+- Background: Solid cream/off-white (#F9F7F2). Clean, no patterns.
+- Art: Hand-drawn black ink line art (#1A1A1A). Sketch-like, slightly imperfect lines.
+- Accent: Strategic use of Orange (#FF8C00) and Yellow (#FFD700) for highlights, circles, or arrows.
+- Text: Hand-written style typography embedded within the illustration.
+- Composition: Minimalist, plenty of white space (negative space). No 3D, no gradients, no photorealism.
+
+# Article:
+${paperText.substring(0, 25000)}
+
+Return ONLY the JSON, no markdown code blocks.`;
+
+      const brainResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey.value()}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: brainPrompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 8000
+            }
+          })
+        }
+      );
+
+      if (!brainResponse.ok) {
+        const error = await brainResponse.text();
+        console.error("Gemini Brain error:", error);
+        res.status(500).json({ error: "Failed to generate scene breakdown", details: error });
+        return;
+      }
+
+      const brainData = await brainResponse.json();
+      let scenesContent = brainData.candidates[0].content.parts[0].text;
+      // Clean up markdown if present
+      scenesContent = scenesContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+
+      const scenesJson = JSON.parse(scenesContent);
+      const scenes = scenesJson.scenes;
+      console.log(`Generated ${scenes.length} scenes`);
+
+      // Step 3: Generate images for each scene with Nano Banana (Gemini native image generation)
+      console.log("Step 3: Generating images with Nano Banana...");
+
+      const imagePromises = scenes.map(async (scene, index) => {
+        const imagePrompt = `NotebookLM-style educational whiteboard illustration. 16:9 aspect ratio.
+
+Style specifications:
+- Background: Solid cream/off-white (#F9F7F2), clean with no patterns
+- Art: Hand-drawn black ink line art (#1A1A1A), sketch-like with slightly imperfect lines
+- Accents: Orange (#FF8C00) and Yellow (#FFD700) for highlights, circles, arrows
+- Composition: Minimalist with plenty of white space. No 3D, no gradients, no photorealism.
+
+Embedded text (hand-written style): ${scene.key_text_elements.join(", ")}
+
+Layout: ${scene.layout_description || "Centered composition with balanced elements"}
+
+${scene.visual_prompt}`;
+
+        console.log(`Generating image for scene ${index + 1}...`);
+
+        const nanoBananaResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${geminiApiKey.value()}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: imagePrompt }] }],
+              generationConfig: {
+                responseModalities: ["image", "text"]
+              }
+            })
+          }
+        );
+
+        if (!nanoBananaResponse.ok) {
+          console.error(`Nano Banana error for scene ${index + 1}:`, await nanoBananaResponse.text());
+          return null;
+        }
+
+        const nanoBananaData = await nanoBananaResponse.json();
+
+        // Extract image from Gemini response
+        const parts = nanoBananaData.candidates?.[0]?.content?.parts || [];
+        const imagePart = parts.find(p => p.inlineData?.mimeType?.startsWith("image/"));
+
+        if (imagePart) {
+          return {
+            sceneNumber: scene.scene_number,
+            imageBase64: imagePart.inlineData.data,
+            duration: scene.duration_sec,
+            narration: scene.narration
+          };
+        }
+        return null;
+      });
+
+      const imageResults = await Promise.all(imagePromises);
+      const validImages = imageResults.filter(img => img !== null);
+      console.log(`Generated ${validImages.length} images`);
+
+      if (validImages.length === 0) {
+        res.status(500).json({ error: "Failed to generate any images" });
+        return;
+      }
+
+      // Step 4: Generate TTS narration for each scene
+      console.log("Step 4: Generating TTS narration...");
+      const ttsPromises = validImages.map(async (scene, index) => {
+        const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openaiApiKey.value()}`
+          },
+          body: JSON.stringify({
+            model: "tts-1-hd",
+            input: scene.narration,
+            voice: "shimmer", // Female narrator
+            response_format: "mp3"
+          })
+        });
+
+        if (!ttsResponse.ok) {
+          console.error(`TTS error for scene ${index + 1}:`, await ttsResponse.text());
+          return null;
+        }
+
+        const audioBuffer = await ttsResponse.arrayBuffer();
+        return {
+          ...scene,
+          audioBase64: Buffer.from(audioBuffer).toString("base64")
+        };
+      });
+
+      const scenesWithAudio = await Promise.all(ttsPromises);
+      const completeScenes = scenesWithAudio.filter(s => s !== null && s.audioBase64);
+      console.log(`Generated ${completeScenes.length} complete scenes with audio`);
+
+      // Step 5: Return scenes data (video assembly will be done client-side or via Cloud Run)
+      // For now, return the individual assets
+      console.log("Video slideshow generation complete!");
+
+      res.set(corsHeaders);
+      res.json({
+        success: true,
+        title: scenesJson.title,
+        scenes: completeScenes.map(scene => ({
+          sceneNumber: scene.sceneNumber,
+          imageBase64: scene.imageBase64,
+          audioBase64: scene.audioBase64,
+          duration: scene.duration,
+          narration: scene.narration
+        })),
+        totalScenes: completeScenes.length
+      });
+
+    } catch (error) {
+      console.error("Video slideshow generation error:", error);
       res.status(500).json({ error: "Internal server error", message: error.message });
     }
   }

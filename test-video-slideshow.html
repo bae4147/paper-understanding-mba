@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Slideshow Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="min-h-screen bg-gray-100 py-8 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-xl shadow-xl p-8">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Video Slideshow Generator Test</h1>
+
+                <!-- PDF Upload -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload PDF</label>
+                    <input type="file" id="pdfInput" accept=".pdf" class="w-full p-2 border rounded-lg">
+                </div>
+
+                <!-- Generate Button -->
+                <button id="generateBtn" class="w-full bg-blue-500 text-white py-3 px-6 rounded-lg hover:bg-blue-600 font-medium disabled:bg-gray-400">
+                    Generate Video Slideshow
+                </button>
+
+                <!-- Status -->
+                <div id="status" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                    <p class="text-gray-600" id="statusText">Processing...</p>
+                </div>
+
+                <!-- Results -->
+                <div id="results" class="mt-6 hidden">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4" id="videoTitle">Generated Scenes</h2>
+                    <div id="scenesContainer" class="space-y-6"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ENDPOINT = 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateVideoSlideshow';
+
+        const pdfInput = document.getElementById('pdfInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const status = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const results = document.getElementById('results');
+        const videoTitle = document.getElementById('videoTitle');
+        const scenesContainer = document.getElementById('scenesContainer');
+
+        generateBtn.addEventListener('click', async () => {
+            const file = pdfInput.files[0];
+            if (!file) {
+                alert('Please select a PDF file');
+                return;
+            }
+
+            // Convert PDF to base64
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64 = e.target.result.split(',')[1];
+
+                // Show status
+                status.classList.remove('hidden');
+                results.classList.add('hidden');
+                generateBtn.disabled = true;
+                statusText.textContent = 'Generating scenes... This may take a few minutes.';
+
+                try {
+                    const startTime = Date.now();
+
+                    const response = await fetch(ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pdfBase64: base64 })
+                    });
+
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.details || error.error || 'Unknown error');
+                    }
+
+                    const data = await response.json();
+                    statusText.textContent = `Completed in ${elapsed}s! Generated ${data.totalScenes} scenes.`;
+
+                    // Display results
+                    displayResults(data);
+
+                } catch (error) {
+                    statusText.textContent = `Error: ${error.message}`;
+                    console.error(error);
+                } finally {
+                    generateBtn.disabled = false;
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function displayResults(data) {
+            results.classList.remove('hidden');
+            videoTitle.textContent = data.title || 'Generated Scenes';
+            scenesContainer.innerHTML = '';
+
+            data.scenes.forEach((scene, index) => {
+                const sceneDiv = document.createElement('div');
+                sceneDiv.className = 'bg-gray-50 rounded-lg p-4 border';
+                sceneDiv.innerHTML = `
+                    <h3 class="font-bold text-gray-800 mb-2">Scene ${scene.sceneNumber || index + 1}</h3>
+                    <p class="text-sm text-gray-600 mb-3">${scene.narration}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Image:</p>
+                            <img src="data:image/png;base64,${scene.imageBase64}" class="w-full rounded-lg shadow" alt="Scene ${index + 1}">
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Audio (${scene.duration}s):</p>
+                            <audio controls class="w-full">
+                                <source src="data:audio/mpeg;base64,${scene.audioBase64}" type="audio/mpeg">
+                            </audio>
+                        </div>
+                    </div>
+                `;
+                scenesContainer.appendChild(sceneDiv);
+            });
+        }
+    </script>
+</body>
+</html>
