@@ -43,11 +43,11 @@
         const CHAT_COMPLETION_URL = 'https://chatcompletion-noiydfdfbq-uc.a.run.app';
 
         function Landing() {
-            const [participantId, setParticipantId] = useState('');
+            const [participantName, setParticipantName] = useState('');
+            const [session, setSession] = useState('');
             const [condition, setCondition] = useState('control');
             const [currentPaper, setCurrentPaper] = useState('');
             const [mode, setMode] = useState('experiment');
-            const [audioAvailable, setAudioAvailable] = useState(false);
 
             // PDF upload state
             const [pdfFile, setPdfFile] = useState(null);
@@ -58,12 +58,10 @@
             // Get parameters from URL
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
-                const urlPid = urlParams.get('participantId');
                 const urlMode = urlParams.get('mode') || 'experiment';
                 const urlCondition = urlParams.get('condition');
                 const urlPaper = urlParams.get('paper');
 
-                if (urlPid) setParticipantId(urlPid);
                 if (urlCondition) setCondition(urlCondition);
                 if (urlPaper) setCurrentPaper(urlPaper);
                 setMode(urlMode);
@@ -285,8 +283,13 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
             const handleSubmit = async (e) => {
                 e.preventDefault();
 
-                if (!participantId) {
-                    alert('Please enter your Student ID.');
+                if (!participantName.trim()) {
+                    alert('Please enter your name.');
+                    return;
+                }
+
+                if (!session) {
+                    alert('Please select your session.');
                     return;
                 }
 
@@ -298,79 +301,19 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
                 setIsLoading(true);
 
                 try {
-                    // Firebase checking disabled
-                    /*
-                    // Step 1: Check if user exists and their status
-                    const userRef = db.collection('users').doc(participantId);
-                    const userDoc = await userRef.get();
+                    // Generate a unique participant ID from name + timestamp
+                    const participantId = `${participantName.trim().replace(/\s+/g, '_')}_${Date.now()}`;
 
-                    if (userDoc.exists) {
-                        const userData = userDoc.data();
+                    // Store participant info in sessionStorage
+                    sessionStorage.setItem('participantName', participantName.trim());
+                    sessionStorage.setItem('participantSession', session);
 
-                        // Check if user has completed the experiment
-                        if (userData.status === 'completed') {
-                            alert('You have already completed this experiment. Thank you for your participation!');
-                            setIsLoading(false);
-                            return;
-                        }
-
-                        // Check if user has a previous experiment
-                        if (userData.currentExperimentId) {
-                            const prevExpDoc = await db.collection('users').doc(participantId).collection('experiments').doc(userData.currentExperimentId).get();
-
-                            if (prevExpDoc.exists) {
-                                const prevExpData = prevExpDoc.data();
-
-                                // Check if reading has started (readingData exists)
-                                if (prevExpData.readingData) {
-                                    // Reading started - block re-participation
-                                    alert('You have already started the reading phase and cannot participate again. Thank you for your time!');
-                                    setIsLoading(false);
-                                    return;
-                                }
-
-                                // Reading not started - allow restart
-                                // Decrease count for previous condition if it was assigned
-                                const prevCondition = prevExpData.condition;
-                                if (prevCondition) {
-                                    const counterRef = db.collection('meta').doc('conditionCounts');
-                                    await db.runTransaction(async (transaction) => {
-                                        const counterDoc = await transaction.get(counterRef);
-                                        const counts = counterDoc.data() || {};
-                                        if (counts[prevCondition] > 0) {
-                                            transaction.set(counterRef, {
-                                                ...counts,
-                                                [prevCondition]: counts[prevCondition] - 1
-                                            }, { merge: true });
-                                        }
-                                    });
-                                }
-
-                                // Mark previous experiment as abandoned
-                                await db.collection('users').doc(participantId).collection('experiments').doc(userData.currentExperimentId).update({
-                                    status: 'abandoned',
-                                    abandonedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-                            }
-                        }
-                    }
-                    */
-
-                    // Step 2: Participation is allowed - go to consent page
-                    // Condition assignment is deferred until consent is given
-                    const assignedPaper = currentPaper || 'mroz2018';
-
-                    // For test mode, pass condition in URL
-                    if (mode === 'test') {
-                        window.location.href = `consent.html?participantId=${participantId}&mode=${mode}&condition=${condition}&paper=${assignedPaper}&audioAvailable=${audioAvailable}`;
-                    } else {
-                        // Experiment mode: condition will be assigned after consent
-                        window.location.href = `consent.html?participantId=${participantId}&mode=${mode}&paper=${assignedPaper}&audioAvailable=${audioAvailable}`;
-                    }
+                    // Go directly to index.html (skip consent)
+                    window.location.href = `index.html?participantId=${encodeURIComponent(participantId)}&mode=${mode}&condition=${condition}&paper=${currentPaper}`;
 
                 } catch (error) {
-                    console.error('Error checking participation:', error);
-                    alert('Failed to verify participation status. Please try again.');
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
                     setIsLoading(false);
                 }
             };
@@ -383,42 +326,52 @@ Return format: {"sections": [{"sectionName": "...", "startPage": 1, "endPage": 2
                             <div className="text-center mb-8">
                                 <div className="text-5xl mb-4">📖</div>
                                 <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome to the Reading Experiment</h1>
-                                <p className="text-gray-600">Please enter your Student ID to begin.</p>
+                                <p className="text-gray-600">Please enter your information to begin.</p>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
-                                {/* Student ID */}
+                                {/* Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Student ID *
+                                        Name *
                                     </label>
                                     <input
                                         type="text"
-                                        value={participantId}
-                                        onChange={(e) => setParticipantId(e.target.value)}
+                                        value={participantName}
+                                        onChange={(e) => setParticipantName(e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-                                        placeholder="Enter your Student ID"
+                                        placeholder="Enter your name"
                                         required
                                     />
                                 </div>
 
-                                {/* Audio Environment */}
-                                <div className="border-t pt-6">
+                                {/* Session Selection */}
+                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                       🎧 Are you currently in an environment where you can listen to audio?
+                                        Which session are you from? *
                                     </label>
-                                    <p className="text-sm text-gray-500 mb-3">
-                                        You can still participate even if audio is not available.
-                                    </p>
-                                    <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={audioAvailable}
-                                            onChange={(e) => setAudioAvailable(e.target.checked)}
-                                            className="w-4 h-4"
-                                        />
-                                        <span className="text-sm text-gray-700">Yes, I can listen to audio</span>
-                                    </label>
+                                    <div className="space-y-2">
+                                        {[
+                                            { value: 'honda', label: 'Honda Program' },
+                                            { value: 'mba6202_tue', label: 'MBA 6202 (Tuesdays)' },
+                                            { value: 'mba6202_wed', label: 'MBA 6202 (Wednesdays)' },
+                                            { value: 'mba6202_sat', label: 'MBA 6202 (Saturdays)' },
+                                            { value: 'busoba7399', label: 'BUSOBA 7399 - Leadership in SCM (36109)' },
+                                            { value: 'busoba7397', label: 'BUSOBA 7397 - MSCM Mid-Program (34668)' }
+                                        ].map(option => (
+                                            <label key={option.value} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="session"
+                                                    value={option.value}
+                                                    checked={session === option.value}
+                                                    onChange={(e) => setSession(e.target.value)}
+                                                    className="w-4 h-4"
+                                                />
+                                                <span className="text-sm text-gray-700">{option.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 {/* Experiment Options */}

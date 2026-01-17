@@ -137,7 +137,7 @@
         // Main Application Component
         function ReadingExperimentAOM() {
             // Experiment flow state
-            const [phase, setPhase] = useState('setup'); // setup, reading-guide, reading, quiz-guide, quiz, review-guide, review, complete
+            const [phase, setPhase] = useState('reading-guide'); // reading-guide, reading, quiz-guide, quiz, review-guide, review, complete
             const [participantId, setParticipantId] = useState('');
             const [experimentId, setExperimentId] = useState('');
             const [condition, setCondition] = useState('control'); // control, ebm
@@ -483,7 +483,7 @@
                 'References': { start: 4000, end: 5000 }
             });
 
-            // Initialize from URL parameters (when coming from pre-task)
+            // Initialize from URL parameters (when coming from landing.html)
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const pid = urlParams.get('participantId');
@@ -494,12 +494,12 @@
                 if (pid) setParticipantId(pid);
                 if (expId) setExperimentId(expId);
                 if (cond) setCondition(cond);
-                // Set paper from URL, default to mroz2018 if not custom
-                setCurrentPaper(paper || 'mroz2018');
+                // Set paper from URL, default to custom (since landing.html always uploads PDF)
+                setCurrentPaper(paper || 'custom');
 
-                // Skip setup phase if coming from landing.html (has experimentId)
-                if (expId) {
-                    setPhase('reading-guide');
+                // Generate experimentId if not provided
+                if (pid && !expId) {
+                    setExperimentId(`exp_${Date.now()}`);
                 }
             }, []);
 
@@ -2154,6 +2154,32 @@ When users interact with you, first identify what type of request they're making
 
 ---
 
+## EBM Question Tone Guide
+
+When asking EBM questions, sound like a practical coach, NOT an academic reviewer.
+
+### Do:
+- Ask about concrete organizational situations
+- Invite the user to imagine APPLYING the paper, not just interpreting it
+- Use everyday language: "your team", "in practice", "realistically"
+
+### Avoid:
+- Abstract academic terms: "generalizability", "implications", "interpret"
+- Questions that sound like peer review feedback
+- Overly formal phrasing
+
+### Examples:
+- ❌ "How might this affect the generalizability of these results?"
+- ✅ "How would this play out in your team?"
+
+- ❌ "What implications might this have for how we interpret the findings?"
+- ✅ "Which of these would actually be hard to do in your organization?"
+
+- ❌ "In what ways might this affect how broadly we can apply these findings?"
+- ✅ "What feels unrealistic about applying this where you work?"
+
+--
+
 ## Important Principles
 
 1. **Evidence ≠ Answer**: Evidence reduces uncertainty but doesn't eliminate it
@@ -3100,7 +3126,7 @@ Provide constructive feedback to help the reader think more critically about thi
             // Return to start
             const returnToStart = () => {
                 // Reset all state
-                setPhase('setup');
+                setPhase('reading-guide');
                 setParticipantId('');
                 setCondition('control');
                 setCurrentPaper('');
@@ -3119,65 +3145,6 @@ Provide constructive feedback to help the reader think more critically about thi
             };
 
             // ============ RENDER PHASES ============
-
-            // SETUP PHASE
-            if (phase === 'setup') {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full">
-                            <div className="text-center mb-8">
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2">Reading Experiment</h1>
-                            </div>
-
-                            <div className="space-y-5">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Prolific ID *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={participantId}
-                                        onChange={(e) => setParticipantId(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="e.g., P001"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Condition *
-                                    </label>
-                                    <select
-                                        value={condition}
-                                        onChange={(e) => setCondition(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    >
-                                        <option value="control">Control (Direct Answer LLM)</option>
-                                        <option value="ebm">EBM (Evidence-Based Reasoning Coach)</option>
-                                        <option value="ebm_coach">EBM Coach (Answer First, Then Guide)</option>
-                                    </select>
-                                </div>
-
-                                <button
-                                    onClick={startExperiment}
-                                    disabled={!participantId}
-                                    className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors text-lg mt-6"
-                                >
-                                    Start Experiment
-                                </button>
-
-                                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                                    <p className="text-sm text-gray-700">
-                                        <strong>Experiment Structure:</strong><br/>
-                                        1. Reading (No time limit)<br/>
-                                        2. Quiz (5 min)<br/>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
 
             // READING GUIDE PHASE
             if (phase === 'reading-guide') {
