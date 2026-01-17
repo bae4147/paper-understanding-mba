@@ -137,7 +137,7 @@
         // Main Application Component
         function ReadingExperimentAOM() {
             // Experiment flow state
-            const [phase, setPhase] = useState('reading-guide'); // reading-guide, reading, quiz-guide, quiz, review-guide, review, complete
+            const [phase, setPhase] = useState('reading'); // reading, quiz-guide, quiz, review-guide, review, complete
             const [participantId, setParticipantId] = useState('');
             const [experimentId, setExperimentId] = useState('');
             const [condition, setCondition] = useState('control'); // control, ebm
@@ -502,6 +502,18 @@
                     setExperimentId(`exp_${Date.now()}`);
                 }
             }, []);
+
+            // Auto-start reading when phase is 'reading' (since we skip reading-guide now)
+            useEffect(() => {
+                if (phase === 'reading' && !readingActive) {
+                    setReadingActive(true);
+                    const now = Date.now();
+                    phaseStartTime.current = now;
+                    lastActivityTimeRef.current = now;
+                    focusStartTimeRef.current = now;
+                    logEvent('reading_started');
+                }
+            }, [phase, readingActive]);
 
             // Load uploaded PDF from IndexedDB when currentPaper is set
             useEffect(() => {
@@ -2779,7 +2791,7 @@ Provide constructive feedback to help the reader think more critically about thi
                     return;
                 }
 
-                setPhase('reading-guide');
+                setPhase('reading');
                 logEvent('reading_guide_shown');
             };
 
@@ -3126,7 +3138,7 @@ Provide constructive feedback to help the reader think more critically about thi
             // Return to start
             const returnToStart = () => {
                 // Reset all state
-                setPhase('reading-guide');
+                setPhase('reading');
                 setParticipantId('');
                 setCondition('control');
                 setCurrentPaper('');
@@ -3145,71 +3157,6 @@ Provide constructive feedback to help the reader think more critically about thi
             };
 
             // ============ RENDER PHASES ============
-
-            // READING GUIDE PHASE
-            if (phase === 'reading-guide') {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-3xl w-full">
-                            <div className="text-center mb-8">
-                                <div className="text-5xl mb-4">📖</div>
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2">Paper Reading</h1>
-                            </div>
-
-                            <div className="space-y-6 mb-8">
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Title</h3>
-                                    <p className="text-gray-700">{customPdfData?.title || 'Uploaded Paper'}</p>
-                                </div>
-
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Reading Time</h3>
-                                    <p className="text-3xl font-bold text-blue-600">No time limit</p>
-                                    <p className="text-base text-gray-600 mt-2">Take your time to read and understand the paper thoroughly.</p>
-                                </div>
-
-                                {isCustomPdf && (
-                                    <div className={`rounded-lg p-6 ${infographicReady ? 'bg-green-50' : 'bg-yellow-50'}`}>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2">AI Content Generation</h3>
-                                        <div className="flex items-center">
-                                            {!infographicReady && (
-                                                <svg className="animate-spin h-5 w-5 mr-3 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                            )}
-                                            <p className={`text-base ${infographicReady ? 'text-green-700' : 'text-yellow-700'}`}>
-                                                {generationStatus || 'Checking status...'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-
-                            </div>
-
-                            <button
-                                onClick={() => {
-                                    setPhase('reading');
-                                    setReadingActive(true);
-                                    const now = Date.now();
-                                    phaseStartTime.current = now;
-                                    lastActivityTimeRef.current = now;
-                                    focusStartTimeRef.current = now;
-                                    logEvent('reading_started');
-                                }}
-                                disabled={!infographicReady}
-                                className={`w-full px-8 py-4 rounded-lg text-lg font-medium transition-colors ${
-                                    infographicReady
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
-                            >
-                                {infographicReady ? 'Start Reading →' : 'Please wait...'}
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
 
             // READING PHASE
             if (phase === 'reading') {
