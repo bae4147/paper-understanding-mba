@@ -2834,8 +2834,21 @@ Provide constructive feedback to help the reader think more critically about thi
                 */
 
                 setShowFinishPopup(false);  // Reset popup state
-                setPhase('complete');
-                logEvent('experiment_complete');
+
+                // Redirect to post-task.html
+                setIsRedirecting(true);
+                logEvent('reading_completed_redirecting');
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const mode = urlParams.get('mode') || 'experiment';
+                const params = new URLSearchParams({
+                    participantId,
+                    experimentId,
+                    mode,
+                    condition,
+                    paper: currentPaper
+                });
+                window.location.href = `post-task.html?${params.toString()}`;
             };
 
             // Return to start
