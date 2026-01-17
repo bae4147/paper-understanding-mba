@@ -181,9 +181,9 @@ Generate the podcast script now:`;
         const jordanMatch = line.match(/^(?:Jordan|HOST B|Host B)[:\s]+(.+)/i);
 
         if (alexMatch) {
-          segments.push({ speaker: "alex", text: alexMatch[1].trim(), voice: "alloy" });
+          segments.push({ speaker: "alex", text: alexMatch[1].trim(), voice: "onyx" });  // Male voice
         } else if (jordanMatch) {
-          segments.push({ speaker: "jordan", text: jordanMatch[1].trim(), voice: "nova" });
+          segments.push({ speaker: "jordan", text: jordanMatch[1].trim(), voice: "nova" });  // Female voice
         }
       }
 
