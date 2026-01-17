@@ -3133,16 +3133,39 @@ Provide constructive feedback to help the reader think more critically about thi
                                 {/* Title */}
                                 <h3 className="text-lg font-semibold text-gray-800 mb-4">{videoSlideshow.title}</h3>
 
-                                {/* Slideshow Display */}
+                                {/* Slideshow Display with Ken Burns effect */}
                                 <div className="relative w-full max-w-2xl aspect-video bg-[#F9F7F2] rounded-lg shadow-lg overflow-hidden">
                                     {videoSlideshow.scenes[currentSceneIndex] && (
                                         <img
+                                            key={currentSceneIndex}
                                             src={videoSlideshow.scenes[currentSceneIndex].imageUrl}
                                             alt={`Scene ${currentSceneIndex + 1}`}
                                             className="w-full h-full object-contain"
+                                            style={{
+                                                animation: slideshowPlaying ? `kenBurns${currentSceneIndex % 4} ${videoSlideshow.scenes[currentSceneIndex]?.duration || 10}s ease-out forwards` : 'none',
+                                                transformOrigin: ['center', 'top left', 'top right', 'bottom center'][currentSceneIndex % 4]
+                                            }}
                                         />
                                     )}
                                 </div>
+                                <style>{`
+                                    @keyframes kenBurns0 {
+                                        0% { transform: scale(1) translate(0, 0); }
+                                        100% { transform: scale(1.08) translate(-1%, -1%); }
+                                    }
+                                    @keyframes kenBurns1 {
+                                        0% { transform: scale(1.08) translate(0, 0); }
+                                        100% { transform: scale(1) translate(1%, 1%); }
+                                    }
+                                    @keyframes kenBurns2 {
+                                        0% { transform: scale(1) translate(0, 0); }
+                                        100% { transform: scale(1.06) translate(1%, -1%); }
+                                    }
+                                    @keyframes kenBurns3 {
+                                        0% { transform: scale(1.06) translate(0, 0); }
+                                        100% { transform: scale(1) translate(-1%, 1%); }
+                                    }
+                                `}</style>
 
                                 {/* Hidden audio element */}
                                 <audio
