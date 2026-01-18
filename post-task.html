@@ -45,8 +45,8 @@
             const [preStrategies, setPreStrategies] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
 
-            // Post-task strategies (editable, initialized from pre-task)
-            const [postStrategies, setPostStrategies] = useState(['']);
+            // Post-task strategies (3 fields by default)
+            const [postStrategies, setPostStrategies] = useState(['', '', '']);
 
             // Other post-task responses
             const [thinkingChange, setThinkingChange] = useState('');
@@ -60,7 +60,7 @@
             useEffect(() => {
                 if (!participantId || !experimentId) {
                     alert('Missing participant information. Please start from the beginning.');
-                    window.location.href = 'landing.html';
+                    window.location.href = 'index.html';
                     return;
                 }
 
@@ -194,93 +194,52 @@
                             <div className="text-center mb-8">
                                 <div className="text-5xl mb-4">🎯</div>
                                 <h1 className="text-3xl font-bold text-gray-800 mb-2">Post-Reading Task</h1>
-                                <p className="text-gray-600">Now that you've read the article, please reflect on what you've learned.</p>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {/* Context */}
                                 <div className="bg-teal-100 border-2 border-teal-400 p-5 rounded-xl">
-                                    <h2 className="text-lg font-bold text-gray-800 mb-2">Imagine you want to noticeably improve the effectiveness of an upcoming meeting you will lead at work.</h2>
+                                    <h2 className="text-lg font-bold text-gray-800 mb-2">--</h2>
                                     <p className="text-gray-600 text-sm">Think about how the article might influence your approach.</p>
                                 </div>
 
                                 {/* Q1: Strategies Comparison */}
                                 <div>
-                                    <label className="block text-base font-bold text-gray-800 mb-2">
-                                        Q1. What, if anything, would you now do <span className="text-teal-600">differently</span> to improve its effectiveness? *
+                                    <label className="block text-base font-bold text-gray-800 mb-4">
+                                        Q1. What are 2–3 actionable takeaways from this article that you could implement (or test) in your workplace? Briefly explain how. *
                                     </label>
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Your strategies from before reading are shown on the left. You can modify, add, or remove strategies on the right based on what you learned.
-                                    </p>
 
-                                    <div className="grid grid-cols-2 gap-6">
-                                        {/* Left Column: Before Reading (Read-only) */}
-                                        <div>
-                                            <h3 className="text-sm font-bold text-gray-500 mb-3 text-center bg-gray-100 py-2 rounded-t-lg">Before Reading</h3>
-                                            <div className="space-y-2 bg-gray-50 p-4 rounded-b-lg min-h-[200px]">
-                                                {preStrategies.length > 0 ? (
-                                                    preStrategies.map((strategy, index) => (
-                                                        <div key={index} className="flex items-center space-x-2">
-                                                            <span className="text-sm font-medium text-gray-400 w-5">{index + 1}.</span>
-                                                            <div className="flex-1 px-3 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm">
-                                                                {strategy}
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <p className="text-gray-400 text-sm italic">No strategies recorded</p>
-                                                )}
+                                    <div className="space-y-3">
+                                        {postStrategies.map((strategy, index) => (
+                                            <div key={index} className="flex items-start space-x-2">
+                                                <span className="text-sm font-medium text-gray-500 w-5 pt-2">{index + 1}.</span>
+                                                <textarea
+                                                    value={strategy}
+                                                    onChange={(e) => {
+                                                        updateStrategy(index, e.target.value);
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.target.style.height = 'auto';
+                                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                                        }
+                                                    }}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm resize-none overflow-hidden"
+                                                    placeholder={`Takeaway ${index + 1}`}
+                                                    rows={3}
+                                                />
                                             </div>
-                                        </div>
+                                        ))}
 
-                                        {/* Right Column: After Reading (Editable) */}
-                                        <div>
-                                            <h3 className="text-sm font-bold text-teal-600 mb-3 text-center bg-teal-50 py-2 rounded-t-lg">After Reading</h3>
-                                            <div className="space-y-2 bg-teal-50 p-4 rounded-b-lg min-h-[200px]">
-                                                {postStrategies.map((strategy, index) => (
-                                                    <div key={index} className="flex items-center space-x-2">
-                                                        <span className="text-sm font-medium text-gray-500 w-5">{index + 1}.</span>
-                                                        <input
-                                                            type="text"
-                                                            value={strategy}
-                                                            onChange={(e) => updateStrategy(index, e.target.value)}
-                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                                                            placeholder={`Strategy ${index + 1}`}
-                                                        />
-                                                        {postStrategies.length > 1 && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeStrategy(index)}
-                                                                className="px-2 py-1 text-red-500 hover:bg-red-50 rounded transition-colors text-sm"
-                                                                title="Remove"
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ))}
-
-                                                {postStrategies.length < 10 && (
-                                                    <div className="flex items-center space-x-2 mt-2">
-                                                        <span className="w-5"></span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={addStrategyField}
-                                                            className="px-3 py-1 text-teal-600 border border-teal-300 rounded-lg hover:bg-teal-100 transition-colors text-sm font-medium"
-                                                        >
-                                                            + Add Strategy
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Q2: Thinking Change */}
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-800 mb-2">
-                                        Q2. Compared to before reading the article, how much has your thinking about running effective meetings changed? *
+                                    <label className="block text-base font-bold text-gray-800 mb-2">
+                                        Q2. How much has this article changed your thinking about the topic? *
                                     </label>
                                     <div className="flex items-center justify-between mt-3">
                                         <span className="text-xs text-gray-500 w-20">Not at all</span>
@@ -304,10 +263,10 @@
                                     </div>
                                 </div>
 
-                                {/* Q3: Confidence in New Strategies */}
+                                {/* Q3: Confidence in Takeaways */}
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-800 mb-2">
-                                        Q3. How confident are you that your <span className="text-teal-600">new</span> strategies will improve your upcoming meeting's effectiveness? *
+                                    <label className="block text-base font-bold text-gray-800 mb-2">
+                                        Q3. How confident are you that your takeaways will be effective in your workplace? *
                                     </label>
                                     <div className="flex items-center justify-between mt-3">
                                         <span className="text-xs text-gray-500 w-24">Not at all confident</span>
@@ -333,8 +292,8 @@
 
                                 {/* Q4: Implementation Likelihood */}
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-800 mb-2">
-                                        Q4. How likely are you to actually implement these changes? *
+                                    <label className="block text-base font-bold text-gray-800 mb-2">
+                                        Q4. How likely are you to actually implement these takeaways? *
                                     </label>
                                     <div className="flex items-center justify-between mt-3">
                                         <span className="text-xs text-gray-500 w-20">Very unlikely</span>

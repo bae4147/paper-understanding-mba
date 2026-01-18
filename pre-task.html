@@ -84,7 +84,7 @@
             useEffect(() => {
                 if (!participantId || !experimentId) {
                     alert('Missing participant information. Please start from the beginning.');
-                    window.location.href = 'landing.html';
+                    window.location.href = 'index.html';
                 }
             }, [participantId, experimentId]);
 
@@ -161,7 +161,7 @@
                         condition,
                         paper
                     });
-                    window.location.href = `index.html?${params.toString()}`;
+                    window.location.href = `reading.html?${params.toString()}`;
 
                 } catch (error) {
                     console.error('Error saving pre-task:', error);

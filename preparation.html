@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preparing Your Reading Session</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // API Endpoints
+        const ENDPOINTS = {
+            podcast: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generatePodcast',
+            infographic: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateInfographic',
+            videoSlideshow: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateVideoSlideshow'
+        };
+
+        function Preparation() {
+            // URL params
+            const [participantId, setParticipantId] = useState('');
+            const [mode, setMode] = useState('experiment');
+            const [condition, setCondition] = useState('control');
+            const [paper, setPaper] = useState('custom');
+
+            // Generation status
+            const [podcastStatus, setPodcastStatus] = useState('pending'); // pending, generating, done, error
+            const [infographicStatus, setInfographicStatus] = useState('pending');
+            const [videoStatus, setVideoStatus] = useState('pending');
+
+            // Overall status
+            const [allDone, setAllDone] = useState(false);
+            const [pdfBase64, setPdfBase64] = useState(null);
+
+            // Prevent duplicate generation
+            const generationStartedRef = useRef(false);
+
+            // IndexedDB helpers
+            const openDatabase = (dbName, storeName) => {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(dbName, 1);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(storeName)) {
+                            db.createObjectStore(storeName, { keyPath: 'id' });
+                        }
+                    };
+                });
+            };
+
+            const getFromIndexedDB = async (dbName, storeName, key) => {
+                const db = await openDatabase(dbName, storeName);
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([storeName], 'readonly');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.get(key);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve(request.result);
+                });
+            };
+
+            const saveToIndexedDB = async (dbName, storeName, data) => {
+                const db = await openDatabase(dbName, storeName);
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([storeName], 'readwrite');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.put(data);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve();
+                });
+            };
+
+            // Load URL params and check existing state
+            useEffect(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                setParticipantId(urlParams.get('participantId') || '');
+                setMode(urlParams.get('mode') || 'experiment');
+                setCondition(urlParams.get('condition') || 'control');
+                setPaper(urlParams.get('paper') || 'custom');
+
+                // Check if we have required data
+                const hasCustomPdf = sessionStorage.getItem('hasCustomPdf');
+                if (!hasCustomPdf) {
+                    // No PDF uploaded, redirect to index
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Load PDF and check existing generation status
+                loadPdfAndCheckStatus();
+            }, []);
+
+            const loadPdfAndCheckStatus = async () => {
+                try {
+                    // Load PDF from IndexedDB
+                    const pdfData = await getFromIndexedDB('CustomPdfDB', 'pdfs', 'customPdf');
+                    if (!pdfData?.base64) {
+                        console.error('No PDF found in IndexedDB');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    setPdfBase64(pdfData.base64);
+
+                    // Check existing generation status from sessionStorage
+                    const savedStatus = sessionStorage.getItem('generationStatus');
+                    if (savedStatus) {
+                        const status = JSON.parse(savedStatus);
+
+                        // Check what's already done in IndexedDB
+                        const mediaData = await getFromIndexedDB('MediaDB', 'media', 'generatedMedia');
+
+                        if (mediaData?.podcast) {
+                            setPodcastStatus('done');
+                        } else if (status.podcastStarted) {
+                            setPodcastStatus('pending'); // Will retry
+                        }
+
+                        if (mediaData?.infographic) {
+                            setInfographicStatus('done');
+                        } else if (status.infographicStarted) {
+                            setInfographicStatus('pending');
+                        }
+
+                        if (mediaData?.video) {
+                            setVideoStatus('done');
+                        } else if (status.videoStarted) {
+                            setVideoStatus('pending');
+                        }
+
+                        // Check if all done
+                        if (mediaData?.podcast && mediaData?.infographic && mediaData?.video) {
+                            setAllDone(true);
+                            return;
+                        }
+                    }
+
+                    // Start generation for pending items
+                    startGeneration(pdfData.base64);
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                }
+            };
+
+            const startGeneration = async (base64) => {
+                if (generationStartedRef.current) return;
+                generationStartedRef.current = true;
+
+                // Save that we started
+                sessionStorage.setItem('generationStatus', JSON.stringify({
+                    started: true,
+                    podcastStarted: true,
+                    infographicStarted: true,
+                    videoStarted: true
+                }));
+
+                // Load existing media data
+                let mediaData = {};
+                try {
+                    const existing = await getFromIndexedDB('MediaDB', 'media', 'generatedMedia');
+                    if (existing) mediaData = existing;
+                } catch (e) {
+                    // First time, no existing data
+                }
+
+                // Generate all in parallel
+                const promises = [];
+
+                // Podcast
+                if (!mediaData.podcast) {
+                    setPodcastStatus('generating');
+                    promises.push(
+                        generatePodcast(base64)
+                            .then(result => {
+                                mediaData.podcast = result;
+                                setPodcastStatus('done');
+                                return saveToIndexedDB('MediaDB', 'media', { id: 'generatedMedia', ...mediaData });
+                            })
+                            .catch(err => {
+                                console.error('Podcast generation failed:', err);
+                                setPodcastStatus('error');
+                            })
+                    );
+                } else {
+                    setPodcastStatus('done');
+                }
+
+                // Infographic
+                if (!mediaData.infographic) {
+                    setInfographicStatus('generating');
+                    promises.push(
+                        generateInfographic(base64)
+                            .then(result => {
+                                mediaData.infographic = result;
+                                setInfographicStatus('done');
+                                return saveToIndexedDB('MediaDB', 'media', { id: 'generatedMedia', ...mediaData });
+                            })
+                            .catch(err => {
+                                console.error('Infographic generation failed:', err);
+                                setInfographicStatus('error');
+                            })
+                    );
+                } else {
+                    setInfographicStatus('done');
+                }
+
+                // Video Slideshow
+                if (!mediaData.video) {
+                    setVideoStatus('generating');
+                    promises.push(
+                        generateVideoSlideshow(base64)
+                            .then(result => {
+                                mediaData.video = result;
+                                setVideoStatus('done');
+                                return saveToIndexedDB('MediaDB', 'media', { id: 'generatedMedia', ...mediaData });
+                            })
+                            .catch(err => {
+                                console.error('Video generation failed:', err);
+                                setVideoStatus('error');
+                            })
+                    );
+                } else {
+                    setVideoStatus('done');
+                }
+
+                // Wait for all to complete
+                await Promise.allSettled(promises);
+
+                // Check final status
+                const finalMedia = await getFromIndexedDB('MediaDB', 'media', 'generatedMedia');
+                if (finalMedia?.podcast && finalMedia?.infographic && finalMedia?.video) {
+                    setAllDone(true);
+                }
+            };
+
+            // API calls
+            const generatePodcast = async (base64) => {
+                const response = await fetch(ENDPOINTS.podcast, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdfBase64: base64, duration: 3 })
+                });
+                if (!response.ok) throw new Error('Podcast API failed');
+                return await response.json();
+            };
+
+            const generateInfographic = async (base64) => {
+                const response = await fetch(ENDPOINTS.infographic, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdfBase64: base64 })
+                });
+                if (!response.ok) throw new Error('Infographic API failed');
+                return await response.json();
+            };
+
+            const generateVideoSlideshow = async (base64) => {
+                const response = await fetch(ENDPOINTS.videoSlideshow, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdfBase64: base64 })
+                });
+                if (!response.ok) throw new Error('Video API failed');
+                return await response.json();
+            };
+
+            const handleStartReading = () => {
+                window.location.href = `reading.html?participantId=${encodeURIComponent(participantId)}&mode=${mode}&condition=${condition}&paper=${paper}`;
+            };
+
+            // Status indicator component
+            const StatusItem = ({ label, status }) => {
+                const getStatusIcon = () => {
+                    switch (status) {
+                        case 'pending':
+                            return <span className="text-gray-400">○</span>;
+                        case 'generating':
+                            return (
+                                <svg className="animate-spin h-5 w-5 text-blue-500" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            );
+                        case 'done':
+                            return <span className="text-green-500 text-xl">✓</span>;
+                        case 'error':
+                            return <span className="text-red-500">✗</span>;
+                        default:
+                            return null;
+                    }
+                };
+
+                const getStatusText = () => {
+                    switch (status) {
+                        case 'pending': return 'Waiting...';
+                        case 'generating': return 'Generating...';
+                        case 'done': return 'Ready';
+                        case 'error': return 'Failed';
+                        default: return '';
+                    }
+                };
+
+                return (
+                    <div className="flex items-center justify-between py-2 px-4 bg-gray-50 rounded-lg">
+                        <span className="text-gray-700">{label}</span>
+                        <div className="flex items-center space-x-2">
+                            <span className={`text-sm ${status === 'done' ? 'text-green-600' : status === 'error' ? 'text-red-600' : 'text-gray-500'}`}>
+                                {getStatusText()}
+                            </span>
+                            {getStatusIcon()}
+                        </div>
+                    </div>
+                );
+            };
+
+            const isGenerating = podcastStatus === 'generating' || infographicStatus === 'generating' || videoStatus === 'generating';
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+                    <div className="max-w-2xl mx-auto">
+                        <div className="bg-white rounded-xl shadow-2xl p-8">
+                            {/* Header */}
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold text-gray-800">
+                                    {allDone ? (
+                                        <span className="text-green-600">GenAI has finished generating content!</span>
+                                    ) : (
+                                        'GenAI is reading the paper and generating content...'
+                                    )}
+                                </h1>
+                            </div>
+
+                            {/* Generation Status */}
+                            <div className="mb-8">
+
+                                {!allDone && (
+                                    <p className="text-sm text-amber-600 mb-4">
+                                        ⚠️ Please do not close this window during generation.
+                                    </p>
+                                )}
+
+                                <div className="space-y-2">
+                                    <StatusItem label="Podcast" status={podcastStatus} />
+                                    <StatusItem label="Video overview" status={videoStatus} />
+                                    <StatusItem label="Infographic" status={infographicStatus} />
+                                </div>
+
+                                {!allDone && (
+                                    <p className="text-sm text-gray-500 mt-4">
+                                        Estimated time: less than 5 minutes
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Start Button */}
+                            <div className="mb-6">
+                                <button
+                                    onClick={handleStartReading}
+                                    disabled={!allDone}
+                                    className={`w-full px-6 py-4 rounded-lg font-medium text-lg transition-all ${
+                                        allDone
+                                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {allDone ? 'Start Reading' : 'Please wait...'}
+                                </button>
+                            </div>
+
+                            {/* Technical Support */}
+                            <div className="text-center text-sm text-gray-500 border-t pt-4">
+                                <p>
+                                    Having technical problems?{' '}
+                                    <a href="mailto:sh.bae@snu.ac.kr" className="text-blue-600 hover:underline">
+                                        Contact sh.bae@snu.ac.kr
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<Preparation />, document.getElementById('root'));
+    </script>
+</body>
+</html>

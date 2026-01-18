@@ -176,21 +176,33 @@ Generate the podcast script now:`;
       const lines = script.split("\n").filter(line => line.trim());
       const segments = [];
 
+      // Log full script for debugging
+      console.log("=== FULL SCRIPT START ===");
+      console.log(script.substring(0, 2000));
+      console.log("=== FULL SCRIPT END ===");
+
       for (const line of lines) {
-        const alexMatch = line.match(/^(?:Alex|HOST A|Host A)[:\s]+(.+)/i);
-        const jordanMatch = line.match(/^(?:Jordan|HOST B|Host B)[:\s]+(.+)/i);
+        // More robust regex: handles **Alex:**, (Alex):, Alex:, etc.
+        // Strips markdown bold, parentheses, and leading whitespace
+        const cleanLine = line.replace(/^\s*\**\s*\(?\s*/, '').replace(/\)?\s*\**\s*/, '');
+
+        const alexMatch = cleanLine.match(/^(?:Alex|HOST\s*A)[\s:]+(.+)/i);
+        const jordanMatch = cleanLine.match(/^(?:Jordan|HOST\s*B)[\s:]+(.+)/i);
 
         if (alexMatch) {
+          console.log(`[ALEX] Found: "${alexMatch[1].substring(0, 50)}..."`);
           segments.push({ speaker: "alex", text: alexMatch[1].trim(), voice: "onyx" });  // Deep male voice
         } else if (jordanMatch) {
+          console.log(`[JORDAN] Found: "${jordanMatch[1].substring(0, 50)}..."`);
           segments.push({ speaker: "jordan", text: jordanMatch[1].trim(), voice: "shimmer" });  // Female voice
         }
       }
 
-      console.log(`Parsed ${segments.length} dialogue segments`);
+      console.log(`Parsed ${segments.length} dialogue segments (Alex: ${segments.filter(s => s.speaker === 'alex').length}, Jordan: ${segments.filter(s => s.speaker === 'jordan').length})`);
 
       if (segments.length === 0) {
         // Fallback: treat entire script as single segment
+        console.log("WARNING: No segments parsed! Using fallback.");
         segments.push({ speaker: "jordan", text: script.substring(0, 4000), voice: "nova" });
       }
 
