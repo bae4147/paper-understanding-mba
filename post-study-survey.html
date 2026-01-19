@@ -119,6 +119,9 @@
             // Loading state
             const [isSubmitting, setIsSubmitting] = useState(false);
 
+            // Page navigation state (1 = Sections 1-2, 2 = Sections 3-4, 3 = Section 5 + Final)
+            const [currentPage, setCurrentPage] = useState(1);
+
             // AI Usage section
             const [llmFrequency, setLlmFrequency] = useState('');
             const [aiToolsUsed, setAiToolsUsed] = useState('');
@@ -371,7 +374,28 @@
                                 <p className="text-gray-600">Please evaluate your experience with the reading task.</p>
                             </div>
 
+                            {/* Progress indicator */}
+                            <div className="mb-6">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm text-gray-600">Page {currentPage} of 3</span>
+                                    <span className="text-sm text-gray-600">
+                                        {currentPage === 1 && 'Sections 1-2'}
+                                        {currentPage === 2 && 'Sections 3-4'}
+                                        {currentPage === 3 && 'Section 5 & Final'}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${(currentPage / 3) * 100}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
                             <form onSubmit={handleSubmit} className="space-y-8">
+                                {/* PAGE 1: Sections 1-2 */}
+                                {currentPage === 1 && (
+                                <>
                                 {/* Section 1: NASA-TLX */}
                                 <div className="border-b pb-6">
                                     <h2 className="text-xl font-bold text-gray-800 mb-2">Section 1. Perceived Task Load</h2>
@@ -927,6 +951,34 @@
                                     </div>
                                 </div>
 
+                                {/* Next button for Page 1 */}
+                                <div className="flex justify-end pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            // Validate Page 1 fields
+                                            if (!mentalDemand || !physicalDemand || !temporalDemand || !performance || !effort || !frustration ||
+                                                !overallComprehension || !keyConceptsUnderstanding || !findingsUnderstanding ||
+                                                !evidenceUnderstanding || !keyResultsUnderstanding || !keyTermsUnderstanding ||
+                                                !researchDesignUnderstanding || !sampleContextUnderstanding || !limitationsUnderstanding ||
+                                                !criticalOwnIdeas || !criticalAlternativePerspectives || !criticalVerifyCredibility || !criticalQuestionClaims || !criticalBroaderImplications) {
+                                                alert('Please complete all required fields before continuing.');
+                                                return;
+                                            }
+                                            setCurrentPage(2);
+                                            window.scrollTo(0, 0);
+                                        }}
+                                        className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        Next →
+                                    </button>
+                                </div>
+                                </>
+                                )}
+
+                                {/* PAGE 2: Sections 3-4 */}
+                                {currentPage === 2 && (
+                                <>
                                 {/* Section 3: LLM Usefulness */}
                                 <div className="border-b pb-6">
                                     <h2 className="text-xl font-bold text-gray-800 mb-2">Section 3. Usefulness of GenAI</h2>
@@ -1339,6 +1391,42 @@
                                     </div>
                                 </div>
 
+                                {/* Navigation buttons for Page 2 */}
+                                <div className="flex justify-between pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCurrentPage(1);
+                                            window.scrollTo(0, 0);
+                                        }}
+                                        className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        ← Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            // Validate Page 2 fields
+                                            if (!llmOverallUsefulness || !llmConceptHelp || !llmFindingsHelp || !llmPracticalHelp || !llmTimeSaving ||
+                                                !llmCompetence || !llmAccuracy || !llmBenevolence || !llmReliability || !llmComfortActing || !llmComfortUsing ||
+                                                !llmRelyWithoutReading || !llmAssumeClearIsAccurate || !llmConfidentWithoutDetails || !llmRelyForImportance) {
+                                                alert('Please complete all required fields before continuing.');
+                                                return;
+                                            }
+                                            setCurrentPage(3);
+                                            window.scrollTo(0, 0);
+                                        }}
+                                        className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        Next →
+                                    </button>
+                                </div>
+                                </>
+                                )}
+
+                                {/* PAGE 3: Section 5 + Final */}
+                                {currentPage === 3 && (
+                                <>
                                 {/* AI Usage Section */}
                                 <div className="border-b pb-6">
                                     <h2 className="text-xl font-bold text-gray-800 mb-2">Section 5. Everyday GenAI Usage</h2>
@@ -1871,11 +1959,21 @@
                                 </div>
 
                                 {/* Submit */}
-                                <div className="pt-6">
+                                <div className="flex justify-between pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCurrentPage(2);
+                                            window.scrollTo(0, 0);
+                                        }}
+                                        className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        ← Back
+                                    </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 font-medium transition-colors text-lg disabled:bg-green-400 disabled:cursor-not-allowed flex items-center justify-center"
+                                        className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed flex items-center justify-center"
                                     >
                                         {isSubmitting ? (
                                             <>
@@ -1890,6 +1988,8 @@
                                         )}
                                     </button>
                                 </div>
+                                </>
+                                )}
                             </form>
                         </div>
                     </div>

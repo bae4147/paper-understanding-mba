@@ -31,7 +31,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getStorage, ref, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+        import { getStorage, ref, getDownloadURL, getBytes } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -70,6 +70,7 @@
         window.firebaseServerTimestamp = serverTimestamp;
         window.firebaseStorageRef = ref;
         window.firebaseGetDownloadURL = getDownloadURL;
+        window.firebaseGetBytes = getBytes;
     </script>
 </head>
 <body>
@@ -182,6 +183,7 @@
             const [isCustomPdf, setIsCustomPdf] = useState(false);
             const [customPdfData, setCustomPdfData] = useState(null); // {base64, title, sections, numPages}
             const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+            const [pdfLoading, setPdfLoading] = useState(true); // PDF loading state
 
             // PDF activity tracking for embed-based viewer
             const [pdfActivityState, setPdfActivityState] = useState('idle'); // 'idle' | 'viewing' | 'scrolling' | 'reading'
@@ -409,6 +411,7 @@
 
                 if (hasCustomPdf) {
                     // Load from IndexedDB
+                    setPdfLoading(true);
                     loadPdfFromIndexedDB().then(pdfData => {
                         if (pdfData) {
                             setIsCustomPdf(true);
@@ -422,12 +425,15 @@
                         } else {
                             setPaperContent('<p>No paper content found. Please upload a PDF.</p>');
                         }
+                        setPdfLoading(false);
                     }).catch(err => {
                         console.error('Error loading PDF from IndexedDB:', err);
                         setPaperContent('<p>Error loading paper. Please try uploading again.</p>');
+                        setPdfLoading(false);
                     });
                 } else {
                     setPaperContent('<p>No paper content found. Please upload a PDF.</p>');
+                    setPdfLoading(false);
                 }
             }, [currentPaper]);
 
@@ -562,28 +568,56 @@
                             }
                         }
 
-                        // Load Video Slideshow from Firestore (stored directly to avoid CORS)
-                        if (mediaUrls.video === 'firestore' && mediaUrls.videoData) {
-                            // Video data stored directly in Firestore as JSON string
-                            // Parse the JSON string back to object
-                            const videoData = typeof mediaUrls.videoData === 'string'
-                                ? JSON.parse(mediaUrls.videoData)
-                                : mediaUrls.videoData;
-                            if (videoData?.scenes && videoData.scenes.length > 0) {
-                                setVideoSlideshow(videoData);
-                                console.log('✅ Video slideshow loaded from Firestore:', videoData.scenes.length, 'scenes');
-                            }
-                        } else if (mediaUrls.video && mediaUrls.video !== 'firestore') {
-                            // Legacy: try to fetch from URL (may fail due to CORS)
+                        // Load Video Slideshow from Firebase Storage (using SDK to avoid CORS)
+                        if (mediaUrls.video && mediaUrls.video !== 'firestore') {
                             try {
-                                const response = await fetch(mediaUrls.video);
-                                const videoData = await response.json();
-                                if (videoData?.scenes && videoData.scenes.length > 0) {
-                                    setVideoSlideshow(videoData);
-                                    console.log('✅ Video slideshow loaded from URL:', videoData.scenes.length, 'scenes');
+                                // Extract storage path from URL
+                                // URL format: https://firebasestorage.googleapis.com/v0/b/bucket/o/path%2Fto%2Ffile?...
+                                const url = new URL(mediaUrls.video);
+                                const pathMatch = url.pathname.match(/\/o\/(.+)$/);
+                                if (pathMatch) {
+                                    const storagePath = decodeURIComponent(pathMatch[1]);
+                                    console.log('Loading video from storage path:', storagePath);
+
+                                    // Use Firebase Storage SDK to get bytes (avoids CORS)
+                                    const storageRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
+                                    const bytes = await window.firebaseGetBytes(storageRef);
+                                    const text = new TextDecoder().decode(bytes);
+                                    const videoData = JSON.parse(text);
+
+                                    if (videoData?.scenes && videoData.scenes.length > 0) {
+                                        // Convert raw API response format to player format
+                                        const processedScenes = videoData.scenes.map(scene => ({
+                                            sceneNumber: scene.sceneNumber || scene.scene_number,
+                                            imageUrl: scene.imageUrl || (scene.imageBase64 ? `data:image/png;base64,${scene.imageBase64}` : null),
+                                            audioUrl: scene.audioUrl || (scene.audioBase64 ? `data:audio/mpeg;base64,${scene.audioBase64}` : null),
+                                            duration: scene.duration || 9,
+                                            narration: scene.narration
+                                        }));
+
+                                        setVideoSlideshow({
+                                            title: videoData.title,
+                                            scenes: processedScenes,
+                                            totalScenes: videoData.totalScenes || processedScenes.length
+                                        });
+                                        console.log('✅ Video slideshow loaded from Storage:', processedScenes.length, 'scenes');
+                                    }
                                 }
                             } catch (e) {
-                                console.error('Error loading video slideshow from URL:', e);
+                                console.error('Error loading video slideshow from Storage:', e);
+                            }
+                        } else if (mediaUrls.video === 'firestore' && mediaUrls.videoData) {
+                            // Legacy: Video data stored directly in Firestore as JSON string
+                            try {
+                                const videoData = typeof mediaUrls.videoData === 'string'
+                                    ? JSON.parse(mediaUrls.videoData)
+                                    : mediaUrls.videoData;
+                                if (videoData?.scenes && videoData.scenes.length > 0) {
+                                    setVideoSlideshow(videoData);
+                                    console.log('✅ Video slideshow loaded from Firestore:', videoData.scenes.length, 'scenes');
+                                }
+                            } catch (e) {
+                                console.error('Error parsing video data from Firestore:', e);
                             }
                         }
 
@@ -3672,10 +3706,6 @@ Provide constructive feedback to help the reader think more critically about thi
                                                 src={videoSlideshow.scenes[currentSceneIndex].imageUrl}
                                                 alt={`Scene ${currentSceneIndex + 1}`}
                                                 className="w-full h-full object-contain"
-                                                style={{
-                                                    animation: slideshowPlaying ? `kenBurns${currentSceneIndex % 4} ${videoSlideshow.scenes[currentSceneIndex]?.duration || 10}s ease-out forwards` : 'none',
-                                                    transformOrigin: ['center', 'top left', 'top right', 'bottom center'][currentSceneIndex % 4]
-                                                }}
                                             />
                                         )}
                                         {/* Play overlay when paused */}
@@ -3928,7 +3958,18 @@ Provide constructive feedback to help the reader think more critically about thi
                                                 onScroll={isCustomPdf ? handlePdfScroll : undefined}
                                                 className="flex-1 overflow-y-auto"
                                             >
-                                                {isCustomPdf && customPdfData?.base64 ? (
+                                                {pdfLoading ? (
+                                                    /* Loading state */
+                                                    <div className="w-full h-full flex items-center justify-center" style={{ minHeight: 'calc(100vh - 120px)' }}>
+                                                        <div className="text-center">
+                                                            <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            <p className="text-gray-600 font-medium">Loading PDF...</p>
+                                                        </div>
+                                                    </div>
+                                                ) : isCustomPdf && customPdfData?.base64 ? (
                                                     /* Custom PDF: Embed for text selection with activity tracking */
                                                     <div
                                                         className="w-full h-full"
@@ -4170,7 +4211,18 @@ Provide constructive feedback to help the reader think more critically about thi
                                         </div>
                                     ) : (
                                         /* Other conditions: centered paper */
-                                        isCustomPdf && customPdfData?.base64 ? (
+                                        pdfLoading ? (
+                                            /* Loading state */
+                                            <div className="w-full h-full flex items-center justify-center" style={{ minHeight: 'calc(100vh - 120px)' }}>
+                                                <div className="text-center">
+                                                    <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    <p className="text-gray-600 font-medium">Loading PDF...</p>
+                                                </div>
+                                            </div>
+                                        ) : isCustomPdf && customPdfData?.base64 ? (
                                             /* Custom PDF viewer - embed for text selection with activity tracking */
                                             <div
                                                 className="w-full h-full"
@@ -4316,11 +4368,9 @@ Provide constructive feedback to help the reader think more critically about thi
                                     </div>
 
                                     <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-5 mb-6">
-                                        <h4 className="font-bold text-lg text-amber-800 mb-3">Please only use the tools provided on this platform.</h4>
-                                        <ul className="list-disc list-inside text-amber-700 space-y-1">
-                                            <li>❌ external AI tools (e.g., ChatGPT, Claude, Gemini, etc.)</li>
-                                            <li>❌ external PDF viewers or apps</li>
-                                        </ul>
+                                        <p className="text-amber-800">
+                                            <span className="font-bold">Please only use the tools provided on this platform.</span> Do not use external AI tools (e.g., ChatGPT, Claude, Gemini) or external PDF viewers/apps during this assignment.
+                                        </p>
                                     </div>
 
                                     <label className="flex items-start space-x-3 cursor-pointer mb-6 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">

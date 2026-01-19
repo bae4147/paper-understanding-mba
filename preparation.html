@@ -160,13 +160,26 @@
                 return downloadUrl;
             };
 
-            // Save media URLs to Firestore session
+            // Save individual media URL to Firestore session (avoids race conditions)
+            const saveMediaUrlToSession = async (key, value, sid) => {
+                if (!currentUser || !sid) return;
+                try {
+                    const updateData = {};
+                    updateData[`mediaUrls.${key}`] = value;
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update(updateData);
+                    console.log(`Media URL saved: ${key}`);
+                } catch (err) {
+                    console.error(`Error saving media URL ${key}:`, err);
+                }
+            };
+
+            // Save multiple media URLs at once (for backwards compatibility)
             const saveMediaUrlsToSession = async (mediaUrls, sid) => {
                 if (!currentUser || !sid) return;
                 try {
-                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update({
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).set({
                         mediaUrls: mediaUrls
-                    });
+                    }, { merge: true });
                     console.log('Media URLs saved to session');
                 } catch (err) {
                     console.error('Error saving media URLs:', err);
@@ -282,7 +295,7 @@
                     try {
                         const pdfUrl = await uploadToStorage(`${storagePath}/paper.pdf`, base64, 'application/pdf');
                         mediaUrls.pdf = pdfUrl;
-                        await saveMediaUrlsToSession(mediaUrls, sid);
+                        await saveMediaUrlToSession('pdf', pdfUrl, sid);
                     } catch (err) {
                         console.error('PDF upload failed:', err);
                     }
@@ -301,8 +314,14 @@
                                     'audio/mpeg'
                                 );
                                 mediaUrls.podcast = audioUrl;
-                                mediaUrls.podcastScript = result.script; // Keep script in Firestore (small)
-                                await saveMediaUrlsToSession(mediaUrls, sid);
+                                // Stringify script to avoid nested entity issues
+                                const scriptStr = typeof result.script === 'string'
+                                    ? result.script
+                                    : JSON.stringify(result.script);
+                                mediaUrls.podcastScript = scriptStr;
+                                // Save each field individually to avoid race conditions
+                                await saveMediaUrlToSession('podcast', audioUrl, sid);
+                                await saveMediaUrlToSession('podcastScript', scriptStr, sid);
                                 setPodcastStatus('done');
                             })
                             .catch(err => {
@@ -327,7 +346,7 @@
                                     'image/png'
                                 );
                                 mediaUrls.infographic = imageUrl;
-                                await saveMediaUrlsToSession(mediaUrls, sid);
+                                await saveMediaUrlToSession('infographic', imageUrl, sid);
                                 setInfographicStatus('done');
                             })
                             .catch(err => {
@@ -345,12 +364,14 @@
                     promises.push(
                         generateVideoSlideshow(base64)
                             .then(async (result) => {
-                                // Store video slideshow data directly in Firestore (avoids CORS issues)
-                                // Mark as stored in Firestore with a flag
-                                // Stringify the data to avoid Firestore nested entity limits
-                                mediaUrls.video = 'firestore';
-                                mediaUrls.videoData = JSON.stringify(result); // Stringify to avoid nesting issues
-                                await saveMediaUrlsToSession(mediaUrls, sid);
+                                // Upload video data as JSON to Storage (to avoid Firestore limits)
+                                const videoUrl = await uploadToStorage(
+                                    `${storagePath}/video.json`,
+                                    result,
+                                    'application/json'
+                                );
+                                mediaUrls.video = videoUrl;
+                                await saveMediaUrlToSession('video', videoUrl, sid);
                                 setVideoStatus('done');
                             })
                             .catch(err => {

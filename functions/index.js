@@ -701,7 +701,7 @@ exports.generateVideoSlideshow = onRequest(
 You are a video content architect specializing in educational whiteboard-style explainer videos, specifically mimicking the "NotebookLM" visual aesthetic.
 
 # Goal
-Based on the provided article, create a JSON structure for a **4-minute video** (24-32 scenes, each 8-10 seconds).
+Based on the provided article, create a JSON structure for a **5-minute video** (30-35 scenes, each 8-10 seconds). You MUST generate at least 30 scenes to fill the full 5 minutes.
 
 # Output Format (return ONLY valid JSON, no markdown):
 {
@@ -720,10 +720,13 @@ Based on the provided article, create a JSON structure for a **4-minute video** 
 
 # Narration Style (OpenAI Shimmer)
 - Single female voice: Warm, professional, yet deeply conversational (like a friendly expert).
-- Structure:
-  1. Hook (Scene 1): Problem or surprising fact.
-  2. The Solution/Framework (Scene 2-6): Core concepts from the article.
-  3. Conclusion & Call to Action (Scene 7-8): Summary and a thought-provoking closing question.
+- Structure (for 30-35 scenes total):
+  1. Hook (Scenes 1-2): Problem or surprising fact to grab attention.
+  2. Background & Context (Scenes 3-8): Set up the problem space and why it matters.
+  3. Main Content - Part 1 (Scenes 9-15): First major theme/finding from the article.
+  4. Main Content - Part 2 (Scenes 16-22): Second major theme/finding from the article.
+  5. Main Content - Part 3 (Scenes 23-28): Third major theme/implications.
+  6. Conclusion & Call to Action (Scenes 29-35): Summary, key takeaways, and thought-provoking closing.
 - Pacing: Avoid rushing. Use 25-35 words per 10-second scene.
 
 # Visual Style (NotebookLM Aesthetic)
@@ -747,7 +750,7 @@ Return ONLY the JSON, no markdown code blocks.`;
             contents: [{ parts: [{ text: brainPrompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 8000
+              maxOutputTokens: 16000
             }
           })
         }
@@ -765,9 +768,48 @@ Return ONLY the JSON, no markdown code blocks.`;
       // Clean up markdown if present
       scenesContent = scenesContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
 
-      const scenesJson = JSON.parse(scenesContent);
-      const scenes = scenesJson.scenes;
-      console.log(`Generated ${scenes.length} scenes`);
+      let scenesJson = JSON.parse(scenesContent);
+      let scenes = scenesJson.scenes;
+      console.log(`Generated ${scenes.length} scenes (first attempt)`);
+
+      // If less than 30 scenes, try one more time with a more explicit prompt
+      if (scenes.length < 30) {
+        console.log("Not enough scenes, regenerating with explicit count...");
+        const retryPrompt = `${brainPrompt}
+
+CRITICAL: You generated only ${scenes.length} scenes last time. This is NOT ENOUGH.
+I need EXACTLY 30-35 scenes for a 5-minute video. Each scene is 8-10 seconds.
+Do NOT generate fewer than 30 scenes. Count your scenes before responding.`;
+
+        const retryResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey.value()}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: retryPrompt }] }],
+              generationConfig: {
+                temperature: 0.5,
+                maxOutputTokens: 16000
+              }
+            })
+          }
+        );
+
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          let retryContent = retryData.candidates[0].content.parts[0].text;
+          retryContent = retryContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+          const retryJson = JSON.parse(retryContent);
+          if (retryJson.scenes && retryJson.scenes.length > scenes.length) {
+            scenes = retryJson.scenes;
+            scenesJson = retryJson;
+            console.log(`Retry generated ${scenes.length} scenes`);
+          }
+        }
+      }
+
+      console.log(`Final scene count: ${scenes.length}`);
 
       // Step 3: Generate images for each scene with Nano Banana (Gemini native image generation)
       console.log("Step 3: Generating images with Nano Banana...");
