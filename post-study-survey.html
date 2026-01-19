@@ -236,6 +236,15 @@
                     return;
                 }
 
+                // Validate GenAI usage metrics and competency items (required)
+                if (aiMonthsUsed === '' || aiWeeklyHours === '' || !aiFluency ||
+                    !aiAwareness || !aiAssistTasks || !aiInnovative || !aiMentoring ||
+                    !aiTaskAppropriate || !aiJudgeAccuracy || !aiVerifyOutputs ||
+                    !aiIdentifyAssumptions || !aiConsiderRisks || !aiAlignPolicies || !aiDataPrivacy) {
+                    alert('Please complete all GenAI usage and competency questions.');
+                    return;
+                }
+
                 setIsSubmitting(true);
 
                 const surveyData = {
@@ -1521,7 +1530,7 @@
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                                                    How many months have you used GenAI tools for work?
+                                                    How many months have you used GenAI tools for work? *
                                                 </label>
                                                 <div className="flex items-center space-x-2">
                                                     <input
@@ -1538,7 +1547,7 @@
 
                                             <div>
                                                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                                                    In a typical work week, about how much total time do you spend using GenAI tools?
+                                                    In a typical work week, about how much total time do you spend using GenAI tools? *
                                                 </label>
                                                 <div className="flex items-center space-x-2">
                                                     <input
@@ -1558,7 +1567,7 @@
                                         {/* AI Fluency */}
                                         <div>
                                             <label className="block text-sm font-bold text-gray-800 mb-2">
-                                                Overall, how fluent do you consider yourself in using GenAI tools for work?
+                                                Overall, how fluent do you consider yourself in using GenAI tools for work? *
                                             </label>
                                             <div className="flex items-center justify-between mt-3">
                                                 <span className="text-xs text-gray-500">Not at all fluent</span>
@@ -1584,7 +1593,7 @@
 
                                         {/* AI Competency/Literacy Items */}
                                         <div className="mt-6">
-                                            <p className="text-sm text-gray-600 mb-4">Please rate your agreement with the following statements.</p>
+                                            <p className="text-sm text-gray-600 mb-4">Please rate your agreement with the following statements. *</p>
                                             <div className="space-y-8">
                                                 <div>
                                                     <label className="block text-sm font-bold text-gray-800 mb-2">
