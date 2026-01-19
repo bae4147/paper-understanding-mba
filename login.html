@@ -130,7 +130,7 @@
                                 window.localStorage.removeItem('emailForSignIn');
                                 // Clear URL parameters
                                 window.history.replaceState({}, document.title, window.location.pathname);
-                                // onAuthStateChanged will handle the rest
+                                // Don't return here - let onAuthStateChanged handle the user
                             })
                             .catch((error) => {
                                 console.error('Error signing in with email link:', error);
@@ -141,7 +141,7 @@
                     } else {
                         setCheckingAuth(false);
                     }
-                    return;
+                    // Don't return - still need to set up onAuthStateChanged listener
                 }
 
                 const unsubscribe = auth.onAuthStateChanged(async (user) => {
