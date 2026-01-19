@@ -123,6 +123,24 @@
             const [llmFrequency, setLlmFrequency] = useState('');
             const [aiToolsUsed, setAiToolsUsed] = useState('');
 
+            // New AI usage metrics
+            const [aiMonthsUsed, setAiMonthsUsed] = useState('');
+            const [aiWeeklyHours, setAiWeeklyHours] = useState('');
+            const [aiFluency, setAiFluency] = useState('');
+
+            // AI Competency/Literacy items (7-point Likert)
+            const [aiAwareness, setAiAwareness] = useState('');
+            const [aiAssistTasks, setAiAssistTasks] = useState('');
+            const [aiInnovative, setAiInnovative] = useState('');
+            const [aiMentoring, setAiMentoring] = useState('');
+            const [aiTaskAppropriate, setAiTaskAppropriate] = useState('');
+            const [aiJudgeAccuracy, setAiJudgeAccuracy] = useState('');
+            const [aiVerifyOutputs, setAiVerifyOutputs] = useState('');
+            const [aiIdentifyAssumptions, setAiIdentifyAssumptions] = useState('');
+            const [aiConsiderRisks, setAiConsiderRisks] = useState('');
+            const [aiAlignPolicies, setAiAlignPolicies] = useState('');
+            const [aiDataPrivacy, setAiDataPrivacy] = useState('');
+
             // AI Purposes
             const [aiPurposes, setAiPurposes] = useState([]);
             const [aiPurposeRatings, setAiPurposeRatings] = useState({});
@@ -249,12 +267,28 @@
                     aiUsage: {
                         frequency: llmFrequency,
                         toolsUsed: aiToolsUsed.trim() || null,
+                        monthsUsed: aiMonthsUsed ? parseInt(aiMonthsUsed) : null,
+                        weeklyHours: aiWeeklyHours ? parseFloat(aiWeeklyHours) : null,
+                        fluency: aiFluency ? parseInt(aiFluency) : null,
                         purposes: aiPurposes.map(purpose => ({
                             name: purpose,
                             otherText: purpose === 'Other' ? aiPurposeOther : null,
                             usefulness: parseInt(aiPurposeRatings[purpose]?.usefulness) || null,
                             trust: parseInt(aiPurposeRatings[purpose]?.trust) || null
-                        }))
+                        })),
+                        competency: {
+                            awareness: aiAwareness ? parseInt(aiAwareness) : null,
+                            assistTasks: aiAssistTasks ? parseInt(aiAssistTasks) : null,
+                            innovative: aiInnovative ? parseInt(aiInnovative) : null,
+                            mentoring: aiMentoring ? parseInt(aiMentoring) : null,
+                            taskAppropriate: aiTaskAppropriate ? parseInt(aiTaskAppropriate) : null,
+                            judgeAccuracy: aiJudgeAccuracy ? parseInt(aiJudgeAccuracy) : null,
+                            verifyOutputs: aiVerifyOutputs ? parseInt(aiVerifyOutputs) : null,
+                            identifyAssumptions: aiIdentifyAssumptions ? parseInt(aiIdentifyAssumptions) : null,
+                            considerRisks: aiConsiderRisks ? parseInt(aiConsiderRisks) : null,
+                            alignPolicies: aiAlignPolicies ? parseInt(aiAlignPolicies) : null,
+                            dataPrivacy: aiDataPrivacy ? parseInt(aiDataPrivacy) : null
+                        }
                     },
                     attentionCheck: {
                         focus: parseInt(attentionFocus),
@@ -1398,6 +1432,363 @@
                                                 rows="3"
                                                 placeholder="e.g., ChatGPT, Claude, Copilot, Gemini..."
                                             />
+                                        </div>
+
+                                        {/* New AI Usage Metrics */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    How many months have you used GenAI tools for work?
+                                                </label>
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={aiMonthsUsed}
+                                                        onChange={(e) => setAiMonthsUsed(e.target.value)}
+                                                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        placeholder="0"
+                                                    />
+                                                    <span className="text-sm text-gray-600">months</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    In a typical work week, about how much total time do you spend using GenAI tools?
+                                                </label>
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.5"
+                                                        value={aiWeeklyHours}
+                                                        onChange={(e) => setAiWeeklyHours(e.target.value)}
+                                                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        placeholder="0"
+                                                    />
+                                                    <span className="text-sm text-gray-600">hours</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* AI Fluency */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                Overall, how fluent do you consider yourself in using GenAI tools for work?
+                                            </label>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-xs text-gray-500">Not at all fluent</span>
+                                                <div className="flex space-x-1">
+                                                    {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => setAiFluency(value.toString())}
+                                                            className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                aiFluency === value.toString()
+                                                                    ? 'bg-blue-600 text-white'
+                                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {value}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs text-gray-500">Extremely fluent</span>
+                                            </div>
+                                        </div>
+
+                                        {/* AI Competency/Literacy Items */}
+                                        <div className="mt-6">
+                                            <p className="text-sm text-gray-600 mb-4">Please rate your agreement with the following statements.</p>
+                                            <div className="space-y-8">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I am aware of GenAI tools currently available in my workplace.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiAwareness(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiAwareness === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I use GenAI tools to assist with my work-related tasks.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiAssistTasks(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiAssistTasks === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I use GenAI to explore innovative or creative solutions in my work.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiInnovative(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiInnovative === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I feel capable of training or mentoring colleagues on GenAI use.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiMentoring(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiMentoring === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I critically evaluate whether a task is appropriate for GenAI assistance.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiTaskAppropriate(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiTaskAppropriate === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I can judge when GenAI's output is likely to be inaccurate or incomplete.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiJudgeAccuracy(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiJudgeAccuracy === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I typically verify important GenAI outputs using other sources (e.g., documents, data, experts).
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiVerifyOutputs(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiVerifyOutputs === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I can identify when GenAI is making unsupported assumptions or "filling in gaps."
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiIdentifyAssumptions(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiIdentifyAssumptions === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I consider potential risks (e.g., bias, privacy, errors) before using GenAI outputs in decisions.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiConsiderRisks(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiConsiderRisks === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I know how to use GenAI in ways that align with my organization's policies or norms.
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiAlignPolicies(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiAlignPolicies === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                        I understand what information I should not share with GenAI tools (e.g., confidential or sensitive data).
+                                                    </label>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                        <div className="flex space-x-1">
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setAiDataPrivacy(value.toString())}
+                                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                        aiDataPrivacy === value.toString()
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                    }`}
+                                                                >
+                                                                    {value}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Strongly agree</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
