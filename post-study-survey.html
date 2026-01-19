@@ -11,6 +11,7 @@
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
@@ -30,15 +31,32 @@
         };
 
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.firestore();
 
         function PostStudySurvey() {
-            // Get participant info from URL
+            // Auth state
+            const [currentUser, setCurrentUser] = useState(null);
+            const [checkingAuth, setCheckingAuth] = useState(true);
+
+            // Get session info from URL
             const urlParams = new URLSearchParams(window.location.search);
-            const participantId = urlParams.get('participantId');
-            const experimentId = urlParams.get('experimentId');
+            const sessionId = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId');
             const condition = urlParams.get('condition');
             const mode = urlParams.get('mode');
+
+            // Auth guard
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    if (!user) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    setCurrentUser(user);
+                    setCheckingAuth(false);
+                });
+                return () => unsubscribe();
+            }, []);
 
             // Section 1: NASA-TLX (7-point scale)
             const [mentalDemand, setMentalDemand] = useState('');
@@ -53,6 +71,13 @@
             const [overallComprehension, setOverallComprehension] = useState('');
             const [keyConceptsUnderstanding, setKeyConceptsUnderstanding] = useState('');
             const [findingsUnderstanding, setFindingsUnderstanding] = useState('');
+            // New reading comprehension items
+            const [evidenceUnderstanding, setEvidenceUnderstanding] = useState('');
+            const [keyResultsUnderstanding, setKeyResultsUnderstanding] = useState('');
+            const [keyTermsUnderstanding, setKeyTermsUnderstanding] = useState('');
+            const [researchDesignUnderstanding, setResearchDesignUnderstanding] = useState('');
+            const [sampleContextUnderstanding, setSampleContextUnderstanding] = useState('');
+            const [limitationsUnderstanding, setLimitationsUnderstanding] = useState('');
             // const [practicalApplications, setPracticalApplications] = useState(''); // Removed - no longer needed
 
             // Quiz Confidence - moved to index.html quiz section
@@ -154,11 +179,11 @@
             const [englishProficiency, setEnglishProficiency] = useState('');
 
             useEffect(() => {
-                if (!participantId || !experimentId) {
-                    alert('Missing participant information. Please start from the beginning.');
+                if (!sessionId) {
+                    alert('Missing session information. Please start from the beginning.');
                     window.location.href = 'index.html';
                 }
-            }, [participantId, experimentId]);
+            }, [sessionId]);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -167,6 +192,8 @@
                 // Validation for required fields
                 if (!mentalDemand || !physicalDemand || !temporalDemand || !performance || !effort || !frustration ||
                     !overallComprehension || !keyConceptsUnderstanding || !findingsUnderstanding ||
+                    !evidenceUnderstanding || !keyResultsUnderstanding || !keyTermsUnderstanding ||
+                    !researchDesignUnderstanding || !sampleContextUnderstanding || !limitationsUnderstanding ||
                     !criticalOwnIdeas || !criticalAlternativePerspectives || !criticalVerifyCredibility || !criticalQuestionClaims || !criticalBroaderImplications ||
                     !llmFrequency ||
                     !attentionFocus || !attentionCheck) {
@@ -203,7 +230,13 @@
                         overallComprehension: {
                             overallGoal: parseInt(overallComprehension),
                             authorsReasoning: parseInt(keyConceptsUnderstanding),
-                            connectingIdeas: parseInt(findingsUnderstanding)
+                            connectingIdeas: parseInt(findingsUnderstanding),
+                            evidenceUnderstanding: parseInt(evidenceUnderstanding),
+                            keyResultsUnderstanding: parseInt(keyResultsUnderstanding),
+                            keyTermsUnderstanding: parseInt(keyTermsUnderstanding),
+                            researchDesignUnderstanding: parseInt(researchDesignUnderstanding),
+                            sampleContextUnderstanding: parseInt(sampleContextUnderstanding),
+                            limitationsUnderstanding: parseInt(limitationsUnderstanding)
                         },
                         criticalEngagement: {
                             ownIdeas: parseInt(criticalOwnIdeas),
@@ -253,38 +286,24 @@
                 };
 
                 try {
-                    if (!experimentId) {
-                        throw new Error('Missing experimentId');
+                    if (!sessionId) {
+                        throw new Error('Missing sessionId');
                     }
 
                     console.log('💾 Post-reading survey data:', surveyData);
 
-                    // Firebase saving disabled
-                    /*
-                    console.log('💾 Saving post-reading survey to:', experimentId);
-
-                    // Save survey data to users/{participantId}/experiments/{experimentId}
-                    const experimentRef = db.collection('users').doc(participantId).collection('experiments').doc(experimentId);
-                    await experimentRef.set({
+                    // Save survey data to users/{uid}/sessions/{sessionId}
+                    const sessionRef = db.collection('users').doc(currentUser.uid).collection('sessions').doc(sessionId);
+                    await sessionRef.set({
                         postStudySurvey: surveyData,
-                        status: 'completed',
+                        currentPhase: 'complete',
                         completedAt: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
 
                     console.log('✅ Post-reading survey saved');
 
-                    // Update user status to completed
-                    const userRef = db.collection('users').doc(participantId);
-                    await userRef.update({
-                        status: 'completed',
-                        completedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    console.log('✅ User status updated to completed');
-                    */
-
                     // Navigate to completion page
-                    window.location.href = `complete.html?participantId=${participantId}`;
+                    window.location.href = `complete.html?sessionId=${sessionId}`;
 
                 } catch (error) {
                     console.error('Error saving post-reading survey:', error);
@@ -293,10 +312,16 @@
                 }
             };
 
-            if (!participantId) {
+            if (checkingAuth) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center">
-                        <p>Loading...</p>
+                    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 flex items-center justify-center">
+                        <div className="text-center">
+                            <svg className="animate-spin h-10 w-10 text-blue-600 mx-auto mb-4" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-gray-600">Loading...</p>
+                        </div>
                     </div>
                 );
             }
@@ -559,6 +584,162 @@
                                                                 onClick={() => setFindingsUnderstanding(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     findingsUnderstanding === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I understood what evidence the authors used to support their claims. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setEvidenceUnderstanding(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    evidenceUnderstanding === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I understood the key results/findings reported in the article. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setKeyResultsUnderstanding(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    keyResultsUnderstanding === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I understood the key concepts/terms used in the article. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setKeyTermsUnderstanding(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    keyTermsUnderstanding === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I understood the research design used in the article (e.g., survey, experiment, interviews). *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setResearchDesignUnderstanding(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    researchDesignUnderstanding === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I understood who or what was studied (sample/context) and why that matters. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setSampleContextUnderstanding(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    sampleContextUnderstanding === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I understood the main limitations the authors described (if any). *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setLimitationsUnderstanding(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    limitationsUnderstanding === value.toString()
                                                                         ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}

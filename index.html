@@ -17,6 +17,7 @@
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
 </head>
@@ -37,14 +38,27 @@
         };
 
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.firestore();
 
         // Firebase Functions endpoint for GPT API
         const CHAT_COMPLETION_URL = 'https://chatcompletion-noiydfdfbq-uc.a.run.app';
 
+        // Session ID generator
+        const generateSessionId = () => {
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+            const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+            const suffix = Math.random().toString(36).substring(2, 6);
+            return `${dateStr}_${timeStr}_${suffix}`;
+        };
+
         function Landing() {
-            const [participantName, setParticipantName] = useState('');
-            const [session, setSession] = useState('');
+            // Auth state
+            const [currentUser, setCurrentUser] = useState(null);
+            const [userProfile, setUserProfile] = useState(null);
+            const [checkingAuth, setCheckingAuth] = useState(true);
+
             const [condition, setCondition] = useState('control');
             const [currentPaper, setCurrentPaper] = useState('');
             const [mode, setMode] = useState('experiment');
@@ -54,6 +68,46 @@
             const [pdfProcessing, setPdfProcessing] = useState(false);
             const [pdfError, setPdfError] = useState('');
             const [pdfProgress, setPdfProgress] = useState('');
+
+            // Session warning popup
+            const [showSessionWarning, setShowSessionWarning] = useState(false);
+
+            // Check auth state on mount
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged(async (user) => {
+                    if (!user) {
+                        // Not logged in, redirect to login
+                        window.location.href = 'login.html';
+                        return;
+                    }
+
+                    setCurrentUser(user);
+
+                    // Fetch user profile from Firestore
+                    try {
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        if (userDoc.exists) {
+                            const data = userDoc.data();
+                            setUserProfile(data);
+                            // If profile incomplete, redirect to login to complete it
+                            if (!data.fullName || !data.class) {
+                                window.location.href = 'login.html';
+                                return;
+                            }
+                        } else {
+                            // No profile, redirect to login
+                            window.location.href = 'login.html';
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Error fetching user profile:', err);
+                    }
+
+                    setCheckingAuth(false);
+                });
+
+                return () => unsubscribe();
+            }, []);
 
             // Get parameters from URL
             useEffect(() => {
@@ -282,33 +336,43 @@ Return format: {"title": "...", "firstAuthorLastName": "...", "year": 2023, "ven
             const handleSubmit = async (e) => {
                 e.preventDefault();
 
-                if (!participantName.trim()) {
-                    alert('Please enter your name.');
-                    return;
-                }
-
-                if (!session) {
-                    alert('Please select your session.');
-                    return;
-                }
-
                 if (!currentPaper) {
                     alert('Please upload a PDF file.');
                     return;
                 }
 
+                // Show session warning popup
+                setShowSessionWarning(true);
+            };
+
+            const handleStartSession = async () => {
+                setShowSessionWarning(false);
                 setIsLoading(true);
 
                 try {
-                    // Generate a unique participant ID from name + timestamp
-                    const participantId = `${participantName.trim().replace(/\s+/g, '_')}_${Date.now()}`;
+                    // Generate session ID
+                    const sessionId = generateSessionId();
 
-                    // Store participant info in sessionStorage
-                    sessionStorage.setItem('participantName', participantName.trim());
-                    sessionStorage.setItem('participantSession', session);
+                    // Get paper metadata from sessionStorage
+                    const paperMetadata = JSON.parse(sessionStorage.getItem('paperMetadata') || '{}');
+                    const paperId = sessionStorage.getItem('currentPaperId') || null;
+
+                    // Create session document in Firestore
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sessionId).set({
+                        startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        currentPhase: 'upload',
+                        condition: condition,
+                        paperMetadata: paperMetadata,
+                        paperId: paperId
+                    });
+
+                    // Store session ID for subsequent pages
+                    sessionStorage.setItem('currentSessionId', sessionId);
+                    sessionStorage.setItem('participantName', userProfile.fullName);
+                    sessionStorage.setItem('participantSession', userProfile.class);
 
                     // Go to preparation page for media generation
-                    window.location.href = `preparation.html?participantId=${encodeURIComponent(participantId)}&mode=${mode}&condition=${condition}&paper=${currentPaper}`;
+                    window.location.href = `preparation.html?sessionId=${encodeURIComponent(sessionId)}&mode=${mode}&condition=${condition}&paper=${currentPaper}`;
 
                 } catch (error) {
                     console.error('Error:', error);
@@ -317,64 +381,86 @@ Return format: {"title": "...", "firstAuthorLastName": "...", "year": 2023, "ven
                 }
             };
 
+            const handleLogout = async () => {
+                await auth.signOut();
+                window.location.href = 'login.html';
+            };
+
+            // Loading state while checking auth
+            if (checkingAuth) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                        <div className="text-center">
+                            <svg className="animate-spin h-10 w-10 text-blue-600 mx-auto mb-4" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-gray-600">Loading...</p>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+                    {/* Session Warning Popup */}
+                    {showSessionWarning && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4">Start a new assignment?</h2>
+                                <p className="text-gray-600 mb-6">
+                                    Starting a new assignment will replace your previous submission. Only your most recent submission will be graded.
+                                </p>
+                                <div className="flex space-x-3">
+                                    <button
+                                        onClick={() => setShowSessionWarning(false)}
+                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleStartSession}
+                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    >
+                                        Start Assignment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="max-w-2xl mx-auto">
                         <div className="bg-white rounded-xl shadow-2xl p-8">
                             {/* Header */}
                             <div className="text-center mb-8">
                                 <div className="text-5xl mb-4">📖</div>
                                 <h1 className="text-3xl font-bold text-gray-800 mb-2">Assignment</h1>
-                                <p className="text-gray-600">Please enter your information to begin.</p>
+                                <p className="text-gray-600">Upload a paper to begin.</p>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {/* Name */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Your Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={participantName}
-                                        onChange={(e) => setParticipantName(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-                                        placeholder="Enter your name"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Session Selection */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Which session are you from? *
-                                    </label>
-                                    <div className="space-y-2">
-                                        {[
-                                            { value: 'honda', label: 'Honda Program' },
-                                            { value: 'mba6202_tue', label: 'MBA 6202 (Tuesdays)' },
-                                            { value: 'mba6202_wed', label: 'MBA 6202 (Wednesdays)' },
-                                            { value: 'mba6202_sat', label: 'MBA 6202 (Saturdays)' },
-                                            { value: 'busoba7399', label: 'BUSOBA 7399 - Leadership in SCM (36109)' },
-                                            { value: 'busoba7397', label: 'BUSOBA 7397 - MSCM Mid-Program (34668)' }
-                                        ].map(option => (
-                                            <label key={option.value} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="session"
-                                                    value={option.value}
-                                                    checked={session === option.value}
-                                                    onChange={(e) => setSession(e.target.value)}
-                                                    className="w-4 h-4"
-                                                />
-                                                <span className="text-sm text-gray-700">{option.label}</span>
-                                            </label>
-                                        ))}
+                            {/* User Info Card */}
+                            {userProfile && (
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-sm text-gray-500">Logged in as</p>
+                                            <p className="font-medium text-gray-800">{userProfile.fullName}</p>
+                                            <p className="text-sm text-gray-500">{currentUser?.email}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleLogout}
+                                            className="text-sm text-gray-500 hover:text-red-600 underline"
+                                        >
+                                            Sign out
+                                        </button>
                                     </div>
                                 </div>
+                            )}
 
+                            <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Experiment Options */}
-                                <div className="space-y-4 border-t pt-6">
+                                <div className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Condition

@@ -8,12 +8,33 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBeBZVsyiwBmOUPAFyOF6xkq0o43ylYc-Q",
+            authDomain: "mba-paper-reading.firebaseapp.com",
+            projectId: "mba-paper-reading",
+            storageBucket: "mba-paper-reading.firebasestorage.app",
+            messagingSenderId: "562003057084",
+            appId: "1:562003057084:web:f57043a9250f588049b3b9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
 
         // API Endpoints
         const ENDPOINTS = {
@@ -23,8 +44,12 @@
         };
 
         function Preparation() {
+            // Auth state
+            const [currentUser, setCurrentUser] = useState(null);
+            const [checkingAuth, setCheckingAuth] = useState(true);
+
             // URL params
-            const [participantId, setParticipantId] = useState('');
+            const [sessionId, setSessionId] = useState('');
             const [mode, setMode] = useState('experiment');
             const [condition, setCondition] = useState('control');
             const [paper, setPaper] = useState('custom');
@@ -40,6 +65,19 @@
 
             // Prevent duplicate generation
             const generationStartedRef = useRef(false);
+
+            // Auth guard
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    if (!user) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    setCurrentUser(user);
+                    setCheckingAuth(false);
+                });
+                return () => unsubscribe();
+            }, []);
 
             // IndexedDB helpers
             const openDatabase = (dbName, storeName) => {
@@ -78,13 +116,78 @@
                 });
             };
 
+            // Update session phase in Firestore
+            const updateSessionPhase = async (sid) => {
+                if (!currentUser || !sid) return;
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update({
+                        currentPhase: 'generating'
+                    });
+                    console.log('Phase updated to: generating');
+                } catch (err) {
+                    console.error('Error updating session phase:', err);
+                }
+            };
+
+            // Upload file to Firebase Storage
+            const uploadToStorage = async (path, data, contentType) => {
+                const storageRef = storage.ref(path);
+                let blob;
+
+                if (typeof data === 'string' && data.startsWith('data:')) {
+                    // Base64 data URL
+                    const response = await fetch(data);
+                    blob = await response.blob();
+                } else if (typeof data === 'string') {
+                    // Plain base64 string - detect content type
+                    const byteCharacters = atob(data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    blob = new Blob([byteArray], { type: contentType });
+                } else if (data instanceof Blob) {
+                    blob = data;
+                } else {
+                    // JSON data
+                    blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                }
+
+                await storageRef.put(blob, { contentType });
+                const downloadUrl = await storageRef.getDownloadURL();
+                console.log(`Uploaded to ${path}:`, downloadUrl);
+                return downloadUrl;
+            };
+
+            // Save media URLs to Firestore session
+            const saveMediaUrlsToSession = async (mediaUrls, sid) => {
+                if (!currentUser || !sid) return;
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update({
+                        mediaUrls: mediaUrls
+                    });
+                    console.log('Media URLs saved to session');
+                } catch (err) {
+                    console.error('Error saving media URLs:', err);
+                }
+            };
+
             // Load URL params and check existing state
             useEffect(() => {
+                if (checkingAuth || !currentUser) return;
+
                 const urlParams = new URLSearchParams(window.location.search);
-                setParticipantId(urlParams.get('participantId') || '');
+                const sid = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId') || '';
+                setSessionId(sid);
                 setMode(urlParams.get('mode') || 'experiment');
                 setCondition(urlParams.get('condition') || 'control');
                 setPaper(urlParams.get('paper') || 'custom');
+
+                if (!sid) {
+                    window.location.href = 'index.html';
+                    return;
+                }
 
                 // Check if we have required data
                 const hasCustomPdf = sessionStorage.getItem('hasCustomPdf');
@@ -94,11 +197,14 @@
                     return;
                 }
 
-                // Load PDF and check existing generation status
-                loadPdfAndCheckStatus();
-            }, []);
+                // Update phase to generating
+                updateSessionPhase(sid);
 
-            const loadPdfAndCheckStatus = async () => {
+                // Load PDF and check existing generation status
+                loadPdfAndCheckStatus(sid);
+            }, [checkingAuth, currentUser]);
+
+            const loadPdfAndCheckStatus = async (sid) => {
                 try {
                     // Load PDF from IndexedDB
                     const pdfData = await getFromIndexedDB('CustomPdfDB', 'pdfs', 'customPdf');
@@ -109,47 +215,40 @@
                     }
                     setPdfBase64(pdfData.base64);
 
-                    // Check existing generation status from sessionStorage
-                    const savedStatus = sessionStorage.getItem('generationStatus');
-                    if (savedStatus) {
-                        const status = JSON.parse(savedStatus);
+                    // Check existing media URLs from Firestore session
+                    try {
+                        const sessionDoc = await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).get();
+                        if (sessionDoc.exists && sessionDoc.data().mediaUrls) {
+                            const mediaUrls = sessionDoc.data().mediaUrls;
 
-                        // Check what's already done in IndexedDB
-                        const mediaData = await getFromIndexedDB('MediaDB', 'media', 'generatedMedia');
+                            if (mediaUrls.podcast) {
+                                setPodcastStatus('done');
+                            }
+                            if (mediaUrls.infographic) {
+                                setInfographicStatus('done');
+                            }
+                            if (mediaUrls.video) {
+                                setVideoStatus('done');
+                            }
 
-                        if (mediaData?.podcast) {
-                            setPodcastStatus('done');
-                        } else if (status.podcastStarted) {
-                            setPodcastStatus('pending'); // Will retry
+                            // Check if all done
+                            if (mediaUrls.podcast && mediaUrls.infographic && mediaUrls.video) {
+                                setAllDone(true);
+                                return;
+                            }
                         }
-
-                        if (mediaData?.infographic) {
-                            setInfographicStatus('done');
-                        } else if (status.infographicStarted) {
-                            setInfographicStatus('pending');
-                        }
-
-                        if (mediaData?.video) {
-                            setVideoStatus('done');
-                        } else if (status.videoStarted) {
-                            setVideoStatus('pending');
-                        }
-
-                        // Check if all done
-                        if (mediaData?.podcast && mediaData?.infographic && mediaData?.video) {
-                            setAllDone(true);
-                            return;
-                        }
+                    } catch (e) {
+                        console.log('No existing session data');
                     }
 
                     // Start generation for pending items
-                    startGeneration(pdfData.base64);
+                    startGeneration(pdfData.base64, sid);
                 } catch (error) {
                     console.error('Error loading data:', error);
                 }
             };
 
-            const startGeneration = async (base64) => {
+            const startGeneration = async (base64, sid) => {
                 if (generationStartedRef.current) return;
                 generationStartedRef.current = true;
 
@@ -161,27 +260,50 @@
                     videoStarted: true
                 }));
 
-                // Load existing media data
-                let mediaData = {};
+                // Check existing media URLs from Firestore session
+                let existingMediaUrls = {};
                 try {
-                    const existing = await getFromIndexedDB('MediaDB', 'media', 'generatedMedia');
-                    if (existing) mediaData = existing;
+                    const sessionDoc = await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).get();
+                    if (sessionDoc.exists && sessionDoc.data().mediaUrls) {
+                        existingMediaUrls = sessionDoc.data().mediaUrls;
+                    }
                 } catch (e) {
-                    // First time, no existing data
+                    console.log('No existing media URLs');
                 }
+
+                const mediaUrls = { ...existingMediaUrls };
+                const storagePath = `sessions/${currentUser.uid}/${sid}`;
 
                 // Generate all in parallel
                 const promises = [];
 
+                // Upload PDF first
+                if (!mediaUrls.pdf) {
+                    try {
+                        const pdfUrl = await uploadToStorage(`${storagePath}/paper.pdf`, base64, 'application/pdf');
+                        mediaUrls.pdf = pdfUrl;
+                        await saveMediaUrlsToSession(mediaUrls, sid);
+                    } catch (err) {
+                        console.error('PDF upload failed:', err);
+                    }
+                }
+
                 // Podcast
-                if (!mediaData.podcast) {
+                if (!mediaUrls.podcast) {
                     setPodcastStatus('generating');
                     promises.push(
                         generatePodcast(base64)
-                            .then(result => {
-                                mediaData.podcast = result;
+                            .then(async (result) => {
+                                // Upload podcast audio to Storage
+                                const audioUrl = await uploadToStorage(
+                                    `${storagePath}/podcast.mp3`,
+                                    result.audioBase64,
+                                    'audio/mpeg'
+                                );
+                                mediaUrls.podcast = audioUrl;
+                                mediaUrls.podcastScript = result.script; // Keep script in Firestore (small)
+                                await saveMediaUrlsToSession(mediaUrls, sid);
                                 setPodcastStatus('done');
-                                return saveToIndexedDB('MediaDB', 'media', { id: 'generatedMedia', ...mediaData });
                             })
                             .catch(err => {
                                 console.error('Podcast generation failed:', err);
@@ -193,14 +315,20 @@
                 }
 
                 // Infographic
-                if (!mediaData.infographic) {
+                if (!mediaUrls.infographic) {
                     setInfographicStatus('generating');
                     promises.push(
                         generateInfographic(base64)
-                            .then(result => {
-                                mediaData.infographic = result;
+                            .then(async (result) => {
+                                // Upload infographic image to Storage
+                                const imageUrl = await uploadToStorage(
+                                    `${storagePath}/infographic.png`,
+                                    result.imageBase64,
+                                    'image/png'
+                                );
+                                mediaUrls.infographic = imageUrl;
+                                await saveMediaUrlsToSession(mediaUrls, sid);
                                 setInfographicStatus('done');
-                                return saveToIndexedDB('MediaDB', 'media', { id: 'generatedMedia', ...mediaData });
                             })
                             .catch(err => {
                                 console.error('Infographic generation failed:', err);
@@ -212,14 +340,18 @@
                 }
 
                 // Video Slideshow
-                if (!mediaData.video) {
+                if (!mediaUrls.video) {
                     setVideoStatus('generating');
                     promises.push(
                         generateVideoSlideshow(base64)
-                            .then(result => {
-                                mediaData.video = result;
+                            .then(async (result) => {
+                                // Store video slideshow data directly in Firestore (avoids CORS issues)
+                                // Mark as stored in Firestore with a flag
+                                // Stringify the data to avoid Firestore nested entity limits
+                                mediaUrls.video = 'firestore';
+                                mediaUrls.videoData = JSON.stringify(result); // Stringify to avoid nesting issues
+                                await saveMediaUrlsToSession(mediaUrls, sid);
                                 setVideoStatus('done');
-                                return saveToIndexedDB('MediaDB', 'media', { id: 'generatedMedia', ...mediaData });
                             })
                             .catch(err => {
                                 console.error('Video generation failed:', err);
@@ -234,8 +366,9 @@
                 await Promise.allSettled(promises);
 
                 // Check final status
-                const finalMedia = await getFromIndexedDB('MediaDB', 'media', 'generatedMedia');
-                if (finalMedia?.podcast && finalMedia?.infographic && finalMedia?.video) {
+                const sessionDoc = await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).get();
+                const finalMediaUrls = sessionDoc.data()?.mediaUrls || {};
+                if (finalMediaUrls.podcast && finalMediaUrls.infographic && finalMediaUrls.video) {
                     setAllDone(true);
                 }
             };
@@ -271,8 +404,29 @@
                 return await response.json();
             };
 
-            const handleStartReading = () => {
-                window.location.href = `reading.html?participantId=${encodeURIComponent(participantId)}&mode=${mode}&condition=${condition}&paper=${paper}`;
+            const handleStartReading = async () => {
+                // Get sessionId directly from multiple sources to avoid state timing issues
+                const sid = sessionId || new URLSearchParams(window.location.search).get('sessionId') || sessionStorage.getItem('currentSessionId');
+
+                if (!sid) {
+                    console.error('No sessionId found');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Update phase to reading before navigating
+                if (currentUser) {
+                    try {
+                        await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update({
+                            currentPhase: 'reading'
+                        });
+                        console.log('Phase updated to: reading');
+                    } catch (err) {
+                        console.error('Error updating phase to reading:', err);
+                    }
+                }
+
+                window.location.href = `reading.html?sessionId=${encodeURIComponent(sid)}&mode=${mode}&condition=${condition}&paper=${paper}`;
             };
 
             // Status indicator component
@@ -321,6 +475,21 @@
             };
 
             const isGenerating = podcastStatus === 'generating' || infographicStatus === 'generating' || videoStatus === 'generating';
+
+            // Loading state while checking auth
+            if (checkingAuth) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                        <div className="text-center">
+                            <svg className="animate-spin h-10 w-10 text-blue-600 mx-auto mb-4" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-gray-600">Loading...</p>
+                        </div>
+                    </div>
+                );
+            }
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">

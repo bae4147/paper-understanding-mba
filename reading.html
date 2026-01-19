@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reading Experiment</title>
     <script>
-        // Redirect to index page if no participantId is provided
+        // Redirect to index page if no sessionId is provided
         const urlParams = new URLSearchParams(window.location.search);
-        if (!urlParams.get('participantId')) {
-            window.location.href = 'index.html?mode=test';
+        const sessionId = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId');
+        if (!sessionId) {
+            window.location.href = 'index.html';
         }
     </script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -28,7 +29,9 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getStorage, ref, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -41,10 +44,23 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Auth guard - redirect to login if not authenticated
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+            } else {
+                window.firebaseCurrentUser = user;
+            }
+        });
 
         // Make Firebase available globally
+        window.firebaseAuth = auth;
         window.firebaseDb = db;
+        window.firebaseStorage = storage;
         window.firebaseCollection = collection;
         window.firebaseAddDoc = addDoc;
         window.firebaseDoc = doc;
@@ -52,6 +68,8 @@
         window.firebaseSetDoc = setDoc;
         window.firebaseUpdateDoc = updateDoc;
         window.firebaseServerTimestamp = serverTimestamp;
+        window.firebaseStorageRef = ref;
+        window.firebaseGetDownloadURL = getDownloadURL;
     </script>
 </head>
 <body>
@@ -136,13 +154,15 @@
 
         // Main Application Component
         function ReadingExperimentAOM() {
+            // Auth state
+            const [currentUser, setCurrentUser] = useState(null);
+            const [checkingAuth, setCheckingAuth] = useState(true);
+
             // Experiment flow state
             const [phase, setPhase] = useState('reading'); // reading, complete
-            const [participantId, setParticipantId] = useState('');
-            const [experimentId, setExperimentId] = useState('');
+            const [sessionId, setSessionId] = useState('');
             const [condition, setCondition] = useState('control'); // control, ebm
             const [currentPaper, setCurrentPaper] = useState(''); // Will be set from URL params
-            // Use experimentId as experimentId for consistent data storage
             const [showFinishPopup, setShowFinishPopup] = useState(false);
             const [showStartPopup, setShowStartPopup] = useState(true); // Show start warning popup
             const [noExternalToolsAgreed, setNoExternalToolsAgreed] = useState(false); // Start popup checkbox
@@ -184,7 +204,10 @@
             const [videoSlideshow, setVideoSlideshow] = useState(null); // { title, scenes: [...] }
             const [slideshowPlaying, setSlideshowPlaying] = useState(false);
             const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
+            const [videoCurrentTime, setVideoCurrentTime] = useState(0); // Current playback time in seconds
+            const [videoDuration, setVideoDuration] = useState(0); // Total video duration
             const slideshowAudioRef = useRef(null);
+            const videoProgressIntervalRef = useRef(null);
             const pdfCanvasRef = useRef(null);
             const pdfDocRef = useRef(null);
 
@@ -338,25 +361,33 @@
                 'References': { start: 4000, end: 5000 }
             });
 
-            // Initialize from URL parameters (when coming from index.html)
+            // Auth guard
             useEffect(() => {
+                const unsubscribe = window.firebaseAuth.onAuthStateChanged((user) => {
+                    if (!user) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    setCurrentUser(user);
+                    setCheckingAuth(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            // Initialize from URL parameters (when coming from preparation.html)
+            useEffect(() => {
+                if (checkingAuth) return;
+
                 const urlParams = new URLSearchParams(window.location.search);
-                const pid = urlParams.get('participantId');
-                const expId = urlParams.get('experimentId');
+                const sid = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId');
                 const cond = urlParams.get('condition');
                 const paper = urlParams.get('paper');
 
-                if (pid) setParticipantId(pid);
-                if (expId) setExperimentId(expId);
+                if (sid) setSessionId(sid);
                 if (cond) setCondition(cond);
                 // Set paper from URL, default to custom (since index.html always uploads PDF)
                 setCurrentPaper(paper || 'custom');
-
-                // Generate experimentId if not provided
-                if (pid && !expId) {
-                    setExperimentId(`exp_${Date.now()}`);
-                }
-            }, []);
+            }, [checkingAuth]);
 
             // Auto-start reading when phase is 'reading' and start popup is dismissed
             useEffect(() => {
@@ -479,7 +510,7 @@
                 loadAndRenderAllPages();
             }, [isCustomPdf, customPdfData]);
 
-            // Load pre-generated media from IndexedDB (MediaDB)
+            // Load pre-generated media from Firebase Storage
             useEffect(() => {
                 if (!isCustomPdf) {
                     setInfographicReady(true);
@@ -488,65 +519,71 @@
 
                 const loadPreGeneratedMedia = async () => {
                     try {
-                        // Open MediaDB
-                        const db = await new Promise((resolve, reject) => {
-                            const request = indexedDB.open('MediaDB', 1);
-                            request.onerror = () => reject(request.error);
-                            request.onsuccess = () => resolve(request.result);
-                            request.onupgradeneeded = (event) => {
-                                const database = event.target.result;
-                                if (!database.objectStoreNames.contains('media')) {
-                                    database.createObjectStore('media', { keyPath: 'id' });
-                                }
-                            };
-                        });
+                        // Wait for Firebase auth to be ready
+                        const user = window.firebaseCurrentUser;
+                        const sid = sessionId || sessionStorage.getItem('currentSessionId');
 
-                        // Get generated media
-                        const mediaData = await new Promise((resolve, reject) => {
-                            const transaction = db.transaction(['media'], 'readonly');
-                            const store = transaction.objectStore('media');
-                            const request = store.get('generatedMedia');
-                            request.onerror = () => reject(request.error);
-                            request.onsuccess = () => resolve(request.result);
-                        });
+                        if (!user || !sid) {
+                            console.log('Waiting for user/session...');
+                            setInfographicReady(true);
+                            return;
+                        }
 
-                        if (mediaData) {
-                            console.log('📦 Loading pre-generated media from IndexedDB');
+                        // Get media URLs from Firestore session
+                        const sessionRef = window.firebaseDoc(window.firebaseDb, 'users', user.uid, 'sessions', sid);
+                        const sessionDoc = await window.firebaseGetDoc(sessionRef);
 
-                            // Load Infographic
-                            if (mediaData.infographic?.imageBase64) {
-                                try {
-                                    const imageBlob = new Blob(
-                                        [Uint8Array.from(atob(mediaData.infographic.imageBase64), c => c.charCodeAt(0))],
-                                        { type: mediaData.infographic.mimeType || 'image/png' }
-                                    );
-                                    const imageUrl = URL.createObjectURL(imageBlob);
-                                    setResourceContent(prev => ({ ...prev, infographics: imageUrl }));
-                                    console.log('✅ Infographic loaded');
-                                } catch (e) {
-                                    console.error('Error loading infographic:', e);
-                                }
+                        if (!sessionDoc.exists() || !sessionDoc.data().mediaUrls) {
+                            console.log('No media URLs found in session');
+                            setInfographicReady(true);
+                            return;
+                        }
+
+                        const mediaUrls = sessionDoc.data().mediaUrls;
+                        console.log('📦 Loading pre-generated media from Firebase Storage');
+
+                        // Load Infographic from URL
+                        if (mediaUrls.infographic) {
+                            try {
+                                setResourceContent(prev => ({ ...prev, infographics: mediaUrls.infographic }));
+                                console.log('✅ Infographic loaded from Storage');
+                            } catch (e) {
+                                console.error('Error loading infographic:', e);
                             }
+                        }
 
-                            // Load Podcast/Audio
-                            if (mediaData.podcast?.audioBase64) {
-                                try {
-                                    const audioBlob = new Blob(
-                                        [Uint8Array.from(atob(mediaData.podcast.audioBase64), c => c.charCodeAt(0))],
-                                        { type: 'audio/mpeg' }
-                                    );
-                                    const audioUrl = URL.createObjectURL(audioBlob);
-                                    setResourceContent(prev => ({ ...prev, audio: audioUrl }));
-                                    console.log('✅ Audio/Podcast loaded');
-                                } catch (e) {
-                                    console.error('Error loading podcast:', e);
-                                }
+                        // Load Podcast/Audio from URL
+                        if (mediaUrls.podcast) {
+                            try {
+                                setResourceContent(prev => ({ ...prev, audio: mediaUrls.podcast }));
+                                console.log('✅ Audio/Podcast loaded from Storage');
+                            } catch (e) {
+                                console.error('Error loading podcast:', e);
                             }
+                        }
 
-                            // Load Video Slideshow
-                            if (mediaData.video?.scenes && mediaData.video.scenes.length > 0) {
-                                setVideoSlideshow(mediaData.video);
-                                console.log('✅ Video slideshow loaded:', mediaData.video.scenes.length, 'scenes');
+                        // Load Video Slideshow from Firestore (stored directly to avoid CORS)
+                        if (mediaUrls.video === 'firestore' && mediaUrls.videoData) {
+                            // Video data stored directly in Firestore as JSON string
+                            // Parse the JSON string back to object
+                            const videoData = typeof mediaUrls.videoData === 'string'
+                                ? JSON.parse(mediaUrls.videoData)
+                                : mediaUrls.videoData;
+                            if (videoData?.scenes && videoData.scenes.length > 0) {
+                                setVideoSlideshow(videoData);
+                                console.log('✅ Video slideshow loaded from Firestore:', videoData.scenes.length, 'scenes');
+                            }
+                        } else if (mediaUrls.video && mediaUrls.video !== 'firestore') {
+                            // Legacy: try to fetch from URL (may fail due to CORS)
+                            try {
+                                const response = await fetch(mediaUrls.video);
+                                const videoData = await response.json();
+                                if (videoData?.scenes && videoData.scenes.length > 0) {
+                                    setVideoSlideshow(videoData);
+                                    console.log('✅ Video slideshow loaded from URL:', videoData.scenes.length, 'scenes');
+                                }
+                            } catch (e) {
+                                console.error('Error loading video slideshow from URL:', e);
                             }
                         }
 
@@ -557,8 +594,10 @@
                     }
                 };
 
-                loadPreGeneratedMedia();
-            }, [isCustomPdf]);
+                // Small delay to ensure Firebase is initialized
+                const timer = setTimeout(loadPreGeneratedMedia, 500);
+                return () => clearTimeout(timer);
+            }, [isCustomPdf, sessionId]);
 
             // Track current page based on scroll position
             const handlePdfScroll = () => {
@@ -1039,7 +1078,7 @@
                 const timeSinceLast = now - lastEventTime.current;
 
                 eventIdCounter.current++;
-                const eventId = `${experimentId}_${eventIdCounter.current}`;
+                const eventId = `${sessionId}_${eventIdCounter.current}`;
 
                 const event = {
                     eventId,
@@ -1047,8 +1086,8 @@
                     eventType,
                     phase,
                     timeSinceLast,
-                    participantId,
-                    experimentId,
+                    odUserId: currentUser?.uid,
+                    sessionId,
                     condition,
                     paper: currentPaper,
                     ...additionalData
@@ -1422,12 +1461,33 @@
                 }
             };
 
+            // Calculate total video duration and scene start times
+            const getSceneStartTime = (sceneIndex) => {
+                if (!videoSlideshow) return 0;
+                let time = 0;
+                for (let i = 0; i < sceneIndex; i++) {
+                    time += videoSlideshow.scenes[i]?.duration || 10;
+                }
+                return time;
+            };
+
+            // Calculate total duration when videoSlideshow changes
+            useEffect(() => {
+                if (videoSlideshow?.scenes) {
+                    const total = videoSlideshow.scenes.reduce((sum, scene) => sum + (scene.duration || 10), 0);
+                    setVideoDuration(total);
+                }
+            }, [videoSlideshow]);
+
             const playCurrentScene = (index) => {
                 if (!videoSlideshow || index >= videoSlideshow.scenes.length) {
                     setSlideshowPlaying(false);
+                    setVideoCurrentTime(0);
+                    setCurrentSceneIndex(0);
                     return;
                 }
                 setCurrentSceneIndex(index);
+                setVideoCurrentTime(getSceneStartTime(index));
             };
 
             const handleSceneAudioEnded = () => {
@@ -1437,9 +1497,37 @@
                     playCurrentScene(nextIndex);
                 } else {
                     setSlideshowPlaying(false);
-                    setCurrentSceneIndex(0);
+                    setVideoCurrentTime(videoDuration);
                 }
             };
+
+            // Progress tracking interval
+            useEffect(() => {
+                if (slideshowPlaying) {
+                    videoProgressIntervalRef.current = setInterval(() => {
+                        setVideoCurrentTime(prev => {
+                            const newTime = prev + 0.1;
+                            // Check if we need to advance to next scene based on time
+                            if (videoSlideshow) {
+                                const sceneEndTime = getSceneStartTime(currentSceneIndex) + (videoSlideshow.scenes[currentSceneIndex]?.duration || 10);
+                                if (newTime >= sceneEndTime && currentSceneIndex < videoSlideshow.scenes.length - 1) {
+                                    // Scene will advance via audio ended event
+                                }
+                            }
+                            return Math.min(newTime, videoDuration);
+                        });
+                    }, 100);
+                } else {
+                    if (videoProgressIntervalRef.current) {
+                        clearInterval(videoProgressIntervalRef.current);
+                    }
+                }
+                return () => {
+                    if (videoProgressIntervalRef.current) {
+                        clearInterval(videoProgressIntervalRef.current);
+                    }
+                };
+            }, [slideshowPlaying, currentSceneIndex, videoDuration, videoSlideshow]);
 
             // Auto-play next scene when audio ends
             useEffect(() => {
@@ -1448,6 +1536,52 @@
                     slideshowAudioRef.current.play().catch(e => console.log('Audio play failed:', e));
                 }
             }, [currentSceneIndex, slideshowPlaying, videoSlideshow]);
+
+            // Seek to specific time
+            const seekToTime = (timeInSeconds) => {
+                if (!videoSlideshow) return;
+
+                // Find which scene this time falls into
+                let accumulatedTime = 0;
+                let targetSceneIndex = 0;
+
+                for (let i = 0; i < videoSlideshow.scenes.length; i++) {
+                    const sceneDuration = videoSlideshow.scenes[i]?.duration || 10;
+                    if (accumulatedTime + sceneDuration > timeInSeconds) {
+                        targetSceneIndex = i;
+                        break;
+                    }
+                    accumulatedTime += sceneDuration;
+                    if (i === videoSlideshow.scenes.length - 1) {
+                        targetSceneIndex = i;
+                    }
+                }
+
+                setVideoCurrentTime(timeInSeconds);
+                if (targetSceneIndex !== currentSceneIndex) {
+                    setCurrentSceneIndex(targetSceneIndex);
+                    // Sync audio to new position within scene
+                    if (slideshowAudioRef.current && slideshowPlaying) {
+                        const sceneStartTime = getSceneStartTime(targetSceneIndex);
+                        const timeWithinScene = timeInSeconds - sceneStartTime;
+                        slideshowAudioRef.current.src = videoSlideshow.scenes[targetSceneIndex]?.audioUrl;
+                        slideshowAudioRef.current.currentTime = Math.max(0, timeWithinScene);
+                        slideshowAudioRef.current.play().catch(e => console.log('Audio play failed:', e));
+                    }
+                } else if (slideshowAudioRef.current) {
+                    // Same scene, just seek within it
+                    const sceneStartTime = getSceneStartTime(targetSceneIndex);
+                    const timeWithinScene = timeInSeconds - sceneStartTime;
+                    slideshowAudioRef.current.currentTime = Math.max(0, timeWithinScene);
+                }
+            };
+
+            // Format time as MM:SS
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
 
             // Generate infographic for custom PDF
             const generateInfographic = async () => {
@@ -3074,7 +3208,7 @@ Provide constructive feedback to help the reader think more critically about thi
 
             // Start experiment (legacy - now handled via index.html)
             const startExperiment = async () => {
-                if (!participantId || !currentPaper) {
+                if (!currentUser?.uid || !currentPaper) {
                     alert('Please fill in all fields and upload a PDF');
                     return;
                 }
@@ -3097,12 +3231,12 @@ Provide constructive feedback to help the reader think more critically about thi
 
                     eventIdCounter.current++;
                     finalEvent = {
-                        eventId: `${experimentId}_${eventIdCounter.current}`,
+                        eventId: `${sessionId}_${eventIdCounter.current}`,
                         timestamp: now,
                         eventType: 'scroll_action',
                         phase: 'reading',
-                        participantId,
-                        experimentId,
+                        odUserId: currentUser?.uid,
+                        sessionId,
                         condition,
                         paper: currentPaper,
                         scrollY: pdfContainerRef.current?.scrollTop || 0,
@@ -3127,12 +3261,12 @@ Provide constructive feedback to help the reader think more critically about thi
 
                     eventIdCounter.current++;
                     finalEvent = {
-                        eventId: `${experimentId}_${eventIdCounter.current}`,
+                        eventId: `${sessionId}_${eventIdCounter.current}`,
                         timestamp: now,
                         eventType: 'llm_activity',
                         phase: 'reading',
-                        participantId,
-                        experimentId,
+                        odUserId: currentUser?.uid,
+                        sessionId,
                         condition,
                         paper: currentPaper,
                         classification,
@@ -3148,12 +3282,12 @@ Provide constructive feedback to help the reader think more critically about thi
 
                     eventIdCounter.current++;
                     finalEvent = {
-                        eventId: `${experimentId}_${eventIdCounter.current}`,
+                        eventId: `${sessionId}_${eventIdCounter.current}`,
                         timestamp: now,
                         eventType: 'resource_tab_switch',
                         phase: 'reading',
-                        participantId,
-                        experimentId,
+                        odUserId: currentUser?.uid,
+                        sessionId,
                         condition,
                         paper: currentPaper,
                         from: activeFocus,
@@ -3287,6 +3421,22 @@ Provide constructive feedback to help the reader think more critically about thi
 
                 setShowFinishPopup(false);  // Reset popup state
 
+                // Update session phase to post_task
+                if (window.firebaseCurrentUser && sessionId && window.firebaseDb) {
+                    try {
+                        const sessionRef = window.firebaseDoc(
+                            window.firebaseDb,
+                            `users/${window.firebaseCurrentUser.uid}/sessions/${sessionId}`
+                        );
+                        await window.firebaseUpdateDoc(sessionRef, {
+                            currentPhase: 'post_task'
+                        });
+                        console.log('✅ Session phase updated to post_task');
+                    } catch (err) {
+                        console.error('Error updating session phase:', err);
+                    }
+                }
+
                 // Redirect to post-task.html
                 setIsRedirecting(true);
                 logEvent('reading_completed_redirecting');
@@ -3294,8 +3444,7 @@ Provide constructive feedback to help the reader think more critically about thi
                 const urlParams = new URLSearchParams(window.location.search);
                 const mode = urlParams.get('mode') || 'experiment';
                 const params = new URLSearchParams({
-                    participantId,
-                    experimentId,
+                    sessionId,
                     mode,
                     condition,
                     paper: currentPaper
@@ -3505,29 +3654,128 @@ Provide constructive feedback to help the reader think more critically about thi
                     }
                 };
 
-                // Video Tab - Slideshow Player
+                // Video Tab - Slideshow Player with video-like controls
                 const videoTab = (
-                    <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                    <div className="flex-1 overflow-y-auto p-4 bg-gray-900">
                         {videoSlideshow ? (
                             <div className="flex flex-col items-center h-full">
-                                {/* Title */}
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4">{videoSlideshow.title}</h3>
+                                {/* Video Container */}
+                                <div className="relative w-full max-w-3xl bg-black rounded-lg overflow-hidden shadow-2xl">
+                                    {/* Video Display */}
+                                    <div
+                                        className="relative aspect-video bg-[#F9F7F2] cursor-pointer"
+                                        onClick={slideshowPlaying ? pauseSlideshow : playSlideshow}
+                                    >
+                                        {videoSlideshow.scenes[currentSceneIndex] && (
+                                            <img
+                                                key={currentSceneIndex}
+                                                src={videoSlideshow.scenes[currentSceneIndex].imageUrl}
+                                                alt={`Scene ${currentSceneIndex + 1}`}
+                                                className="w-full h-full object-contain"
+                                                style={{
+                                                    animation: slideshowPlaying ? `kenBurns${currentSceneIndex % 4} ${videoSlideshow.scenes[currentSceneIndex]?.duration || 10}s ease-out forwards` : 'none',
+                                                    transformOrigin: ['center', 'top left', 'top right', 'bottom center'][currentSceneIndex % 4]
+                                                }}
+                                            />
+                                        )}
+                                        {/* Play overlay when paused */}
+                                        {!slideshowPlaying && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                                                <div className="w-20 h-20 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
+                                                    <svg className="w-10 h-10 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M8 5v14l11-7z"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                {/* Slideshow Display with Ken Burns effect */}
-                                <div className="relative w-full max-w-2xl aspect-video bg-[#F9F7F2] rounded-lg shadow-lg overflow-hidden">
-                                    {videoSlideshow.scenes[currentSceneIndex] && (
-                                        <img
-                                            key={currentSceneIndex}
-                                            src={videoSlideshow.scenes[currentSceneIndex].imageUrl}
-                                            alt={`Scene ${currentSceneIndex + 1}`}
-                                            className="w-full h-full object-contain"
-                                            style={{
-                                                animation: slideshowPlaying ? `kenBurns${currentSceneIndex % 4} ${videoSlideshow.scenes[currentSceneIndex]?.duration || 10}s ease-out forwards` : 'none',
-                                                transformOrigin: ['center', 'top left', 'top right', 'bottom center'][currentSceneIndex % 4]
-                                            }}
-                                        />
-                                    )}
+                                    {/* Video Controls Bar */}
+                                    <div className="bg-gray-800 px-4 py-3">
+                                        {/* Progress Bar */}
+                                        <div className="relative mb-3">
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={videoDuration}
+                                                value={videoCurrentTime}
+                                                onChange={(e) => seekToTime(parseFloat(e.target.value))}
+                                                className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                                style={{
+                                                    background: `linear-gradient(to right, #22c55e ${(videoCurrentTime / videoDuration) * 100}%, #4b5563 ${(videoCurrentTime / videoDuration) * 100}%)`
+                                                }}
+                                            />
+                                            {/* Scene markers on progress bar */}
+                                            <div className="absolute top-0 left-0 right-0 h-1 pointer-events-none">
+                                                {videoSlideshow.scenes.map((_, idx) => {
+                                                    if (idx === 0) return null;
+                                                    const position = (getSceneStartTime(idx) / videoDuration) * 100;
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className="absolute w-0.5 h-1 bg-gray-400"
+                                                            style={{ left: `${position}%` }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Controls Row */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                {/* Play/Pause Button */}
+                                                <button
+                                                    onClick={slideshowPlaying ? pauseSlideshow : playSlideshow}
+                                                    className="text-white hover:text-green-400 transition-colors"
+                                                >
+                                                    {slideshowPlaying ? (
+                                                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+                                                        </svg>
+                                                    ) : (
+                                                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M8 5v14l11-7z"/>
+                                                        </svg>
+                                                    )}
+                                                </button>
+
+                                                {/* Skip backward 10s */}
+                                                <button
+                                                    onClick={() => seekToTime(Math.max(0, videoCurrentTime - 10))}
+                                                    className="text-white hover:text-green-400 transition-colors"
+                                                    title="Back 10 seconds"
+                                                >
+                                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12.5 3C17.15 3 21.08 6.03 22.47 10.22L20.1 11C19.05 7.81 16.04 5.5 12.5 5.5C10.54 5.5 8.77 6.22 7.38 7.38L10 10H3V3L5.6 5.6C7.45 4 9.85 3 12.5 3M10 12V22H8V14H6V12H10M18 14V20C18 21.11 17.11 22 16 22H14C12.9 22 12 21.11 12 20V14C12 12.9 12.9 12 14 12H16C17.11 12 18 12.9 18 14M14 14V20H16V14H14Z"/>
+                                                    </svg>
+                                                </button>
+
+                                                {/* Skip forward 10s */}
+                                                <button
+                                                    onClick={() => seekToTime(Math.min(videoDuration, videoCurrentTime + 10))}
+                                                    className="text-white hover:text-green-400 transition-colors"
+                                                    title="Forward 10 seconds"
+                                                >
+                                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M10 3C5.35 3 1.42 6.03 .03 10.22L2.4 11C3.45 7.81 6.46 5.5 10 5.5C11.96 5.5 13.73 6.22 15.12 7.38L12.5 10H19.5V3L16.9 5.6C15.05 4 12.65 3 10 3M10 12V22H8V14H6V12H10M18 14V20C18 21.11 17.11 22 16 22H14C12.9 22 12 21.11 12 20V14C12 12.9 12.9 12 14 12H16C17.11 12 18 12.9 18 14M14 14V20H16V14H14Z"/>
+                                                    </svg>
+                                                </button>
+
+                                                {/* Time Display */}
+                                                <span className="text-white text-sm font-mono">
+                                                    {formatTime(videoCurrentTime)} / {formatTime(videoDuration)}
+                                                </span>
+                                            </div>
+
+                                            {/* Scene indicator */}
+                                            <span className="text-gray-400 text-sm">
+                                                Scene {currentSceneIndex + 1} of {videoSlideshow.totalScenes}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
+
                                 <style>{`
                                     @keyframes kenBurns0 {
                                         0% { transform: scale(1) translate(0, 0); }
@@ -3545,6 +3793,22 @@ Provide constructive feedback to help the reader think more critically about thi
                                         0% { transform: scale(1.06) translate(0, 0); }
                                         100% { transform: scale(1) translate(-1%, 1%); }
                                     }
+                                    input[type="range"]::-webkit-slider-thumb {
+                                        -webkit-appearance: none;
+                                        width: 14px;
+                                        height: 14px;
+                                        background: #22c55e;
+                                        border-radius: 50%;
+                                        cursor: pointer;
+                                    }
+                                    input[type="range"]::-moz-range-thumb {
+                                        width: 14px;
+                                        height: 14px;
+                                        background: #22c55e;
+                                        border-radius: 50%;
+                                        cursor: pointer;
+                                        border: none;
+                                    }
                                 `}</style>
 
                                 {/* Hidden audio element */}
@@ -3554,48 +3818,17 @@ Provide constructive feedback to help the reader think more critically about thi
                                     style={{ display: 'none' }}
                                 />
 
-                                {/* Controls */}
-                                <div className="flex items-center gap-4 mt-4">
-                                    <button
-                                        onClick={slideshowPlaying ? pauseSlideshow : playSlideshow}
-                                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                                    >
-                                        {slideshowPlaying ? 'Pause' : 'Play'}
-                                    </button>
-                                    <span className="text-gray-600">
-                                        Scene {currentSceneIndex + 1} / {videoSlideshow.totalScenes}
-                                    </span>
-                                </div>
-
-                                {/* Scene Navigation */}
-                                <div className="flex gap-2 mt-4 flex-wrap justify-center max-w-2xl">
-                                    {videoSlideshow.scenes.map((scene, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => {
-                                                pauseSlideshow();
-                                                setCurrentSceneIndex(idx);
-                                            }}
-                                            className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                                                idx === currentSceneIndex
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                                            }`}
-                                        >
-                                            {idx + 1}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Current Narration */}
+                                {/* Current Narration (subtitle style) */}
                                 {videoSlideshow.scenes[currentSceneIndex]?.narration && (
-                                    <p className="mt-4 text-gray-600 text-center max-w-xl italic text-sm">
-                                        "{videoSlideshow.scenes[currentSceneIndex].narration}"
-                                    </p>
+                                    <div className="mt-4 w-full max-w-3xl">
+                                        <p className="text-gray-300 text-center text-sm bg-gray-800 bg-opacity-80 px-4 py-2 rounded-lg">
+                                            {videoSlideshow.scenes[currentSceneIndex].narration}
+                                        </p>
+                                    </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="text-center text-gray-500 mt-12">
+                            <div className="text-center text-gray-400 mt-12">
                                 <div className="text-4xl mb-4">🎬</div>
                                 <p>No video available</p>
                             </div>
@@ -3657,7 +3890,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                     [Paper Reading] {customPdfData?.title || 'Uploaded Paper'}
                                 </h2>
                                 <p className="text-sm text-gray-600">
-                                    {participantId} | {condition}
+                                    {window.firebaseCurrentUser?.email || ''} | {condition}
                                 </p>
                             </div>
                             <div className="flex items-center space-x-4">
@@ -4131,7 +4364,7 @@ Provide constructive feedback to help the reader think more critically about thi
 
                                     {/* External AI Usage Question */}
                                     <div className="mb-6">
-                                        <p className="font-medium text-gray-800 mb-3">Did you use any external AI tools (e.g., ChatGPT, Claude, Gemini, etc.) while reading?</p>
+                                        <p className="font-medium text-gray-800 mb-3">Did you use any external AI tools (e.g., ChatGPT, Claude, Gemini, etc.) while completing this assignment?</p>
                                         <div className="space-y-2">
                                             <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                                                 <input
@@ -4160,7 +4393,7 @@ Provide constructive feedback to help the reader think more critically about thi
 
                                     {/* External PDF Viewer Question */}
                                     <div className="mb-6">
-                                        <p className="font-medium text-gray-800 mb-3">Did you use any external PDF viewer or app to read the article?</p>
+                                        <p className="font-medium text-gray-800 mb-3">Did you use any external PDF viewer or app while completing this assignment?</p>
                                         <div className="space-y-2">
                                             <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                                                 <input
@@ -4235,7 +4468,7 @@ Provide constructive feedback to help the reader think more critically about thi
                             <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
                                 <h3 className="font-bold text-lg mb-4">Summary</h3>
                                 <div className="space-y-2 text-gray-700">
-                                    <p>• Participant: <strong>{participantId}</strong></p>
+                                    <p>• Participant: <strong>{window.firebaseCurrentUser?.email || ''}</strong></p>
                                     <p>• Condition: <strong>{condition}</strong></p>
                                     <p>• Paper: <strong>{customPdfData?.title || 'Uploaded Paper'}</strong></p>
                                 </div>

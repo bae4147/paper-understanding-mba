@@ -11,6 +11,7 @@
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
@@ -30,20 +31,37 @@
         };
 
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.firestore();
 
         function PostTask() {
-            // Get participant info from URL
+            // Auth state
+            const [currentUser, setCurrentUser] = useState(null);
+            const [checkingAuth, setCheckingAuth] = useState(true);
+
+            // Get session info from URL
             const urlParams = new URLSearchParams(window.location.search);
-            const participantId = urlParams.get('participantId');
-            const experimentId = urlParams.get('experimentId');
+            const sessionId = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId');
             const condition = urlParams.get('condition') || 'without_llm';
-            const paper = urlParams.get('paper') || 'mroz2018';
+            const paper = urlParams.get('paper') || 'custom';
             const mode = urlParams.get('mode') || 'experiment';
 
             // Pre-task strategies (loaded from Firebase)
             const [preStrategies, setPreStrategies] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
+
+            // Auth guard
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    if (!user) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    setCurrentUser(user);
+                    setCheckingAuth(false);
+                });
+                return () => unsubscribe();
+            }, []);
 
             // Post-task strategies (1 field by default)
             const [postStrategies, setPostStrategies] = useState(['']);
@@ -59,18 +77,20 @@
             // Submitting state
             const [isSubmitting, setIsSubmitting] = useState(false);
 
-            // Load pre-task data from Firebase
+            // Load pre-task data from Firebase (if exists in session)
             useEffect(() => {
-                if (!participantId || !experimentId) {
-                    alert('Missing participant information. Please start from the beginning.');
+                if (checkingAuth || !currentUser) return;
+
+                if (!sessionId) {
+                    alert('Missing session information. Please start from the beginning.');
                     window.location.href = 'index.html';
                     return;
                 }
 
                 const loadPreTaskData = async () => {
                     try {
-                        const experimentRef = db.collection('users').doc(participantId).collection('experiments').doc(experimentId);
-                        const doc = await experimentRef.get();
+                        const sessionRef = db.collection('users').doc(currentUser.uid).collection('sessions').doc(sessionId);
+                        const doc = await sessionRef.get();
                         if (doc.exists && doc.data().preTask?.strategies) {
                             const strategies = doc.data().preTask.strategies;
                             setPreStrategies(strategies);
@@ -85,7 +105,7 @@
                 };
 
                 loadPreTaskData();
-            }, [participantId, experimentId]);
+            }, [checkingAuth, currentUser, sessionId]);
 
             // Strategy management functions
             const addStrategyField = () => {
@@ -172,29 +192,24 @@
                 };
 
                 try {
-                    if (!experimentId) {
-                        throw new Error('Missing experimentId');
+                    if (!sessionId) {
+                        throw new Error('Missing sessionId');
                     }
 
                     console.log('💾 Post-task data:', postTaskData);
 
-                    // Firebase saving disabled
-                    /*
-                    console.log('💾 Saving post-task to:', experimentId);
-
-                    // Save to users/{participantId}/experiments/{experimentId}
-                    const experimentRef = db.collection('users').doc(participantId).collection('experiments').doc(experimentId);
-                    await experimentRef.set({
-                        postTask: postTaskData
+                    // Save to users/{uid}/sessions/{sessionId}
+                    const sessionRef = db.collection('users').doc(currentUser.uid).collection('sessions').doc(sessionId);
+                    await sessionRef.set({
+                        postTask: postTaskData,
+                        currentPhase: 'survey'
                     }, { merge: true });
 
                     console.log('✅ Post-task saved successfully');
-                    */
 
                     // Navigate to post-study survey
                     const params = new URLSearchParams({
-                        participantId,
-                        experimentId,
+                        sessionId,
                         mode,
                         condition,
                         paper
@@ -208,10 +223,16 @@
                 }
             };
 
-            if (!participantId || isLoading) {
+            if (checkingAuth || isLoading) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center">
-                        <p>Loading...</p>
+                    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                        <div className="text-center">
+                            <svg className="animate-spin h-10 w-10 text-blue-600 mx-auto mb-4" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-gray-600">Loading...</p>
+                        </div>
                     </div>
                 );
             }
@@ -288,7 +309,7 @@
                                 {/* Q2: Context Translation */}
                                 <div>
                                     <label className="block text-base font-bold text-gray-800 mb-4">
-                                        Q2. How well do you think the article's conclusions would translate to your own context, and what differences, mechanisms, or adjustments would you consider before applying them? *
+                                        Q2. When considering how to translate the article’s conclusions to your own context, what key differences, underlying mechanisms, or necessary adjustments would you evaluate before applying them? *
                                     </label>
 
                                     <div className="space-y-3">
