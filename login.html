@@ -34,6 +34,42 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Block Randomization sequence (alternating pattern for balance)
+        const CONDITION_SEQUENCE = ['control', 'ebm_cimo', 'ebm_cimo', 'control', 'control', 'ebm_cimo', 'ebm_cimo', 'control'];
+
+        // Get next condition using block randomization
+        const getNextCondition = async () => {
+            const counterRef = db.collection('randomization').doc('counter');
+
+            try {
+                const result = await db.runTransaction(async (transaction) => {
+                    const counterDoc = await transaction.get(counterRef);
+
+                    let currentIndex = 0;
+                    if (counterDoc.exists) {
+                        currentIndex = counterDoc.data().index || 0;
+                    }
+
+                    // Get condition from sequence (wraps around)
+                    const condition = CONDITION_SEQUENCE[currentIndex % CONDITION_SEQUENCE.length];
+
+                    // Increment counter
+                    transaction.set(counterRef, {
+                        index: currentIndex + 1,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    return condition;
+                });
+
+                return result;
+            } catch (error) {
+                console.error('Error in randomization:', error);
+                // Fallback to random if transaction fails
+                return Math.random() < 0.5 ? 'control' : 'ebm_cimo';
+            }
+        };
+
         // Email Link settings
         const actionCodeSettings = {
             url: window.location.origin + '/login.html',
@@ -168,6 +204,10 @@
 
                     if (isNewUser) {
                         userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                        // Assign condition using block randomization for new users
+                        const assignedCondition = await getNextCondition();
+                        userData.condition = assignedCondition;
+                        console.log('Assigned condition:', assignedCondition);
                     }
 
                     await db.collection('users').doc(currentUser.uid).set(userData, { merge: true });
