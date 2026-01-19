@@ -79,6 +79,10 @@
             const [llmReliability, setLlmReliability] = useState('');
             const [llmComfortActing, setLlmComfortActing] = useState('');
             const [llmComfortUsing, setLlmComfortUsing] = useState('');
+            const [llmRelyWithoutReading, setLlmRelyWithoutReading] = useState('');
+            const [llmAssumeClearIsAccurate, setLlmAssumeClearIsAccurate] = useState('');
+            const [llmConfidentWithoutDetails, setLlmConfidentWithoutDetails] = useState('');
+            const [llmRelyForImportance, setLlmRelyForImportance] = useState('');
 
             // Study feedback (optional)
             const [studyFeedback, setStudyFeedback] = useState('');
@@ -172,7 +176,8 @@
 
                 // Validate LLM questions (required for all conditions)
                 if (!llmOverallUsefulness || !llmConceptHelp || !llmFindingsHelp || !llmPracticalHelp || !llmTimeSaving ||
-                    !llmCompetence || !llmAccuracy || !llmBenevolence || !llmReliability || !llmComfortActing || !llmComfortUsing) {
+                    !llmCompetence || !llmAccuracy || !llmBenevolence || !llmReliability || !llmComfortActing || !llmComfortUsing ||
+                    !llmRelyWithoutReading || !llmAssumeClearIsAccurate || !llmConfidentWithoutDetails || !llmRelyForImportance) {
                     alert('Please complete all GenAI-related questions.');
                     return;
                 }
@@ -240,7 +245,11 @@
                     benevolence: parseInt(llmBenevolence),
                     reliability: parseInt(llmReliability),
                     comfortActing: parseInt(llmComfortActing),
-                    comfortUsing: parseInt(llmComfortUsing)
+                    comfortUsing: parseInt(llmComfortUsing),
+                    relyWithoutReading: parseInt(llmRelyWithoutReading),
+                    assumeClearIsAccurate: parseInt(llmAssumeClearIsAccurate),
+                    confidentWithoutDetails: parseInt(llmConfidentWithoutDetails),
+                    relyForImportance: parseInt(llmRelyForImportance)
                 };
 
                 try {
@@ -726,7 +735,7 @@
                                                                 onClick={() => setLlmOverallUsefulness(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmOverallUsefulness === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -752,7 +761,7 @@
                                                                 onClick={() => setLlmConceptHelp(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmConceptHelp === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -778,7 +787,7 @@
                                                                 onClick={() => setLlmFindingsHelp(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmFindingsHelp === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -804,7 +813,7 @@
                                                                 onClick={() => setLlmPracticalHelp(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmPracticalHelp === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -830,7 +839,7 @@
                                                                 onClick={() => setLlmTimeSaving(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmTimeSaving === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -867,7 +876,7 @@
                                                                 onClick={() => setLlmCompetence(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmCompetence === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -893,7 +902,7 @@
                                                                 onClick={() => setLlmAccuracy(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmAccuracy === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -919,7 +928,7 @@
                                                                 onClick={() => setLlmBenevolence(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmBenevolence === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -945,7 +954,7 @@
                                                                 onClick={() => setLlmReliability(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmReliability === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -971,7 +980,7 @@
                                                                 onClick={() => setLlmComfortActing(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmComfortActing === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >
@@ -997,7 +1006,111 @@
                                                                 onClick={() => setLlmComfortUsing(value.toString())}
                                                                 className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
                                                                     llmComfortUsing === value.toString()
-                                                                        ? 'bg-purple-600 text-white'
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I can rely on the GenAI to understand an article even when I don't fully read it myself. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setLlmRelyWithoutReading(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    llmRelyWithoutReading === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    If the GenAI's summary seems clear, I assume it is accurate. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setLlmAssumeClearIsAccurate(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    llmAssumeClearIsAccurate === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    The GenAI's explanation makes me feel confident about an article even when I can't identify supporting details in the text. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setLlmConfidentWithoutDetails(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    llmConfidentWithoutDetails === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                {value}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Strongly agree</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                    I rely on the GenAI to tell me what matters instead of deciding for myself what is important in the article. *
+                                                </label>
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <span className="text-xs text-gray-500">Strongly disagree</span>
+                                                    <div className="flex space-x-1">
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => setLlmRelyForImportance(value.toString())}
+                                                                className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
+                                                                    llmRelyForImportance === value.toString()
+                                                                        ? 'bg-blue-600 text-white'
                                                                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                 }`}
                                                             >

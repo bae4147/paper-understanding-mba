@@ -701,7 +701,7 @@ exports.generateVideoSlideshow = onRequest(
 You are a video content architect specializing in educational whiteboard-style explainer videos, specifically mimicking the "NotebookLM" visual aesthetic.
 
 # Goal
-Based on the provided article, create a JSON structure for a **1-minute video** (6-8 scenes, each 8-10 seconds).
+Based on the provided article, create a JSON structure for a **4-minute video** (24-32 scenes, each 8-10 seconds).
 
 # Output Format (return ONLY valid JSON, no markdown):
 {

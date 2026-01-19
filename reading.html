@@ -144,9 +144,10 @@
             const [currentPaper, setCurrentPaper] = useState(''); // Will be set from URL params
             // Use experimentId as experimentId for consistent data storage
             const [showFinishPopup, setShowFinishPopup] = useState(false);
-            const [showAiUsagePopup, setShowAiUsagePopup] = useState(false); // Legacy - not used
-            const [usedAiDuringReading, setUsedAiDuringReading] = useState(null); // null, 'yes', 'no'
-            const [noAiAgreed, setNoAiAgreed] = useState(false); // Legacy - not used
+            const [showStartPopup, setShowStartPopup] = useState(true); // Show start warning popup
+            const [noExternalToolsAgreed, setNoExternalToolsAgreed] = useState(false); // Start popup checkbox
+            const [usedExternalAi, setUsedExternalAi] = useState(null); // null, 'yes', 'no' - for finish popup
+            const [usedExternalPdfViewer, setUsedExternalPdfViewer] = useState(null); // null, 'yes', 'no' - for finish popup
             const [isRedirecting, setIsRedirecting] = useState(false); // To skip beforeunload during redirect
             const [readingTimeLeft, setReadingTimeLeft] = useState(0); // Track elapsed time (count up mode)
 
@@ -357,9 +358,9 @@
                 }
             }, []);
 
-            // Auto-start reading when phase is 'reading' (since we skip reading-guide now)
+            // Auto-start reading when phase is 'reading' and start popup is dismissed
             useEffect(() => {
-                if (phase === 'reading' && !readingActive) {
+                if (phase === 'reading' && !readingActive && !showStartPopup) {
                     setReadingActive(true);
                     const now = Date.now();
                     phaseStartTime.current = now;
@@ -367,7 +368,7 @@
                     focusStartTimeRef.current = now;
                     logEvent('reading_started');
                 }
-            }, [phase, readingActive]);
+            }, [phase, readingActive, showStartPopup]);
 
             // Load uploaded PDF from IndexedDB when currentPaper is set
             useEffect(() => {
@@ -3194,7 +3195,11 @@ Provide constructive feedback to help the reader think more critically about thi
                 logEvent('reading_phase_complete', {
                     duration: readingDuration,
                     focusTimes: finalFocusTimes,
-                    classificationSummary
+                    classificationSummary,
+                    externalToolUsage: {
+                        usedExternalAi: usedExternalAi,
+                        usedExternalPdfViewer: usedExternalPdfViewer
+                    }
                 });
 
                 // Save to Firebase
@@ -3352,18 +3357,16 @@ Provide constructive feedback to help the reader think more critically about thi
                 const chatUI = (
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <div className="flex-1 overflow-y-auto bg-white">
-                            {messages.length === 0 ? (
-                                <div className="space-y-4 p-4">
-                                    <div className="flex justify-start">
-                                        <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-gray-100 text-gray-800">
-                                            <p>Hi! I'm here to help you understand this paper.</p>
-                                            <p className="mt-2">What would you like to know?</p>
-                                        </div>
+                            <div className="space-y-4 p-4">
+                                {/* Welcome message - always visible */}
+                                <div className="flex justify-start">
+                                    <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-gray-100 text-gray-800">
+                                        <p>Hi! I'm here to help you understand this paper.</p>
+                                        <p className="mt-2">What would you like to know?</p>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="space-y-4 p-4">
-                                    {messages.map((msg, idx) => {
+                                {/* Chat messages */}
+                                {messages.map((msg, idx) => {
                                         // For ebm_coach condition, split assistant messages if they contain EBM questions
                                         if (condition === 'ebm_coach' && msg.role === 'assistant') {
                                             // Split by the |||EBM_QUESTION||| delimiter
@@ -3426,7 +3429,6 @@ Provide constructive feedback to help the reader think more critically about thi
                                     )}
                                     <div ref={chatMessagesEndRef} />
                                 </div>
-                            )}
                         </div>
 
                         <div className="p-4 border-t bg-white">
@@ -3659,13 +3661,6 @@ Provide constructive feedback to help the reader think more critically about thi
                                 </p>
                             </div>
                             <div className="flex items-center space-x-4">
-                                <Timer
-                                    seconds={0}
-                                    isActive={readingActive}
-                                    phase="reading"
-                                    onTimeUpdate={(time) => setReadingTimeLeft(time)}
-                                    onComplete={() => {}}
-                                />
                                 <button
                                     onClick={() => setShowFinishPopup(true)}
                                     className="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700"
@@ -4078,27 +4073,146 @@ Provide constructive feedback to help the reader think more critically about thi
                             )}
                         </div>
 
-                        {/* Finish Popup */}
+                        {/* Start Popup - External Tool Warning */}
+                        {showStartPopup && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4">
+                                    <div className="text-center mb-6">
+                                        <div className="text-5xl mb-4">📖</div>
+                                        <h3 className="text-2xl font-bold text-gray-800">Before You Start</h3>
+                                    </div>
+
+                                    <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-5 mb-6">
+                                        <h4 className="font-bold text-lg text-amber-800 mb-3">Please only use the tools provided on this platform.</h4>
+                                        <ul className="list-disc list-inside text-amber-700 space-y-1">
+                                            <li>❌ external AI tools (e.g., ChatGPT, Claude, Gemini, etc.)</li>
+                                            <li>❌ external PDF viewers or apps</li>
+                                        </ul>
+                                    </div>
+
+                                    <label className="flex items-start space-x-3 cursor-pointer mb-6 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                        <input
+                                            type="checkbox"
+                                            checked={noExternalToolsAgreed}
+                                            onChange={(e) => setNoExternalToolsAgreed(e.target.checked)}
+                                            className="w-5 h-5 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-800">
+                                            I will only use the tools provided on this platform.
+                                        </span>
+                                    </label>
+
+                                    <button
+                                        onClick={() => {
+                                            if (noExternalToolsAgreed) {
+                                                setShowStartPopup(false);
+                                                logEvent('reading_start_confirmed', { agreedToNoExternalTools: true });
+                                            }
+                                        }}
+                                        disabled={!noExternalToolsAgreed}
+                                        className={`w-full px-6 py-4 rounded-lg text-lg font-medium ${
+                                            noExternalToolsAgreed
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        Confirm & Start Reading
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Finish Popup - External Tool Usage Check */}
                         {showFinishPopup && (
                             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-4">Do you want to finish reading session?</h3>
-                                    <p className="text-gray-600 mb-6">Continue to next step</p>
+                                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4">
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Before you finish...</h3>
+                                    <p className="text-gray-600 mb-6">Please answer honestly. Your response will not affect your grade.</p>
+
+                                    {/* External AI Usage Question */}
+                                    <div className="mb-6">
+                                        <p className="font-medium text-gray-800 mb-3">Did you use any external AI tools (e.g., ChatGPT, Claude, Gemini, etc.) while reading?</p>
+                                        <div className="space-y-2">
+                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="externalAi"
+                                                    value="yes"
+                                                    checked={usedExternalAi === 'yes'}
+                                                    onChange={() => setUsedExternalAi('yes')}
+                                                    className="w-5 h-5"
+                                                />
+                                                <span className="text-gray-700">Yes</span>
+                                            </label>
+                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="externalAi"
+                                                    value="no"
+                                                    checked={usedExternalAi === 'no'}
+                                                    onChange={() => setUsedExternalAi('no')}
+                                                    className="w-5 h-5"
+                                                />
+                                                <span className="text-gray-700">No</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* External PDF Viewer Question */}
+                                    <div className="mb-6">
+                                        <p className="font-medium text-gray-800 mb-3">Did you use any external PDF viewer or app to read the article?</p>
+                                        <div className="space-y-2">
+                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="externalPdf"
+                                                    value="yes"
+                                                    checked={usedExternalPdfViewer === 'yes'}
+                                                    onChange={() => setUsedExternalPdfViewer('yes')}
+                                                    className="w-5 h-5"
+                                                />
+                                                <span className="text-gray-700">Yes</span>
+                                            </label>
+                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="externalPdf"
+                                                    value="no"
+                                                    checked={usedExternalPdfViewer === 'no'}
+                                                    onChange={() => setUsedExternalPdfViewer('no')}
+                                                    className="w-5 h-5"
+                                                />
+                                                <span className="text-gray-700">No</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div className="flex space-x-4">
                                         <button
-                                            onClick={() => setShowFinishPopup(false)}
+                                            onClick={() => {
+                                                setShowFinishPopup(false);
+                                                setUsedExternalAi(null);
+                                                setUsedExternalPdfViewer(null);
+                                            }}
                                             className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             onClick={() => {
-                                                setShowFinishPopup(false);
-                                                completeReading();
+                                                if (usedExternalAi && usedExternalPdfViewer) {
+                                                    setShowFinishPopup(false);
+                                                    completeReading();
+                                                }
                                             }}
-                                            className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                            disabled={!usedExternalAi || !usedExternalPdfViewer}
+                                            className={`flex-1 px-4 py-3 rounded-lg font-medium ${
+                                                usedExternalAi && usedExternalPdfViewer
+                                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
                                         >
-                                            Confirm
+                                            Finish Reading
                                         </button>
                                     </div>
                                 </div>
