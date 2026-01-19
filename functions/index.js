@@ -701,7 +701,7 @@ exports.generateVideoSlideshow = onRequest(
 You are a video content architect specializing in educational whiteboard-style explainer videos, specifically mimicking the "NotebookLM" visual aesthetic.
 
 # Goal
-Based on the provided article, create a JSON structure for a **5-minute video** (30-35 scenes, each 8-10 seconds). You MUST generate at least 30 scenes to fill the full 5 minutes.
+Based on the provided article, create a JSON structure for a **4.5-minute video** (EXACTLY 30 scenes, each 9 seconds). You MUST generate EXACTLY 30 scenes.
 
 # Output Format (return ONLY valid JSON, no markdown):
 {
@@ -710,7 +710,7 @@ Based on the provided article, create a JSON structure for a **5-minute video** 
     {
       "scene_number": 1,
       "duration_sec": 9,
-      "narration": "Conversational, engaging, and paced for a 1-minute story. (2-3 sentences)",
+      "narration": "Conversational, engaging, and paced for a 9-second scene. (2-3 sentences, about 25-30 words)",
       "visual_prompt": "Detailed prompt for 'Nano Banana' image generation focusing on minimalist line art.",
       "key_text_elements": ["Main Keyword", "Statistic"],
       "layout_description": "Description of where icons and text should be placed on the 16:9 canvas"
@@ -720,14 +720,14 @@ Based on the provided article, create a JSON structure for a **5-minute video** 
 
 # Narration Style (OpenAI Shimmer)
 - Single female voice: Warm, professional, yet deeply conversational (like a friendly expert).
-- Structure (for 30-35 scenes total):
+- Structure (for EXACTLY 30 scenes):
   1. Hook (Scenes 1-2): Problem or surprising fact to grab attention.
-  2. Background & Context (Scenes 3-8): Set up the problem space and why it matters.
-  3. Main Content - Part 1 (Scenes 9-15): First major theme/finding from the article.
-  4. Main Content - Part 2 (Scenes 16-22): Second major theme/finding from the article.
-  5. Main Content - Part 3 (Scenes 23-28): Third major theme/implications.
-  6. Conclusion & Call to Action (Scenes 29-35): Summary, key takeaways, and thought-provoking closing.
-- Pacing: Avoid rushing. Use 25-35 words per 10-second scene.
+  2. Background & Context (Scenes 3-7): Set up the problem space and why it matters.
+  3. Main Content - Part 1 (Scenes 8-13): First major theme/finding from the article.
+  4. Main Content - Part 2 (Scenes 14-19): Second major theme/finding from the article.
+  5. Main Content - Part 3 (Scenes 20-25): Third major theme/implications.
+  6. Conclusion & Call to Action (Scenes 26-30): Summary, key takeaways, and thought-provoking closing.
+- Pacing: Avoid rushing. Use 25-30 words per 9-second scene.
 
 # Visual Style (NotebookLM Aesthetic)
 - Background: Solid cream/off-white (#F9F7F2). Clean, no patterns.
@@ -772,13 +772,16 @@ Return ONLY the JSON, no markdown code blocks.`;
       let scenes = scenesJson.scenes;
       console.log(`Generated ${scenes.length} scenes (first attempt)`);
 
-      // If less than 30 scenes, try one more time with a more explicit prompt
-      if (scenes.length < 30) {
+      // Limit to exactly 30 scenes
+      if (scenes.length > 30) {
+        scenes = scenes.slice(0, 30);
+        console.log("Trimmed to 30 scenes");
+      } else if (scenes.length < 30) {
         console.log("Not enough scenes, regenerating with explicit count...");
         const retryPrompt = `${brainPrompt}
 
 CRITICAL: You generated only ${scenes.length} scenes last time. This is NOT ENOUGH.
-I need EXACTLY 30-35 scenes for a 5-minute video. Each scene is 8-10 seconds.
+I need EXACTLY 30 scenes for a 4.5-minute video. Each scene is 9 seconds.
 Do NOT generate fewer than 30 scenes. Count your scenes before responding.`;
 
         const retryResponse = await fetch(
@@ -807,14 +810,20 @@ Do NOT generate fewer than 30 scenes. Count your scenes before responding.`;
             console.log(`Retry generated ${scenes.length} scenes`);
           }
         }
+        // Limit to 30 after retry as well
+        if (scenes.length > 30) {
+          scenes = scenes.slice(0, 30);
+          console.log("Trimmed to 30 scenes after retry");
+        }
       }
 
       console.log(`Final scene count: ${scenes.length}`);
 
       // Step 3: Generate images for each scene with Nano Banana (Gemini native image generation)
-      console.log("Step 3: Generating images with Nano Banana...");
+      // Process in batches of 10 to avoid rate limiting (10 requests per minute)
+      console.log("Step 3: Generating images with Nano Banana (in batches)...");
 
-      const imagePromises = scenes.map(async (scene, index) => {
+      const generateImageForScene = async (scene, index) => {
         const imagePrompt = `NotebookLM-style educational whiteboard illustration. 16:9 aspect ratio.
 
 Style specifications:
@@ -867,11 +876,38 @@ ${scene.visual_prompt}`;
           };
         }
         return null;
-      });
+      };
 
-      const imageResults = await Promise.all(imagePromises);
-      const validImages = imageResults.filter(img => img !== null);
-      console.log(`Generated ${validImages.length} images`);
+      // Process in batches of 10 with 65 second delay between batches
+      const BATCH_SIZE = 10;
+      const BATCH_DELAY_MS = 65000; // 65 seconds to be safe
+      const allImageResults = [];
+
+      for (let i = 0; i < scenes.length; i += BATCH_SIZE) {
+        const batch = scenes.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(scenes.length / BATCH_SIZE);
+
+        console.log(`Processing batch ${batchNum}/${totalBatches} (scenes ${i + 1}-${i + batch.length})...`);
+
+        const batchPromises = batch.map((scene, batchIndex) =>
+          generateImageForScene(scene, i + batchIndex)
+        );
+
+        const batchResults = await Promise.all(batchPromises);
+        allImageResults.push(...batchResults);
+
+        console.log(`Batch ${batchNum} complete. ${allImageResults.filter(r => r !== null).length} images so far.`);
+
+        // Wait before next batch (except for the last batch)
+        if (i + BATCH_SIZE < scenes.length) {
+          console.log(`Waiting ${BATCH_DELAY_MS / 1000} seconds before next batch to avoid rate limit...`);
+          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+        }
+      }
+
+      const validImages = allImageResults.filter(img => img !== null);
+      console.log(`Generated ${validImages.length} images total`);
 
       if (validImages.length === 0) {
         res.status(500).json({ error: "Failed to generate any images" });
