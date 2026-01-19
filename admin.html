@@ -57,6 +57,12 @@
                 with_llm_extended: 0
             });
 
+            // Randomization counter for new experiment (control/ebm_cimo)
+            const [randomizationCounter, setRandomizationCounter] = useState({ index: 0 });
+
+            // Test accounts to exclude from counts
+            const TEST_ACCOUNTS = ['sh.bae@snu.ac.kr', 'shyun.bae@gmail.com', 'lee.7313@osu.edu'];
+
             // Get experiment datetime for filtering (KST)
             const getExperimentDatetime = (exp) => {
                 // Try preTask.completedAt (ISO string)
@@ -110,7 +116,9 @@
             const filteredConditionCounts = {
                 without_llm: filteredExperiments.filter(e => e.condition === 'without_llm').length,
                 with_llm: filteredExperiments.filter(e => e.condition === 'with_llm').length,
-                with_llm_extended: filteredExperiments.filter(e => e.condition === 'with_llm_extended').length
+                with_llm_extended: filteredExperiments.filter(e => e.condition === 'with_llm_extended').length,
+                control: filteredExperiments.filter(e => e.condition === 'control').length,
+                ebm_cimo: filteredExperiments.filter(e => e.condition === 'ebm_cimo').length
             };
 
             // Calculate filtered completion counts
@@ -132,9 +140,49 @@
                 }
             };
 
+            // Load randomization counter and user condition stats
+            const loadRandomizationStats = async () => {
+                try {
+                    // Load counter
+                    const counterDoc = await db.collection('randomization').doc('counter').get();
+                    if (counterDoc.exists) {
+                        setRandomizationCounter(counterDoc.data());
+                    }
+                } catch (error) {
+                    console.error('Error loading randomization stats:', error);
+                }
+            };
+
+            // Load user-level condition distribution (excluding test accounts)
+            const [userConditionCounts, setUserConditionCounts] = useState({ control: 0, ebm_cimo: 0 });
+
+            const loadUserConditionCounts = async () => {
+                try {
+                    const usersSnapshot = await db.collection('users').get();
+                    let control = 0;
+                    let ebm_cimo = 0;
+
+                    usersSnapshot.docs.forEach(doc => {
+                        const data = doc.data();
+                        // Exclude test accounts
+                        if (data.email && TEST_ACCOUNTS.includes(data.email.toLowerCase())) {
+                            return;
+                        }
+                        if (data.condition === 'control') control++;
+                        if (data.condition === 'ebm_cimo') ebm_cimo++;
+                    });
+
+                    setUserConditionCounts({ control, ebm_cimo });
+                } catch (error) {
+                    console.error('Error loading user condition counts:', error);
+                }
+            };
+
             useEffect(() => {
                 loadExperiments();
                 loadConditionCounts();
+                loadRandomizationStats();
+                loadUserConditionCounts();
             }, []);
 
             // Cleanup charts
@@ -1664,6 +1712,39 @@
                                 </div>
                             </div>
 
+                            {/* New Experiment: User-level Condition Assignment Stats */}
+                            <div className="mt-6 pt-4 border-t border-gray-200">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-semibold text-gray-700">Randomization Status (Excluding Test Accounts)</h3>
+                                    <button
+                                        onClick={() => { loadRandomizationStats(); loadUserConditionCounts(); }}
+                                        className="text-xs text-blue-600 hover:text-blue-800"
+                                    >
+                                        Refresh
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                                        <div className="text-xs text-gray-600">Control</div>
+                                        <div className="text-2xl font-bold text-green-700">{userConditionCounts.control}</div>
+                                        <div className="text-xs text-gray-500">users assigned</div>
+                                    </div>
+                                    <div className="p-3 bg-orange-50 rounded-lg border-l-4 border-orange-500">
+                                        <div className="text-xs text-gray-600">EBM CIMO</div>
+                                        <div className="text-2xl font-bold text-orange-700">{userConditionCounts.ebm_cimo}</div>
+                                        <div className="text-xs text-gray-500">users assigned</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-gray-400">
+                                        <div className="text-xs text-gray-600">Block Index</div>
+                                        <div className="text-2xl font-bold text-gray-700">{randomizationCounter.index || 0}</div>
+                                        <div className="text-xs text-gray-500">next assignment #{(randomizationCounter.index || 0) + 1}</div>
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-xs text-gray-500">
+                                    Sequence: [control, ebm_cimo, ebm_cimo, control, control, ebm_cimo, ebm_cimo, control] (repeating)
+                                </div>
+                            </div>
+
                             {/* Global counter from Firebase (for reference) */}
                             {!filterEnabled && (
                                 <div className="mt-4 pt-4 border-t border-gray-200">
@@ -1691,7 +1772,7 @@
                                 }
                             </div>
                             <button
-                                onClick={() => { loadExperiments(); loadConditionCounts(); }}
+                                onClick={() => { loadExperiments(); loadConditionCounts(); loadRandomizationStats(); loadUserConditionCounts(); }}
                                 disabled={loading}
                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
                             >

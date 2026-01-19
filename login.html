@@ -37,8 +37,18 @@
         // Block Randomization sequence (alternating pattern for balance)
         const CONDITION_SEQUENCE = ['control', 'ebm_cimo', 'ebm_cimo', 'control', 'control', 'ebm_cimo', 'ebm_cimo', 'control'];
 
+        // Test accounts - excluded from randomization counter
+        const TEST_ACCOUNTS = ['sh.bae@snu.ac.kr', 'shyun.bae@gmail.com', 'lee.7313@osu.edu'];
+
         // Get next condition using block randomization
-        const getNextCondition = async () => {
+        const getNextCondition = async (email) => {
+            // Test accounts get random condition without incrementing counter
+            if (TEST_ACCOUNTS.includes(email.toLowerCase())) {
+                const randomCondition = Math.random() < 0.5 ? 'control' : 'ebm_cimo';
+                console.log('Test account - assigned random condition:', randomCondition);
+                return randomCondition;
+            }
+
             const counterRef = db.collection('randomization').doc('counter');
 
             try {
@@ -205,7 +215,7 @@
                     if (isNewUser) {
                         userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                         // Assign condition using block randomization for new users
-                        const assignedCondition = await getNextCondition();
+                        const assignedCondition = await getNextCondition(currentUser.email);
                         userData.condition = assignedCondition;
                         console.log('Assigned condition:', assignedCondition);
                     }
