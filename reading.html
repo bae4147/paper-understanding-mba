@@ -182,6 +182,7 @@
             // Custom PDF state
             const [isCustomPdf, setIsCustomPdf] = useState(false);
             const [customPdfData, setCustomPdfData] = useState(null); // {base64, title, sections, numPages}
+            const [pdfBlobUrl, setPdfBlobUrl] = useState(null); // Blob URL for PDF embed (more compatible than data URI)
             const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
             const [pdfLoading, setPdfLoading] = useState(true); // PDF loading state
 
@@ -436,6 +437,27 @@
                     setPdfLoading(false);
                 }
             }, [currentPaper]);
+
+            // Create Blob URL from base64 PDF data for better browser compatibility
+            useEffect(() => {
+                if (!customPdfData?.base64) return;
+
+                // Convert base64 to Blob
+                const binaryString = atob(customPdfData.base64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                setPdfBlobUrl(url);
+                console.log('📄 Created Blob URL for PDF');
+
+                // Cleanup on unmount
+                return () => {
+                    URL.revokeObjectURL(url);
+                };
+            }, [customPdfData?.base64]);
 
             // State for rendered PDF pages
             const [pdfRenderedPages, setPdfRenderedPages] = useState([]);
@@ -3977,7 +3999,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                                             <p className="text-gray-600 font-medium">Loading PDF...</p>
                                                         </div>
                                                     </div>
-                                                ) : isCustomPdf && customPdfData?.base64 ? (
+                                                ) : isCustomPdf && pdfBlobUrl ? (
                                                     /* Custom PDF: Embed for text selection with activity tracking */
                                                     <div
                                                         className="w-full h-full"
@@ -3986,7 +4008,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                                         onWheel={handlePdfWheel}
                                                     >
                                                         <embed
-                                                            src={`data:application/pdf;base64,${customPdfData.base64}#toolbar=0&navpanes=0`}
+                                                            src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
                                                             type="application/pdf"
                                                             className="w-full h-full"
                                                             style={{ minHeight: 'calc(100vh - 120px)' }}
@@ -4230,7 +4252,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                                     <p className="text-gray-600 font-medium">Loading PDF...</p>
                                                 </div>
                                             </div>
-                                        ) : isCustomPdf && customPdfData?.base64 ? (
+                                        ) : isCustomPdf && pdfBlobUrl ? (
                                             /* Custom PDF viewer - embed for text selection with activity tracking */
                                             <div
                                                 className="w-full h-full"
@@ -4239,7 +4261,7 @@ Provide constructive feedback to help the reader think more critically about thi
                                                 onWheel={handlePdfWheel}
                                             >
                                                 <embed
-                                                    src={`data:application/pdf;base64,${customPdfData.base64}#toolbar=0&navpanes=0`}
+                                                    src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
                                                     type="application/pdf"
                                                     className="w-full h-full"
                                                     style={{ minHeight: 'calc(100vh - 120px)' }}
