@@ -70,7 +70,6 @@
             const [contextResponses, setContextResponses] = useState(['']);
 
             // Other post-task responses
-            const [thinkingChange, setThinkingChange] = useState('');
             const [newStrategyConfidence, setNewStrategyConfidence] = useState('');
             const [implementationLikelihood, setImplementationLikelihood] = useState('');
 
@@ -155,20 +154,16 @@
                 e.preventDefault();
                 if (isSubmitting) return;
 
-                // Validate strategies (at least 1 non-empty)
-                const filledStrategies = getFilledStrategies();
-                if (filledStrategies.length === 0) {
-                    alert('Please enter at least one takeaway for Q1.');
-                    return;
-                }
                 // Validate context responses (at least 1 non-empty)
                 const filledContextResponses = getFilledContextResponses();
                 if (filledContextResponses.length === 0) {
-                    alert('Please enter at least one response for Q2.');
+                    alert('Please enter at least one response for Q1.');
                     return;
                 }
-                if (!thinkingChange) {
-                    alert('Please rate how much your thinking has changed.');
+                // Validate strategies (at least 1 non-empty)
+                const filledStrategies = getFilledStrategies();
+                if (filledStrategies.length === 0) {
+                    alert('Please enter at least one takeaway for Q2.');
                     return;
                 }
                 if (!newStrategyConfidence) {
@@ -185,7 +180,6 @@
                 const postTaskData = {
                     strategies: filledStrategies,
                     contextTranslation: filledContextResponses,
-                    thinkingChange: parseInt(thinkingChange),
                     newStrategyConfidence: parseInt(newStrategyConfidence),
                     implementationLikelihood: parseInt(implementationLikelihood),
                     completedAt: new Date().toISOString()
@@ -254,62 +248,10 @@
                                     <p className="text-gray-600 text-sm mt-2">Think about how the article might apply to your work.</p>
                                 </div>
 
-                                {/* Q1: Strategies Comparison */}
+                                {/* Q1: Context Translation */}
                                 <div>
                                     <label className="block text-base font-bold text-gray-800 mb-4">
-                                        Q1. What are practical takeaways from this article that you could realistically implement or test in your workplace? Briefly explain your approach. *
-                                    </label>
-
-                                    <div className="space-y-3">
-                                        {postStrategies.map((strategy, index) => (
-                                            <div key={index} className="flex items-start space-x-2">
-                                                <span className="text-sm font-medium text-gray-500 w-5 pt-2">{index + 1}.</span>
-                                                <textarea
-                                                    value={strategy}
-                                                    onChange={(e) => {
-                                                        updateStrategy(index, e.target.value);
-                                                        e.target.style.height = 'auto';
-                                                        e.target.style.height = e.target.scrollHeight + 'px';
-                                                    }}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                                            e.target.style.height = 'auto';
-                                                            e.target.style.height = e.target.scrollHeight + 'px';
-                                                        }
-                                                    }}
-                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm resize-none overflow-hidden"
-                                                    placeholder={`Takeaway ${index + 1}`}
-                                                    rows={3}
-                                                />
-                                                {postStrategies.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeStrategy(index)}
-                                                        className="text-gray-400 hover:text-red-500 pt-2"
-                                                        title="Remove"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                        <div className="flex items-start space-x-2">
-                                            <span className="w-5"></span>
-                                            <button
-                                                type="button"
-                                                onClick={addStrategyField}
-                                                className="px-4 py-2 border-2 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg text-sm font-medium"
-                                            >
-                                                + Add
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Q2: Context Translation */}
-                                <div>
-                                    <label className="block text-base font-bold text-gray-800 mb-4">
-                                        Q2. When considering how to translate the article’s conclusions to your own context, what key differences, underlying mechanisms, or necessary adjustments would you evaluate before applying them? *
+                                        Q1. Considering how to translate the article's conclusions to your own context, what are the key differences between the research context and your own situation? Would these matter for applying the findings? *
                                     </label>
 
                                     <div className="space-y-3">
@@ -358,37 +300,62 @@
                                     </div>
                                 </div>
 
-                                {/* Q3: Thinking Change */}
+                                {/* Q2: Strategies Comparison */}
                                 <div>
-                                    <label className="block text-base font-bold text-gray-800 mb-2">
-                                        Q3. How much has this article changed your thinking about the topic? *
+                                    <label className="block text-base font-bold text-gray-800 mb-4">
+                                        Q2. What are practical takeaways from this article that you could realistically implement or test in your workplace? Briefly explain your approach. *
                                     </label>
-                                    <div className="flex items-center justify-between mt-3">
-                                        <span className="text-xs text-gray-500 w-20">Not at all</span>
-                                        <div className="flex space-x-1">
-                                            {[1, 2, 3, 4, 5, 6, 7].map(value => (
-                                                <button
-                                                    key={value}
-                                                    type="button"
-                                                    onClick={() => setThinkingChange(value.toString())}
-                                                    className={`w-10 h-10 rounded-full text-sm font-bold transition-colors ${
-                                                        thinkingChange === value.toString()
-                                                            ? 'bg-teal-500 text-white'
-                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    {value}
-                                                </button>
-                                            ))}
+
+                                    <div className="space-y-3">
+                                        {postStrategies.map((strategy, index) => (
+                                            <div key={index} className="flex items-start space-x-2">
+                                                <span className="text-sm font-medium text-gray-500 w-5 pt-2">{index + 1}.</span>
+                                                <textarea
+                                                    value={strategy}
+                                                    onChange={(e) => {
+                                                        updateStrategy(index, e.target.value);
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.target.style.height = 'auto';
+                                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                                        }
+                                                    }}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm resize-none overflow-hidden"
+                                                    placeholder={`Takeaway ${index + 1}`}
+                                                    rows={3}
+                                                />
+                                                {postStrategies.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeStrategy(index)}
+                                                        className="text-gray-400 hover:text-red-500 pt-2"
+                                                        title="Remove"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <div className="flex items-start space-x-2">
+                                            <span className="w-5"></span>
+                                            <button
+                                                type="button"
+                                                onClick={addStrategyField}
+                                                className="px-4 py-2 border-2 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg text-sm font-medium"
+                                            >
+                                                + Add
+                                            </button>
                                         </div>
-                                        <span className="text-xs text-gray-500 w-20 text-right">A great deal</span>
                                     </div>
                                 </div>
 
-                                {/* Q4: Confidence in Takeaways */}
+                                {/* Q3: Confidence in Takeaways */}
                                 <div>
                                     <label className="block text-base font-bold text-gray-800 mb-2">
-                                        Q4. How confident are you that your takeaways will be effective in your workplace? *
+                                        Q3. How confident are you that your takeaways will be effective in your workplace? *
                                     </label>
                                     <div className="flex items-center justify-between mt-3">
                                         <span className="text-xs text-gray-500 w-24">Not at all confident</span>
@@ -412,10 +379,10 @@
                                     </div>
                                 </div>
 
-                                {/* Q5: Implementation Likelihood */}
+                                {/* Q4: Implementation Likelihood */}
                                 <div>
                                     <label className="block text-base font-bold text-gray-800 mb-2">
-                                        Q5. How likely are you to actually implement these takeaways? *
+                                        Q4. How likely are you to actually implement these takeaways? *
                                     </label>
                                     <div className="flex items-center justify-between mt-3">
                                         <span className="text-xs text-gray-500 w-20">Very unlikely</span>

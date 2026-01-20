@@ -3920,12 +3920,12 @@ Provide constructive feedback to help the reader think more critically about thi
                                     [Paper Reading] {customPdfData?.title || 'Uploaded Paper'}
                                 </h2>
                                 <p className="text-sm text-gray-600">
-                                    {window.firebaseCurrentUser?.email || ''} | {condition}
+                                    {window.firebaseCurrentUser?.email || ''}
                                 </p>
                             </div>
                             <div className="flex items-center space-x-4">
                                 <button
-                                    onClick={() => setShowFinishPopup(true)}
+                                    onClick={() => completeReading()}
                                     className="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700"
                                 >
                                     <CheckIcon />
@@ -4407,103 +4407,6 @@ Provide constructive feedback to help the reader think more critically about thi
                                     >
                                         Confirm & Start Reading
                                     </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Finish Popup - External Tool Usage Check */}
-                        {showFinishPopup && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Before you finish...</h3>
-                                    <p className="text-gray-600 mb-6">Please answer honestly. Your response will not affect your grade.</p>
-
-                                    {/* External AI Usage Question */}
-                                    <div className="mb-6">
-                                        <p className="font-medium text-gray-800 mb-3">Did you use any external AI tools (e.g., ChatGPT, Claude, Gemini, etc.) while completing this assignment?</p>
-                                        <div className="space-y-2">
-                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="externalAi"
-                                                    value="yes"
-                                                    checked={usedExternalAi === 'yes'}
-                                                    onChange={() => setUsedExternalAi('yes')}
-                                                    className="w-5 h-5"
-                                                />
-                                                <span className="text-gray-700">Yes</span>
-                                            </label>
-                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="externalAi"
-                                                    value="no"
-                                                    checked={usedExternalAi === 'no'}
-                                                    onChange={() => setUsedExternalAi('no')}
-                                                    className="w-5 h-5"
-                                                />
-                                                <span className="text-gray-700">No</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {/* External PDF Viewer Question */}
-                                    <div className="mb-6">
-                                        <p className="font-medium text-gray-800 mb-3">Did you use any external PDF viewer or app while completing this assignment?</p>
-                                        <div className="space-y-2">
-                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="externalPdf"
-                                                    value="yes"
-                                                    checked={usedExternalPdfViewer === 'yes'}
-                                                    onChange={() => setUsedExternalPdfViewer('yes')}
-                                                    className="w-5 h-5"
-                                                />
-                                                <span className="text-gray-700">Yes</span>
-                                            </label>
-                                            <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="externalPdf"
-                                                    value="no"
-                                                    checked={usedExternalPdfViewer === 'no'}
-                                                    onChange={() => setUsedExternalPdfViewer('no')}
-                                                    className="w-5 h-5"
-                                                />
-                                                <span className="text-gray-700">No</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex space-x-4">
-                                        <button
-                                            onClick={() => {
-                                                setShowFinishPopup(false);
-                                                setUsedExternalAi(null);
-                                                setUsedExternalPdfViewer(null);
-                                            }}
-                                            className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                if (usedExternalAi && usedExternalPdfViewer) {
-                                                    setShowFinishPopup(false);
-                                                    completeReading();
-                                                }
-                                            }}
-                                            disabled={!usedExternalAi || !usedExternalPdfViewer}
-                                            className={`flex-1 px-4 py-3 rounded-lg font-medium ${
-                                                usedExternalAi && usedExternalPdfViewer
-                                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            }`}
-                                        >
-                                            Finish Reading
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         )}
