@@ -117,6 +117,12 @@
             const [llmConfidentWithoutDetails, setLlmConfidentWithoutDetails] = useState('');
             const [llmRelyForImportance, setLlmRelyForImportance] = useState('');
 
+            // GenAI Resource Helpfulness (0 = not used, 1-7 scale)
+            const [chatbotHelpfulness, setChatbotHelpfulness] = useState('');
+            const [infographicHelpfulness, setInfographicHelpfulness] = useState('');
+            const [videoHelpfulness, setVideoHelpfulness] = useState('');
+            const [podcastHelpfulness, setPodcastHelpfulness] = useState('');
+
             // Study feedback (optional)
             const [studyFeedback, setStudyFeedback] = useState('');
 
@@ -244,6 +250,12 @@
                     return;
                 }
 
+                // Validate resource helpfulness questions
+                if (chatbotHelpfulness === '' || infographicHelpfulness === '' || videoHelpfulness === '' || podcastHelpfulness === '') {
+                    alert('Please rate how helpful each GenAI resource was for your learning.');
+                    return;
+                }
+
                 // Validate external tool usage questions
                 if (!usedExternalAi || !usedExternalPdfViewer) {
                     alert('Please answer the external tool usage questions.');
@@ -332,6 +344,12 @@
                     assumeClearIsAccurate: parseInt(llmAssumeClearIsAccurate),
                     confidentWithoutDetails: parseInt(llmConfidentWithoutDetails),
                     relyForImportance: parseInt(llmRelyForImportance)
+                };
+                surveyData.resourceHelpfulness = {
+                    chatbot: parseInt(chatbotHelpfulness),
+                    infographic: parseInt(infographicHelpfulness),
+                    video: parseInt(videoHelpfulness),
+                    podcast: parseInt(podcastHelpfulness)
                 };
 
                 try {
@@ -1599,6 +1617,123 @@
                                 {/* PAGE 3: Final Questions */}
                                 {currentPage === 3 && (
                                 <>
+                                {/* GenAI Resource Helpfulness Section */}
+                                <div className="border-b pb-6">
+                                    <h2 className="text-xl font-bold text-gray-800 mb-2">Section 5. GenAI Resource Helpfulness</h2>
+                                    <p className="text-sm text-gray-600 mb-4">Please rate how helpful each resource was for your learning.</p>
+                                    <p className="text-xs text-gray-500 mb-4">0 = I did not use this resource, 1 = Not at all helpful, 7 = Extremely helpful</p>
+
+                                    <div className="space-y-6">
+                                        {/* AI Chatbot */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                How helpful was the AI chatbot? *
+                                            </label>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-xs text-gray-500">Did not use</span>
+                                                <div className="flex space-x-1">
+                                                    {[0, 1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => setChatbotHelpfulness(value.toString())}
+                                                            className={`w-9 h-9 rounded-full text-sm font-bold transition-colors ${
+                                                                chatbotHelpfulness === value.toString()
+                                                                    ? 'bg-blue-600 text-white'
+                                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {value}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs text-gray-500">Extremely helpful</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Infographics */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                How helpful were the infographics? *
+                                            </label>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-xs text-gray-500">Did not use</span>
+                                                <div className="flex space-x-1">
+                                                    {[0, 1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => setInfographicHelpfulness(value.toString())}
+                                                            className={`w-9 h-9 rounded-full text-sm font-bold transition-colors ${
+                                                                infographicHelpfulness === value.toString()
+                                                                    ? 'bg-blue-600 text-white'
+                                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {value}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs text-gray-500">Extremely helpful</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Video */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                How helpful was the video? *
+                                            </label>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-xs text-gray-500">Did not use</span>
+                                                <div className="flex space-x-1">
+                                                    {[0, 1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => setVideoHelpfulness(value.toString())}
+                                                            className={`w-9 h-9 rounded-full text-sm font-bold transition-colors ${
+                                                                videoHelpfulness === value.toString()
+                                                                    ? 'bg-blue-600 text-white'
+                                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {value}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs text-gray-500">Extremely helpful</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Podcast */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-2">
+                                                How helpful was the podcast? *
+                                            </label>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-xs text-gray-500">Did not use</span>
+                                                <div className="flex space-x-1">
+                                                    {[0, 1, 2, 3, 4, 5, 6, 7].map(value => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => setPodcastHelpfulness(value.toString())}
+                                                            className={`w-9 h-9 rounded-full text-sm font-bold transition-colors ${
+                                                                podcastHelpfulness === value.toString()
+                                                                    ? 'bg-blue-600 text-white'
+                                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {value}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs text-gray-500">Extremely helpful</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Attention Check Section */}
                                 <div className="border-b pb-6">
                                     <h2 className="text-xl font-bold text-gray-800 mb-2">Final Questions</h2>
