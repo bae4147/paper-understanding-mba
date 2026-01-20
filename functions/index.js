@@ -3,6 +3,7 @@ const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const pdfParse = require("pdf-parse");
 const { GoogleAuth } = require("google-auth-library");
+const nodemailer = require("nodemailer");
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -12,6 +13,8 @@ if (!admin.apps.length) {
 // Define API keys as secrets
 const openaiApiKey = defineSecret("OPENAI_API_KEY");
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const gmailUser = defineSecret("GMAIL_USER");
+const gmailAppPassword = defineSecret("GMAIL_APP_PASSWORD");
 
 // CORS headers
 const corsHeaders = {
@@ -968,6 +971,159 @@ ${scene.visual_prompt}`;
     } catch (error) {
       console.error("Video slideshow generation error:", error);
       res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+  }
+);
+
+// Send Completion Email with student's responses
+exports.sendCompletionEmail = onRequest(
+  {
+    cors: true,
+    secrets: [gmailUser, gmailAppPassword],
+    timeoutSeconds: 30,
+    memory: "256MiB"
+  },
+  async (req, res) => {
+    // Handle preflight
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { uid, sessionId } = req.body;
+
+      if (!uid || !sessionId) {
+        res.status(400).json({ error: "uid and sessionId are required" });
+        return;
+      }
+
+      console.log(`Sending completion email for user ${uid}, session ${sessionId}`);
+
+      // Fetch user profile and session data from Firestore
+      const db = admin.firestore();
+
+      const [userDoc, sessionDoc] = await Promise.all([
+        db.collection("users").doc(uid).get(),
+        db.collection("users").doc(uid).collection("sessions").doc(sessionId).get()
+      ]);
+
+      if (!userDoc.exists || !sessionDoc.exists) {
+        res.status(404).json({ error: "User or session not found" });
+        return;
+      }
+
+      const userData = userDoc.data();
+      const sessionData = sessionDoc.data();
+
+      const recipientEmail = userData.email;
+      const recipientName = userData.fullName || "Student";
+      const paperTitle = sessionData.paperMetadata?.title || "Your Reading Assignment";
+
+      // Extract post-task responses
+      const postTask = sessionData.postTask || {};
+      const contextTranslation = postTask.contextTranslation || [];
+      const strategies = postTask.strategies || [];
+      const newStrategyConfidence = postTask.newStrategyConfidence;
+      const implementationLikelihood = postTask.implementationLikelihood;
+
+      // Create email transporter
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: gmailUser.value(),
+          pass: gmailAppPassword.value()
+        }
+      });
+
+      // Build email HTML content
+      const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    h1 { color: #2563eb; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-top: 30px; }
+    .response-box { background: #f9fafb; border-left: 4px solid #2563eb; padding: 15px; margin: 10px 0; }
+    .rating { background: #ecfdf5; padding: 10px 15px; border-radius: 8px; display: inline-block; margin: 5px 0; }
+    ul { padding-left: 20px; }
+    li { margin: 8px 0; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>📚 Your Reading Assignment Summary</h1>
+
+  <p>Hi ${recipientName},</p>
+
+  <p>Thank you for completing the reading assignment! Here's a summary of your responses for your records.</p>
+
+  <p><strong>Paper:</strong> ${paperTitle}</p>
+  <p><strong>Completed:</strong> ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+
+  <h2>Q1. Context Differences</h2>
+  <p><em>Key differences between the research context and your own situation:</em></p>
+  ${contextTranslation.length > 0 ? `
+    <ul>
+      ${contextTranslation.map(item => `<li class="response-box">${item}</li>`).join("")}
+    </ul>
+  ` : "<p><em>No responses recorded</em></p>"}
+
+  <h2>Q2. Practical Takeaways</h2>
+  <p><em>What you could realistically implement or test in your workplace:</em></p>
+  ${strategies.length > 0 ? `
+    <ul>
+      ${strategies.map((item, idx) => `<li class="response-box"><strong>${idx + 1}.</strong> ${item}</li>`).join("")}
+    </ul>
+  ` : "<p><em>No responses recorded</em></p>"}
+
+  <h2>Self-Assessment</h2>
+  ${newStrategyConfidence ? `
+    <p><strong>Confidence in takeaways being effective:</strong></p>
+    <div class="rating">⭐ ${newStrategyConfidence} / 7</div>
+  ` : ""}
+  ${implementationLikelihood ? `
+    <p><strong>Likelihood to implement changes:</strong></p>
+    <div class="rating">📊 ${implementationLikelihood} / 7</div>
+  ` : ""}
+
+  <div class="footer">
+    <p>This email was automatically generated as part of your MBA reading assignment.</p>
+    <p>If you have any questions, please contact your instructor.</p>
+  </div>
+</body>
+</html>
+      `;
+
+      // Send email
+      const mailOptions = {
+        from: `"MBA Reading Assignment" <${gmailUser.value()}>`,
+        to: recipientEmail,
+        subject: `Your Reading Assignment Summary: ${paperTitle}`,
+        html: emailHtml
+      };
+
+      await transporter.sendMail(mailOptions);
+
+      console.log(`✅ Completion email sent to ${recipientEmail}`);
+
+      res.set(corsHeaders);
+      res.json({
+        success: true,
+        message: `Email sent to ${recipientEmail}`
+      });
+
+    } catch (error) {
+      console.error("Email sending error:", error);
+      res.status(500).json({ error: "Failed to send email", message: error.message });
     }
   }
 );

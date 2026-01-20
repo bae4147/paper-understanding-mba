@@ -34,14 +34,42 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Cloud Function endpoint for sending completion email
+        const SEND_EMAIL_URL = 'https://us-central1-mba-paper-reading.cloudfunctions.net/sendCompletionEmail';
+
         function CompletePage() {
             const [currentUser, setCurrentUser] = useState(null);
             const [checkingAuth, setCheckingAuth] = useState(true);
             const [sessionCompleted, setSessionCompleted] = useState(false);
+            const [emailStatus, setEmailStatus] = useState('pending'); // pending, sending, sent, error
 
             // Get session info from URL
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId');
+
+            // Send completion email
+            const sendCompletionEmail = async (uid, sid) => {
+                setEmailStatus('sending');
+                try {
+                    const response = await fetch(SEND_EMAIL_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid, sessionId: sid })
+                    });
+
+                    if (response.ok) {
+                        setEmailStatus('sent');
+                        console.log('✅ Completion email sent');
+                    } else {
+                        const error = await response.json();
+                        console.error('Email sending failed:', error);
+                        setEmailStatus('error');
+                    }
+                } catch (err) {
+                    console.error('Email sending error:', err);
+                    setEmailStatus('error');
+                }
+            };
 
             // Auth guard and mark session complete
             useEffect(() => {
@@ -62,6 +90,9 @@
                             }, { merge: true });
                             console.log('✅ Session marked as complete');
                             setSessionCompleted(true);
+
+                            // Send completion email with student's responses
+                            sendCompletionEmail(user.uid, sessionId);
 
                             // Clear sessionStorage
                             sessionStorage.removeItem('currentSessionId');
@@ -109,9 +140,32 @@
                         <div className="bg-white rounded-xl shadow-2xl p-8">
                             <div className="text-6xl mb-6">🎉</div>
                             <h1 className="text-3xl font-bold text-gray-800 mb-4">You're All Set!</h1>
-                            <p className="text-lg text-gray-600 mb-6">
+                            <p className="text-lg text-gray-600 mb-4">
                                 You have successfully completed the assignment.
                             </p>
+
+                            {/* Email Status */}
+                            <div className="mb-6">
+                                {emailStatus === 'sending' && (
+                                    <div className="flex items-center justify-center space-x-2 text-blue-600">
+                                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Sending summary to your email...</span>
+                                    </div>
+                                )}
+                                {emailStatus === 'sent' && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-700">
+                                        ✉️ A summary of your responses has been sent to your email.
+                                    </div>
+                                )}
+                                {emailStatus === 'error' && (
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-700 text-sm">
+                                        ⚠️ Could not send email summary. Your responses are still saved.
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="space-y-3 pt-4 border-t">
                                 <button
