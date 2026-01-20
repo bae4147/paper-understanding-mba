@@ -409,6 +409,45 @@
                 }
             }, [phase, readingActive, showStartPopup]);
 
+            // Window focus/blur tracking for activity monitoring
+            const windowFocusStartRef = useRef(Date.now());
+            const [isWindowActive, setIsWindowActive] = useState(true);
+
+            useEffect(() => {
+                if (!readingActive) return;
+
+                const handleVisibilityChange = () => {
+                    const now = Date.now();
+                    const wasActive = !document.hidden;
+                    const previousDuration = now - windowFocusStartRef.current;
+
+                    if (document.hidden) {
+                        // Window became inactive
+                        setIsWindowActive(false);
+                        logEvent('window_focus_change', {
+                            isActive: false,
+                            previousState: 'active',
+                            previousDuration
+                        });
+                    } else {
+                        // Window became active
+                        setIsWindowActive(true);
+                        logEvent('window_focus_change', {
+                            isActive: true,
+                            previousState: 'inactive',
+                            previousDuration
+                        });
+                    }
+                    windowFocusStartRef.current = now;
+                };
+
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+
+                return () => {
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                };
+            }, [readingActive]);
+
             // Load uploaded PDF from IndexedDB when currentPaper is set
             useEffect(() => {
                 if (!currentPaper) return;
@@ -3437,106 +3476,79 @@ Provide constructive feedback to help the reader think more critically about thi
                     }
                 });
 
-                // Save to Firebase
-                // Firebase saving disabled
-                /*
-                try {
-                    if (window.firebaseDb && participantId && experimentId) {
-                        const experimentRef = window.firebaseDoc(
-                            window.firebaseDb,
-                            `users/${participantId}/experiments/${experimentId}`
-                        );
-
-                        let readingEvents = events.filter(e =>
-                            e.phase === 'reading' &&
-                            (e.eventType === 'scroll_action' || e.eventType === 'focus_switch' ||
-                             e.eventType === 'tab_switch' || e.eventType === 'llm_activity' ||
-                             e.eventType === 'text_selection' || e.eventType === 'resource_tab_switch' ||
-                             e.eventType === 'audio_play' || e.eventType === 'audio_pause' ||
-                             e.eventType === 'audio_ended' || e.eventType === 'audio_seeked' ||
-                             e.eventType === 'video_play' || e.eventType === 'video_pause' ||
-                             e.eventType === 'video_ended' || e.eventType === 'video_seeked' ||
-                             e.eventType === 'socratic_question_requested' || e.eventType === 'socratic_question_generated' ||
-                             e.eventType === 'socratic_initial_answer_submitted' || e.eventType === 'socratic_feedback_received' ||
-                             e.eventType === 'socratic_revised_answer_submitted')
-                        );
-
-                        if (finalEvent) {
-                            readingEvents = [...readingEvents, finalEvent];
-                        }
-
-                        const updateData = {
-                            'reading.duration': readingDuration,
-                            'reading.focusTimes': finalFocusTimes,
-                            'reading.classificationSummary': classificationSummary,
-                            'reading.events': readingEvents,
-                            'reading.completedAt': window.firebaseServerTimestamp()
-                        };
-
-                        if ((condition === 'control' || condition === 'ebm' || condition === 'ebm_coach' || condition === 'ebm_action' || condition === 'ebm_cimo') && chatHistory.length > 0) {
-                            updateData['llmInteraction.messages'] = chatHistory;
-                            updateData['llmInteraction.totalQueries'] = chatHistory.length;
-                        }
-
-                        // Save extended condition data
-                        if (condition === 'control' || condition === 'ebm' || condition === 'ebm_coach' || condition === 'ebm_action' || condition === 'ebm_cimo') {
-                            updateData['extendedResources.resourcesAvailable'] = {
-                                infographics: !!resourceContent.infographics,
-                                video: !!videoSlideshow,
-                                audio: !!resourceContent.audio,
-                                simplified: !!resourceContent.simplified
-                            };
-
-                            // Count audio events
-                            const audioEvents = events.filter(e =>
-                                e.eventType === 'audio_play' ||
-                                e.eventType === 'audio_pause' ||
-                                e.eventType === 'audio_ended' ||
-                                e.eventType === 'audio_seeked'
-                            );
-                            updateData['extendedResources.audioInteractions'] = audioEvents.length;
-
-                            // Count video events
-                            const videoEvents = events.filter(e =>
-                                e.eventType === 'video_play' ||
-                                e.eventType === 'video_pause' ||
-                                e.eventType === 'video_ended' ||
-                                e.eventType === 'video_seeked'
-                            );
-                            updateData['extendedResources.videoInteractions'] = videoEvents.length;
-
-                            // Count tab switches
-                            const tabSwitchEvents = events.filter(e => e.eventType === 'resource_tab_switch');
-                            updateData['extendedResources.tabSwitchCount'] = tabSwitchEvents.length;
-                        }
-
-                        // Socratic question data saving removed (condition no longer used)
-
-                        await window.firebaseUpdateDoc(experimentRef, updateData);
-                        console.log('✅ Reading phase data saved');
-                    }
-                } catch (error) {
-                    console.error('❌ Failed to save reading data:', error);
-                }
-                */
-
-                setShowFinishPopup(false);  // Reset popup state
-
-                // Update session phase to post_task
+                // Save reading data to Firebase
                 if (window.firebaseCurrentUser && sessionId && window.firebaseDb) {
                     try {
                         const sessionRef = window.firebaseDoc(
                             window.firebaseDb,
                             `users/${window.firebaseCurrentUser.uid}/sessions/${sessionId}`
                         );
+
+                        // Filter relevant reading events
+                        let readingEvents = events.filter(e =>
+                            e.phase === 'reading' &&
+                            (e.eventType === 'scroll_action' || e.eventType === 'focus_switch' ||
+                             e.eventType === 'llm_activity' || e.eventType === 'text_selection' ||
+                             e.eventType === 'resource_tab_switch' || e.eventType === 'pdf_activity' ||
+                             e.eventType === 'audio_play' || e.eventType === 'audio_pause' ||
+                             e.eventType === 'audio_ended' || e.eventType === 'audio_seeked' ||
+                             e.eventType === 'video_play' || e.eventType === 'video_pause' ||
+                             e.eventType === 'video_ended' || e.eventType === 'video_seeked' ||
+                             e.eventType === 'llm_question_asked' || e.eventType === 'llm_answer_received' ||
+                             e.eventType === 'panel_resized' || e.eventType === 'window_focus_change')
+                        );
+
+                        // Add final event if exists
+                        if (finalEvent) {
+                            readingEvents = [...readingEvents, finalEvent];
+                        }
+
+                        // Count media interactions
+                        const audioInteractions = events.filter(e =>
+                            e.eventType.startsWith('audio_')
+                        ).length;
+                        const videoInteractions = events.filter(e =>
+                            e.eventType.startsWith('video_')
+                        ).length;
+                        const tabSwitchCount = events.filter(e =>
+                            e.eventType === 'resource_tab_switch'
+                        ).length;
+
+                        // Build reading data object
+                        const readingData = {
+                            startedAt: phaseStartTime.current,
+                            completedAt: Date.now(),
+                            totalDuration: readingDuration,
+                            focusTimes: finalFocusTimes,
+                            classificationSummary,
+                            externalToolUsage: {
+                                usedExternalAi,
+                                usedExternalPdfViewer
+                            },
+                            resourcesUsed: {
+                                infographics: !!resourceContent.infographics,
+                                video: !!videoSlideshow,
+                                audio: !!resourceContent.audio,
+                                audioInteractions,
+                                videoInteractions,
+                                tabSwitchCount
+                            },
+                            chatHistory: chatHistory,
+                            events: readingEvents
+                        };
+
                         await window.firebaseUpdateDoc(sessionRef, {
+                            reading: readingData,
                             currentPhase: 'post_task'
                         });
-                        console.log('✅ Session phase updated to post_task');
-                    } catch (err) {
-                        console.error('Error updating session phase:', err);
+
+                        console.log('✅ Reading data saved to Firebase');
+                    } catch (error) {
+                        console.error('❌ Failed to save reading data:', error);
                     }
                 }
+
+                setShowFinishPopup(false);  // Reset popup state
 
                 // Redirect to post-task.html
                 setIsRedirecting(true);
