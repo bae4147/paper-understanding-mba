@@ -4011,6 +4011,10 @@ Provide constructive feedback to help the reader think more critically about thi
 
                         {/* Main content */}
                         <div ref={containerRef} className="flex-1 flex overflow-hidden relative">
+                            {/* Resize overlay - prevents PDF embed from capturing mouse events during resize */}
+                            {isResizing && (
+                                <div className="absolute inset-0 z-50 cursor-col-resize" />
+                            )}
                             {/* Left Panel - Paper */}
                             <div
                                 className={`bg-white flex flex-col overflow-hidden absolute top-0 bottom-0 left-0 ${
