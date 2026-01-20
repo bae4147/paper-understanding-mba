@@ -50,13 +50,7 @@
             const [filterDate, setFilterDate] = useState(DEFAULT_FILTER_DATE);
             const [filterTime, setFilterTime] = useState(DEFAULT_FILTER_TIME);
 
-            // Condition counts from meta/conditionCounts
-            const [conditionCounts, setConditionCounts] = useState({
-                without_llm: 0,
-                with_llm: 0,
-                with_llm_extended: 0
-            });
-
+            
             // Randomization counter for new experiment (control/ebm_cimo)
             const [randomizationCounter, setRandomizationCounter] = useState({ index: 0 });
 
@@ -114,9 +108,6 @@
 
             // Calculate filtered condition counts
             const filteredConditionCounts = {
-                without_llm: filteredExperiments.filter(e => e.condition === 'without_llm').length,
-                with_llm: filteredExperiments.filter(e => e.condition === 'with_llm').length,
-                with_llm_extended: filteredExperiments.filter(e => e.condition === 'with_llm_extended').length,
                 control: filteredExperiments.filter(e => e.condition === 'control').length,
                 ebm_cimo: filteredExperiments.filter(e => e.condition === 'ebm_cimo').length
             };
@@ -127,19 +118,7 @@
                 in_progress: filteredExperiments.filter(e => e.status !== 'completed').length
             };
 
-            // Load condition counts
-            const loadConditionCounts = async () => {
-                try {
-                    const counterRef = db.collection('meta').doc('conditionCounts');
-                    const doc = await counterRef.get();
-                    if (doc.exists) {
-                        setConditionCounts(doc.data());
-                    }
-                } catch (error) {
-                    console.error('Error loading condition counts:', error);
-                }
-            };
-
+            
             // Load randomization counter and user condition stats
             const loadRandomizationStats = async () => {
                 try {
@@ -180,7 +159,6 @@
 
             useEffect(() => {
                 loadExperiments();
-                loadConditionCounts();
                 loadRandomizationStats();
                 loadUserConditionCounts();
             }, []);
@@ -1690,29 +1668,7 @@
                                 </h2>
                             </div>
 
-                            {/* Condition Distribution */}
-                            <div className="grid grid-cols-4 gap-4">
-                                <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-gray-500">
-                                    <div className="text-sm text-gray-600">Without LLM</div>
-                                    <div className="text-3xl font-bold text-gray-700">{filteredConditionCounts.without_llm}</div>
-                                </div>
-                                <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                                    <div className="text-sm text-gray-600">With LLM</div>
-                                    <div className="text-3xl font-bold text-purple-600">{filteredConditionCounts.with_llm}</div>
-                                </div>
-                                <div className="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500">
-                                    <div className="text-sm text-gray-600">With LLM Extended</div>
-                                    <div className="text-3xl font-bold text-indigo-600">{filteredConditionCounts.with_llm_extended}</div>
-                                </div>
-                                <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                                    <div className="text-sm text-gray-600">Total</div>
-                                    <div className="text-3xl font-bold text-blue-600">
-                                        {filteredConditionCounts.without_llm + filteredConditionCounts.with_llm + filteredConditionCounts.with_llm_extended}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* New Experiment: User-level Condition Assignment Stats */}
+                            {/* User-level Condition Assignment Stats */}
                             <div className="mt-6 pt-4 border-t border-gray-200">
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-sm font-semibold text-gray-700">Randomization Status (Excluding Test Accounts)</h3>
@@ -1744,24 +1700,6 @@
                                     Sequence: [control, ebm_cimo, ebm_cimo, control, control, ebm_cimo, ebm_cimo, control] (repeating)
                                 </div>
                             </div>
-
-                            {/* Global counter from Firebase (for reference) */}
-                            {!filterEnabled && (
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <div className="text-xs text-gray-500 mb-2">Global Assignment Counter (from Firebase):</div>
-                                    <div className="flex space-x-4 text-xs text-gray-600">
-                                        <span>Without LLM: {conditionCounts.without_llm || 0}</span>
-                                        <span>With LLM: {conditionCounts.with_llm || 0}</span>
-                                        <span>Extended: {conditionCounts.with_llm_extended || 0}</span>
-                                        <button
-                                            onClick={loadConditionCounts}
-                                            className="text-blue-600 hover:text-blue-800"
-                                        >
-                                            Refresh
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <div className="flex justify-between items-center mb-6">
@@ -1772,7 +1710,7 @@
                                 }
                             </div>
                             <button
-                                onClick={() => { loadExperiments(); loadConditionCounts(); loadRandomizationStats(); loadUserConditionCounts(); }}
+                                onClick={() => { loadExperiments(); loadRandomizationStats(); loadUserConditionCounts(); }}
                                 disabled={loading}
                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
                             >
