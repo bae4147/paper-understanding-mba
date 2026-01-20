@@ -1129,22 +1129,20 @@
                 }
             }, [phase, paperContent]);
 
-            // Save events to Firebase
-            // Firebase saving disabled
-            /*
+            // Save events to Firebase (auto-save every 20 events)
             const saveEventsToFirebase = async (eventsBatch, isPartialSave = true) => {
                 if (isSaving.current) return false;
                 isSaving.current = true;
 
                 try {
-                    if (!window.firebaseDb || !participantId || !experimentId) {
+                    if (!window.firebaseDb || !window.firebaseCurrentUser || !sessionId) {
                         isSaving.current = false;
                         return false;
                     }
 
-                    const experimentRef = window.firebaseDoc(
+                    const sessionRef = window.firebaseDoc(
                         window.firebaseDb,
-                        `users/${participantId}/experiments/${experimentId}`
+                        `users/${window.firebaseCurrentUser.uid}/sessions/${sessionId}`
                     );
 
                     const readingEvents = eventsBatch.filter(e =>
@@ -1155,6 +1153,7 @@
                          e.eventType === 'llm_activity' ||
                          e.eventType === 'text_selection' ||
                          e.eventType === 'resource_tab_switch' ||
+                         e.eventType === 'pdf_activity' ||
                          e.eventType === 'audio_play' ||
                          e.eventType === 'audio_pause' ||
                          e.eventType === 'audio_ended' ||
@@ -1162,7 +1161,11 @@
                          e.eventType === 'video_play' ||
                          e.eventType === 'video_pause' ||
                          e.eventType === 'video_ended' ||
-                         e.eventType === 'video_seeked')
+                         e.eventType === 'video_seeked' ||
+                         e.eventType === 'llm_question_asked' ||
+                         e.eventType === 'llm_answer_received' ||
+                         e.eventType === 'panel_resized' ||
+                         e.eventType === 'window_focus_change')
                     );
 
                     if (readingEvents.length === 0) {
@@ -1170,7 +1173,7 @@
                         return true;
                     }
 
-                    const docSnap = await window.firebaseGetDoc(experimentRef);
+                    const docSnap = await window.firebaseGetDoc(sessionRef);
                     const existingEvents = docSnap.exists() && docSnap.data().reading?.events
                         ? docSnap.data().reading.events
                         : [];
@@ -1191,7 +1194,7 @@
 
                     const mergedEvents = [...existingEvents, ...newEventsOnly].sort((a, b) => a.timestamp - b.timestamp);
 
-                    await window.firebaseUpdateDoc(experimentRef, {
+                    await window.firebaseUpdateDoc(sessionRef, {
                         'reading.events': mergedEvents,
                         'reading.lastAutoSave': window.firebaseServerTimestamp(),
                         'reading.totalEvents': mergedEvents.length
@@ -1210,7 +1213,6 @@
                     return false;
                 }
             };
-            */
 
             // Log event
             const logEvent = async (eventType, additionalData = {}) => {
@@ -1236,13 +1238,13 @@
                 setEvents(prev => {
                     const newEvents = [...prev, event];
 
-                    // Firebase saving disabled
-                    // if (phase === 'reading') {
-                    //     unsavedEventsCount.current++;
-                    //     if (unsavedEventsCount.current >= 20) {
-                    //         saveEventsToFirebase(newEvents, true);
-                    //     }
-                    // }
+                    // Auto-save to Firebase every 20 events
+                    if (phase === 'reading') {
+                        unsavedEventsCount.current++;
+                        if (unsavedEventsCount.current >= 20) {
+                            saveEventsToFirebase(newEvents, true);
+                        }
+                    }
 
                     return newEvents;
                 });
