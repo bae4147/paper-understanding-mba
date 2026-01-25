@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Task 응답 뷰어</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+    h2 { color: #555; margin-top: 40px; }
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-box {
+      background: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stat-box .number { font-size: 2em; font-weight: bold; color: #2196F3; }
+    .stat-box .label { color: #666; }
+    .filters {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      background: #e0e0e0;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { background: #ccc; }
+    .filter-btn.active { background: #2196F3; color: white; }
+    .filter-btn.control.active { background: #4CAF50; }
+    .filter-btn.ebm.active { background: #FF9800; }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card.control { border-left: 4px solid #4CAF50; }
+    .card.ebm_cimo { border-left: 4px solid #FF9800; }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .user-info { flex: 1; min-width: 200px; }
+    .user-name { font-weight: bold; font-size: 1.1em; }
+    .user-email { color: #666; font-size: 0.9em; }
+    .user-meta { color: #888; font-size: 0.85em; margin-top: 5px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      font-weight: bold;
+    }
+    .badge.control { background: #E8F5E9; color: #2E7D32; }
+    .badge.ebm_cimo { background: #FFF3E0; color: #E65100; }
+    .paper-info {
+      background: #f8f9fa;
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 0.9em;
+    }
+    .paper-title { font-weight: bold; color: #333; }
+    .section { margin-top: 15px; }
+    .section-title {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title .icon { font-size: 1.2em; }
+    .response-text {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      font-size: 0.95em;
+      line-height: 1.7;
+    }
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .rating-value {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #2196F3;
+    }
+    .rating-label { color: #666; }
+    .rating-bar {
+      flex: 1;
+      max-width: 200px;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .rating-fill {
+      height: 100%;
+      background: #2196F3;
+      border-radius: 4px;
+    }
+    .hidden { display: none !important; }
+    .search-box {
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      width: 300px;
+      font-size: 14px;
+    }
+    .no-results {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    @media (max-width: 768px) {
+      .card-header { flex-direction: column; }
+      .search-box { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <h1>📝 Post Task 응답 뷰어</h1>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="number">37</div>
+      <div class="label">총 응답</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">19</div>
+      <div class="label">Control</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">18</div>
+      <div class="label">EBM-CIMO</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">전체</button>
+    <button class="filter-btn control" data-filter="control">Control</button>
+    <button class="filter-btn ebm" data-filter="ebm_cimo">EBM-CIMO</button>
+    <input type="text" class="search-box" placeholder="이름, 이메일, 내용 검색..." id="searchBox">
+  </div>
+
+  <div id="cards">
+    
+    <div class="card control" data-condition="control" data-search="kylene ike ike.34@osu.edu {&quot;completedat&quot;:&quot;2026-01-20t19:57:30.356z&quot;,&quot;implementationlikelihood&quot;:2,&quot;strategies&quot;:[&quot;if i were in upper leadership and had the ability to implement changes that would lead to greater nurse retention, i would absolutely do so. as i am in the bottom rung of leadership now, i cannot realistically do much to tackle this problem head on. i could express to my leadership team that this topic is important to me and see if i could get involved somehow in addressing this problem. \nif i were in upper leadership and could implement a change, i would start performing exit interviews on all my nurses leaving to gather data on why they are leaving the hospital. i would gather data on what i am spending now on experienced nurse salaries vs new grad salaries and compare that difference to the cost in this research of losing those experienced nurses. i hypothesize that the cost of losing them is greater than the cost of keeping them to prove that hiring new nursing grads does not solve our nursing shortage problems. we would need to refocus our efforts away from training new nurses to how to retain our seasoned nurses. &quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;i suspected there was a huge economic cost in losing experienced nurses, but i was shocked to find out just how much. i  liked this article because it was analyzing many different studies so you get a broader view of the situation. the research is about the economical and non-economical consequences of seasoned nurses leaving their jobs and i am not planning on leaving mine, although i witness this trend every year. i am concerned that osu is satisfied with just hiring more new graduates instead of attempting to retain seasoned nurses because osu can pay new grads less, but i wonder if this could be a financial mistake. all the hospital sees is that they can pay a new grad less and not the huge financial implications of seasoned nurses leaving. it is a little hard for me to answer the question of key differences between myself and this article because i am not planning on leaving my job. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Kylene Ike</div>
+          <div class="user-email">ike.34@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 21.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Noneconomic and economic impacts of nurse turnover in hospitals: A systematic review</div>
+        <div>Bae (2022)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">If I were in upper leadership and had the ability to implement changes that would lead to greater nurse retention, I would absolutely do so. As I am in the bottom rung of leadership now, I cannot realistically do much to tackle this problem head on. I could express to my leadership team that this topic is important to me and see if I could get involved somehow in addressing this problem. <br>If I were in upper leadership and could implement a change, I would start performing exit interviews on all my nurses leaving to gather data on why they are leaving the hospital. I would gather data on what I am spending now on experienced nurse salaries vs new grad salaries and compare that difference to the cost in this research of losing those experienced nurses. I hypothesize that the cost of losing them is greater than the cost of keeping them to prove that hiring new nursing grads does not solve our nursing shortage problems. We would need to refocus our efforts away from training new nurses to how to retain our seasoned nurses. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">I suspected there was a huge economic cost in losing experienced nurses, but I was shocked to find out just how much. I  liked this article because it was analyzing many different studies so you get a broader view of the situation. The research is about the economical and non-economical consequences of seasoned nurses leaving their jobs and I am not planning on leaving mine, although I witness this trend every year. I am concerned that OSU is satisfied with just hiring more new graduates instead of attempting to retain seasoned nurses because OSU can pay new grads less, but I wonder if this could be a financial mistake. All the hospital sees is that they can pay a new grad less and not the huge financial implications of seasoned nurses leaving. It is a little hard for me to answer the question of key differences between myself and this article because I am not planning on leaving my job. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">2</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 28.57142857142857%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="elaine ortiz ortizsanchez.1@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-21t04:11:11.355z&quot;,&quot;implementationlikelihood&quot;:7,&quot;strategies&quot;:[&quot;i think that the college of medicine does a wonderful job of allowing for student led initiatives. i think that in a future role, i would love to work with the different specialties to help create those opportunities for students and gme trainees alike to become stakeholders not only for their own personal growth and improvement of the programs, but to help advance them in their careers.&quot;],&quot;newstrategyconfidence&quot;:7,&quot;contexttranslation&quot;:[&quot;at least 50% of my role is working closely with medical students through their required rotations and preparing them for residency. i work in an extremely competitive surgical specialty, so we see some of the most motivated and informed students of each class. this article spoke to me on many levels. i am able to relate to many of the student initiatives because i have watched them unfold here at osu. i also aspire to work in medical education leadership so i am fascinated at the endless possibilities of working alongside trainees and other long time leaders to help to maintain one of the most sought after programs in the country. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Elaine Ortiz</div>
+          <div class="user-email">ortizsanchez.1@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 21.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Student-Led Initiatives and Advocacy in Academic Medicine: Empowering the Leaders of Tomorrow</div>
+        <div>Forrest (2022)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">I think that the College of Medicine does a wonderful job of allowing for student led initiatives. I think that in a future role, I would love to work with the different specialties to help create those opportunities for students and GME trainees alike to become stakeholders not only for their own personal growth and improvement of the programs, but to help advance them in their careers.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">At least 50% of my role is working closely with medical students through their required rotations and preparing them for residency. I work in an extremely competitive surgical specialty, so we see some of the most motivated and informed students of each class. This article spoke to me on many levels. I am able to relate to many of the student initiatives because I have watched them unfold here at OSU. I also aspire to work in medical education leadership so I am fascinated at the endless possibilities of working alongside trainees and other long time leaders to help to maintain one of the most sought after programs in the country. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="siddharth veer veer.3@osu.edu {&quot;completedat&quot;:&quot;2026-01-22t01:55:47.589z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;it is a direct resource for empathy leadership and had some valid tests&quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;yes this would matter because they have scientific evidence with the research , which is better than intuition findings, and can shed light on the empathy leadership&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Siddharth Veer</div>
+          <div class="user-email">veer.3@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 22.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 EMPOWERING LEADERSHIP IN MANAGEMENT TEAMS: EFFECTS ON KNOWLEDGE SHARING, EFFICACY, AND PERFORMANCE</div>
+        <div>Srivastava (2006)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">it is a direct resource for empathy leadership and had some valid tests</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">Yes this would matter because they have scientific evidence with the research , which is better than intuition findings, and can shed light on the empathy leadership</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="andrew garzony garzony.3@osu.edu {&quot;completedat&quot;:&quot;2026-01-22t02:00:36.984z&quot;,&quot;implementationlikelihood&quot;:2,&quot;strategies&quot;:[&quot;in addition to studying transformational leadership to help improve my organization, the article suggests looking into other related styles of leadership. for example, authentic, ethical, and servant leadership styles have overlapping qualities that could be beneficial as well. to practice, coming up with a list of strengths &amp; weaknesses about your approach is a self awareness exercise for authentic leadership. furthermore, having ethics based discussions with team members can facilitate two-way communication that enhances ethical leadership. finally, performing volunteer work with teammates will focus on building servant leaders. &quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;this article provided a framework for how to view transformational leadership. focusing on dimensions like idealized influence, inspirational motivation, intellectual stimulation, and individual consideration, the article wanted to describe behaviors that inspire, empower, and aim to develop others. one of the key differences between these dimensions and my work is the laissez faire approaches to leadership within my company. there are many people who are fine doing their work and going home and making impactful change is not high on their to-do list. although, navigating this may be challenging, one of the dimensions, inspirational motivation, could help inspire these laissez faire leaders to action.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Andrew Garzony</div>
+          <div class="user-email">garzony.3@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 22.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Transformational leadership effectiveness: an evidence-based primer</div>
+        <div>Deng (2023)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">In addition to studying transformational leadership to help improve my organization, the article suggests looking into other related styles of leadership. For example, Authentic, Ethical, and Servant leadership styles have overlapping qualities that could be beneficial as well. To practice, coming up with a list of strengths &amp; weaknesses about your approach is a self awareness exercise for Authentic Leadership. Furthermore, having ethics based discussions with team members can facilitate two-way communication that enhances Ethical Leadership. Finally, performing volunteer work with teammates will focus on building Servant Leaders. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">This article provided a framework for how to view Transformational Leadership. Focusing on dimensions like Idealized Influence, Inspirational Motivation, Intellectual Stimulation, and Individual Consideration, the article wanted to describe behaviors that inspire, empower, and aim to develop others. One of the key differences between these dimensions and my work is the laissez faire approaches to leadership within my company. There are many people who are fine doing their work and going home and making impactful change is not high on their to-do list. Although, navigating this may be challenging, one of the dimensions, Inspirational Motivation, could help inspire these laissez faire leaders to action.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">2</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 28.57142857142857%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="sarajean petite petite.9@osu.edu {&quot;implementationlikelihood&quot;:4,&quot;newstrategyconfidence&quot;:4,&quot;completedat&quot;:&quot;2026-01-22t02:58:42.512z&quot;,&quot;strategies&quot;:[&quot;the practical takeway is that abusive managers make people sick, so organizations should avoid hiring abusive managers, and organizations should educate leaders about abusive management styles and train managers not to be abusive.&quot;],&quot;contexttranslation&quot;:[&quot;the primary difference is that the study took place in japan and my organization is in the united states. the article cites studies from other countries, so the findings are likely to have some relevance.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">SaraJean Petite</div>
+          <div class="user-email">petite.9@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 22.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Abusive supervision and subordinates’ physical and mental health: the effects of job satisfaction and power distance orientation</div>
+        <div>Peltokorpi (2021)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">The practical takeway is that abusive managers make people sick, so organizations should avoid hiring abusive managers, and organizations should educate leaders about abusive management styles and train managers not to be abusive.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The primary difference is that the study took place in Japan and my organization is in the United States. The article cites studies from other countries, so the findings are likely to have some relevance.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="justin johnston johnston.785@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-22t03:12:32.691z&quot;,&quot;implementationlikelihood&quot;:7,&quot;strategies&quot;:[&quot;one takeaway from this article is that part of restoring authentic leadership is showing your team an ability to bounce back quickly from catastrophic circumstances, and relating to all stakeholders. i would test this in the workplace through a survey approach with my direct reports, and then further take steps to focus on areas that need improvement. &quot;],&quot;newstrategyconfidence&quot;:7,&quot;contexttranslation&quot;:[&quot;in my workplace, my manager leads with an \&quot;i trust you to do your job\&quot; approach. but also is authentic in my eyes. the biggest difference between the research context and my own situation is the sheer size of the team that my supervisor manages, we are a team of 10-12 people while the article referencing leaders from an organizational perspective. i do not work with any folks who are at the top of the osu medical center organization. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Justin Johnston</div>
+          <div class="user-email">johnston.785@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 22.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Authentic leadership development: Getting to the root of positive forms of leadership</div>
+        <div>Avolio (2005)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">One takeaway from this article is that part of restoring authentic leadership is showing your team an ability to bounce back quickly from catastrophic circumstances, and relating to all stakeholders. I would test this in the workplace through a survey approach with my direct reports, and then further take steps to focus on areas that need improvement. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">In my workplace, my manager leads with an &quot;I trust you to do your job&quot; approach. But also is authentic in my eyes. The biggest difference between the research context and my own situation is the sheer size of the team that my supervisor manages, We are a team of 10-12 people while the article referencing leaders from an organizational perspective. I do not work with any folks who are at the top of the OSU Medical Center organization. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="henry ferris ferris.129@osu.edu {&quot;completedat&quot;:&quot;2026-01-22t15:54:50.215z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;the article examines the impacts leadership has on performance and job satisfaction. one relevant takeaway from this research was the direct impact employee performance and power sharing have on overall job satisfaction. these concepts can be implemented in my current workplace by providing opportunities for employees to participate in more impactful projects, thus creating more trust between the employee and leader. for example, allowing employees to take part in projects that interest them, and giving them a meaningful role, will enhance how they perceive their value to the team and therefore boost satisfaction.&quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;the research focuses on data from public high schools when examining leadership impacts on empowerment. the context of this study differs from my current situation, as i work in a corporate environment. however, i think there are still some useful takeaways related to overall hierarchical structure that can be implemented in a corporate setting. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Henry Ferris</div>
+          <div class="user-email">ferris.129@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 23.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Empowering leadership: An examination of mediating mechanisms within a hierarchical structure</div>
+        <div>Vecchio (2010)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">The article examines the impacts leadership has on performance and job satisfaction. One relevant takeaway from this research was the direct impact employee performance and power sharing have on overall job satisfaction. These concepts can be implemented in my current workplace by providing opportunities for employees to participate in more impactful projects, thus creating more trust between the employee and leader. For example, allowing employees to take part in projects that interest them, and giving them a meaningful role, will enhance how they perceive their value to the team and therefore boost satisfaction.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The research focuses on data from public high schools when examining leadership impacts on empowerment. The context of this study differs from my current situation, as I work in a corporate environment. However, I think there are still some useful takeaways related to overall hierarchical structure that can be implemented in a corporate setting. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="janette elizabeth stalnaker stalnaker.63@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-22t15:47:43.980z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;a key takeaway from the article is that social support can reduce the negative effects of abusive leadership, especially for employees who naturally seek collaboration. in practice, this could be tested by intentionally strengthening peer support through informal mentoring, buddy systems, or regular team check-ins that create safe spaces to talk through challenges. my approach would be to pilot low-cost, low-risk support structures, such as assigning mentors or encouraging cross-team peer networks, and then observe changes in engagement, collaboration, or discretionary effort over time. this allows the insight to be applied without relying on personality screening or tolerating poor leadership behavior.&quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;the study was conducted in a single banking organization in india, a higher power-distance context than my own. in my environment, abusive leadership is less tolerated and more likely to trigger formal action or turnover. the research also assumes in-person, stable work relationships, whereas many workplaces today are more hybrid, which can reduce access to social support. these differences don’t invalidate the findings, but they may affect how strongly they apply in practice.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Janette Elizabeth Stalnaker</div>
+          <div class="user-email">stalnaker.63@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 23.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Coping with abusive leaders</div>
+        <div>P.B. (2020)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">A key takeaway from the article is that social support can reduce the negative effects of abusive leadership, especially for employees who naturally seek collaboration. In practice, this could be tested by intentionally strengthening peer support through informal mentoring, buddy systems, or regular team check-ins that create safe spaces to talk through challenges. My approach would be to pilot low-cost, low-risk support structures, such as assigning mentors or encouraging cross-team peer networks, and then observe changes in engagement, collaboration, or discretionary effort over time. This allows the insight to be applied without relying on personality screening or tolerating poor leadership behavior.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The study was conducted in a single banking organization in India, a higher power-distance context than my own. In my environment, abusive leadership is less tolerated and more likely to trigger formal action or turnover. The research also assumes in-person, stable work relationships, whereas many workplaces today are more hybrid, which can reduce access to social support. These differences don’t invalidate the findings, but they may affect how strongly they apply in practice.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="emily morgan morgan.1946@osu.edu {&quot;completedat&quot;:&quot;2026-01-22t17:10:42.389z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;realistically, i think it&#039;s identifying the behaviors associated with abusive supervision and highlighting the negative impacts to the work environment. personally, i can identify the behaviors and ensure i steer clear of them and any adjacent actions that could be misinterpreted as abusive supervision. as an analyst, i can only identify issues with my boss, and in my experience she has dismissed my concerns as she is not having the same experience. &quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;i find that i can generally apply the article&#039;s conclusion to my own context. abusive supervision creates a hostile work environment and undermines one&#039;s self-efficacy. cultural differences play into perceptions related to abusive supervision.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Emily Morgan</div>
+          <div class="user-email">morgan.1946@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 23.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 A review of abusive supervision research</div>
+        <div>Martinko (2013)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Realistically, I think it&#039;s identifying the behaviors associated with abusive supervision and highlighting the negative impacts to the work environment. Personally, I can identify the behaviors and ensure I steer clear of them and any adjacent actions that could be misinterpreted as abusive supervision. As an analyst, I can only identify issues with my boss, and in my experience she has dismissed my concerns as she is not having the same experience. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">I find that I can generally apply the article&#039;s conclusion to my own context. Abusive supervision creates a hostile work environment and undermines one&#039;s self-efficacy. Cultural differences play into perceptions related to abusive supervision.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="john li li.8019@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-23t05:07:11.706z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;i can see how employees feel about workplace development and if there is a correlation between employees that left and their overall satisfaction with workplace development. &quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;i would say the research emphasizes the importance of continuous learning is order to see growth and talent buildout which leads to retention. sometimes, training and employee too well can lead to employees leaving the organization since they now possess skills that can be applied elsewhere. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">John Li</div>
+          <div class="user-email">li.8019@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 23.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Human Resource Management in the Public Service</div>
+        <div>Margerison (2008)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">I can see how employees feel about workplace development and if there is a correlation between employees that left and their overall satisfaction with workplace development. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">I would say the research emphasizes the importance of continuous learning is order to see growth and talent buildout which leads to retention. Sometimes, training and employee too well can lead to employees leaving the organization since they now possess skills that can be applied elsewhere. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="marcus ernst ernst.179@osu.edu {&quot;completedat&quot;:&quot;2026-01-23t16:42:16.130z&quot;,&quot;implementationlikelihood&quot;:5,&quot;strategies&quot;:[&quot;focus on employee development. encourage leaders to prioritize the growth and well-being of employees. this could involve providing training programs that emphasize empathy, support, and empowerment. another is to create a supportive environment and culture. develop a culture where leaders actively help employees with challenges, fostering a sense of community and support. lastly, encourage open communication. implement regular check-ins and feedback sessions to enhance transparency. leaders should share their thoughts and invite employees to express their concerns and ideas.&quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;the article concludes that servant leadership in the hospitality industry is the most effective leadership style for an organization. this situation is much different from my current organization. first, this research was done in china. second, i am not in the hospitality industry. i am in development for collegiate athletics. yes, these would have a large affect on how i apply these finding to my current position and situation. the culture and work are very different. but, many lessons can still be applied.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Marcus Ernst</div>
+          <div class="user-email">ernst.179@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Servant Versus Authentic Leadership: Assessing Effectiveness in China’s Hospitality Industry</div>
+        <div>Ling (2017)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Focus on Employee Development. Encourage leaders to prioritize the growth and well-being of employees. This could involve providing training programs that emphasize empathy, support, and empowerment. Another is to create a supportive environment and culture. Develop a culture where leaders actively help employees with challenges, fostering a sense of community and support. Lastly, encourage open communication. Implement regular check-ins and feedback sessions to enhance transparency. Leaders should share their thoughts and invite employees to express their concerns and ideas.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The article concludes that servant leadership in the hospitality industry is the most effective leadership style for an organization. This situation is much different from my current organization. First, this research was done in China. Second, I am not in the hospitality industry. I am in development for collegiate athletics. Yes, these would have a large affect on how I apply these finding to my current position and situation. The culture and work are very different. But, many lessons can still be applied.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="christopher yoho yoho.18@osu.edu {&quot;completedat&quot;:&quot;2026-01-23t18:31:31.059z&quot;,&quot;implementationlikelihood&quot;:5,&quot;strategies&quot;:[&quot;add more responsibility to alleviate boredom.  if employees feel empowered through additional responsibilities, their production will potentially increase.  &quot;,&quot;utilize positive coaching techniques instead of negative feedback to see how employees respond. &quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;the biggest difference in my circumstance is that results are measured via sales goals.  morale may increase but that doesn&#039;t always equate to more production. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Christopher Yoho</div>
+          <div class="user-email">yoho.18@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Empowering leadership improves employees’ positive psychological states to result in more favorable behaviors</div>
+        <div>Kim (2023)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Add more responsibility to alleviate boredom.  If employees feel empowered through additional responsibilities, their production will potentially increase.  <br><br>Utilize positive coaching techniques instead of negative feedback to see how employees respond. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The biggest difference in my circumstance is that results are measured via sales goals.  Morale may increase but that doesn&#039;t always equate to more production. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="kylene ike ike.34@osu.edu {&quot;completedat&quot;:&quot;2026-01-23t18:48:51.709z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;i think it is really important to guide my own actions from a moral and ethical place. i have always tried to do this. acting with integrity is important to all of my interactions, so in that way, nothing has changed. i think the biggest takeaway from me is thinking about how i could help shape my company and contribute to its ethical practices, even though i don&#039;t hold a position of much power. i like what the article said about the difference between an ethical leader and just an ethical person is maintaining a visionary path forward. it encourages me to think about my ethics in a bigger way, not just my own actions. i can bring these ideas to our meetings as a contributor to my team. &quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;i am in a low-level leadership position but there is really nothing from stopping me from applying the findings in this article. i don&#039;t have a lot of power where i work currently, but in the position i am in now, i can implement the key ideas from this article about ethical leadership. the key difference is that i don&#039;t really have much power to change things at an institutional level, all i really have the power to do is change myself and let those changes positively impact the people i interact with. if i ever move my way up higher in leadership, i can have more of an effect on the greater whole of the company to steer it in a direction with ethical standards in mind. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Kylene Ike</div>
+          <div class="user-email">ike.34@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Developing a Framework for Ethical Leadership</div>
+        <div>Lawton (2014)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">I think it is really important to guide my own actions from a moral and ethical place. I have always tried to do this. Acting with integrity is important to all of my interactions, so in that way, nothing has changed. I think the biggest takeaway from me is thinking about how I could help shape my company and contribute to its ethical practices, even though I don&#039;t hold a position of much power. i like what the article said about the difference between an ethical leader and just an ethical person is maintaining a visionary path forward. It encourages me to think about my ethics in a bigger way, not just my own actions. I can bring these ideas to our meetings as a contributor to my team. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">I am in a low-level leadership position but there is really nothing from stopping me from applying the findings in this article. I don&#039;t have a lot of power where I work currently, but in the position I am in now, I can implement the key ideas from this article about ethical leadership. The key difference is that I don&#039;t really have much power to change things at an institutional level, all I really have the power to do is change myself and let those changes positively impact the people i interact with. If I ever move my way up higher in leadership, I can have more of an effect on the greater whole of the company to steer it in a direction with ethical standards in mind. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="ashley aldridge ashley.aldridge@osumc.edu {&quot;completedat&quot;:&quot;2026-01-23t19:19:11.524z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;practical takeaways i could implement in my workplace include:  encouraging autonomy by allowing healthcare professionals to make decisions to enhance a sense of ownership and motivation; fostering open communication by facilitating regular meetings and feedback sessions to allow team members to be vocal; advocate for participative decision-making to increase buy-in and commitment; provide support and resources to ensure team members have keys to be successful; recognize and celebrate contributions; model empowering behaviors; implement feedback mechanisms; and adapt leadership styles. \n\ni could create surveys or questionnaires or organize focus groups to assess employee perceptions of empowerment and to gauge satisfaction with leadership practices.&quot;],&quot;newstrategyconfidence&quot;:3,&quot;contexttranslation&quot;:[&quot;the research article broadly focuses on various organizational contexts and settings. because of its scope and analysis of a variety of studies in its review/meta-analysis methodology, it can be applied to the healthcare context in which i work.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Ashley Aldridge</div>
+          <div class="user-email">ashley.aldridge@osumc.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 A review of the effectiveness of empowering leadership</div>
+        <div>Cheong (2019)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Practical takeaways I could implement in my workplace include:  encouraging autonomy by allowing healthcare professionals to make decisions to enhance a sense of ownership and motivation; fostering open communication by facilitating regular meetings and feedback sessions to allow team members to be vocal; advocate for participative decision-making to increase buy-in and commitment; provide support and resources to ensure team members have keys to be successful; recognize and celebrate contributions; model empowering behaviors; implement feedback mechanisms; and adapt leadership styles. <br><br>I could create surveys or questionnaires or organize focus groups to assess employee perceptions of empowerment and to gauge satisfaction with leadership practices.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The research article broadly focuses on various organizational contexts and settings. Because of its scope and analysis of a variety of studies in its review/meta-analysis methodology, it can be applied to the healthcare context in which I work.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">3</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 42.857142857142854%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="daniel rice rice.576@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-23t20:11:54.705z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;after reflecting on the article, i think the my workplace does mirror that conclusions quite well, although it can somewhat depend on who is leading the time. for example, in more unfamiliar or undifferentiated cases, there is generally a more participatory leadership approach allowing for input of a multidisciplinary team that generally adds additional ideas to patient management. in contrast, in \&quot;bread and butter\&quot; cases that are more frequently seen and typically rely on a directive leadership style, while it can often go very well, tends to be more prone to less efficient work flow. &quot;],&quot;newstrategyconfidence&quot;:7,&quot;contexttranslation&quot;:[&quot;the key difference between my work setting and the setting in briefly described in the article as the nature and circumstance of the emergency or unfamiliar scenario. in particular, my team working in the emergency department can be high stakes outside of business context, but representing life and death for a patient in need. in either setting, however, each person on the team is highly trained and capable of adapting to dynamic scenarios.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Daniel Rice</div>
+          <div class="user-email">rice.576@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Participative or Directive Leadership Behaviors for Decision-Making in Crisis Management Teams?</div>
+        <div>Post (2022)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">After reflecting on the article, i think the my workplace does mirror that conclusions quite well, although it can somewhat depend on who is leading the time. For example, in more unfamiliar or undifferentiated cases, there is generally a more participatory leadership approach allowing for input of a multidisciplinary team that generally adds additional ideas to patient management. In contrast, in &quot;bread and butter&quot; cases that are more frequently seen and typically rely on a directive leadership style, while it can often go very well, tends to be more prone to less efficient work flow. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The key difference between my work setting and the setting in briefly described in the article as the nature and circumstance of the emergency or unfamiliar scenario. In particular, my team working in the Emergency Department can be high stakes outside of business context, but representing life and death for a patient in need. In either setting, however, each person on the team is highly trained and capable of adapting to dynamic scenarios.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="justin kelly kelly.470@osu.edu {&quot;completedat&quot;:&quot;2026-01-23t21:04:38.195z&quot;,&quot;implementationlikelihood&quot;:2,&quot;strategies&quot;:[&quot;takeaway #1: transformational leadership substantially influences employees’ innovative work behavior. to test this takeaway, small pilot groups in various disciplines could be identified, similar to the design of this study, a good fit of leader and team pair. transformational leadership and innovation education and interventions would be provided and subsequent evaluation over 3, 6, 9 and 12 months of team dynamics and performance of tasks would be assessed. &quot;,&quot;takeaway #2: transformational leadership provides autonomy to employees to learn and creates a conducive environment for individual learning. introducing transformational leadership education to leaders and employees could certainly start everyone on the same page and they would have a shared language and standard operating procedure on how to innovatively complete tasks to achieve a common goal. &quot;],&quot;newstrategyconfidence&quot;:2,&quot;contexttranslation&quot;:[&quot;the study itself was completed internationally in pakistan. first and foremost, other reasearch would need to be corroborated to establish if similar findings could be broadly identified to ensure appropriate implementation in other countries, inlcuding the united states. this inherently may limit the generalizability and external validity of the findings.&quot;,&quot;while this study takes into account transformational leadership as a facilitator of innovative work behavior, it could not take into account other leadership styles that can potentially enhance employee innovative work behaviors. generally speaking, there are certainly a vast amount of leadership styles out there and in a large organizeation like the ohio state university, while transformation and innovation can be highly regarded, there is stil a risk involved in broadly implementating these frameworks and that could be a barrier to adoption. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Justin Kelly</div>
+          <div class="user-email">kelly.470@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Transformational leadership and innovative work behavior: The role of motivation to learn, task complexity and innovation climate</div>
+        <div>Afsar (2020)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Takeaway #1: Transformational leadership substantially influences employees’ innovative work behavior. To test this takeaway, small pilot groups in various disciplines could be identified, similar to the design of this study, a good fit of leader and team pair. Transformational leadership and innovation education and interventions would be provided and subsequent evaluation over 3, 6, 9 and 12 months of team dynamics and performance of tasks would be assessed. <br><br>Takeaway #2: Transformational leadership provides autonomy to employees to learn and creates a conducive environment for individual learning. Introducing transformational leadership education to leaders and employees could certainly start everyone on the same page and they would have a shared language and standard operating procedure on how to innovatively complete tasks to achieve a common goal. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The study itself was completed internationally in Pakistan. First and foremost, other reasearch would need to be corroborated to establish if similar findings could be broadly identified to ensure appropriate implementation in other countries, inlcuding the United States. This inherently may limit the generalizability and external validity of the findings.<br><br>While this study takes into account transformational leadership as a facilitator of innovative work behavior, it could not take into account other leadership styles that can potentially enhance employee innovative work behaviors. Generally speaking, there are certainly a vast amount of leadership styles out there and in a large organizeation like The Ohio State University, while transformation and innovation can be highly regarded, there is stil a risk involved in broadly implementating these frameworks and that could be a barrier to adoption. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">2</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 28.57142857142857%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">2</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 28.57142857142857%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="trusstin perry perry.2589@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-23t20:43:09.589z&quot;,&quot;implementationlikelihood&quot;:7,&quot;strategies&quot;:[&quot;one clear takeaway is that ethical leadership has to be visible. it cannot just be assumed. in real estate, that means being upfront about expectations, commissions, and how decisions are made. something as simple as explaining why certain decisions are made can go a long way in building trust.\n\nanother takeaway is creating an environment where people do not feel like they have to put on an act. real estate can be stressful, and a lot of agents feel pressure to always look confident even when things are not going well. encouraging open conversations about challenges and mistakes could help reduce stress and keep people engaged.\n\nlastly, the article shows that trust connects leadership behavior to performance. in practice, this means paying attention to how people respond over time. if leadership is fair and consistent, agents are more likely to stay engaged, communicate better, and perform at a higher level. these are simple things that do not cost money but can make a real difference.&quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;the study was done in a more traditional work setting where employees worked in teams under managers who had formal authority. those managers had control over things like schedules, evaluations, and job security. my situation in real estate is different. agents work more independently and are not managed in a strict top down way. most of our motivation comes from commissions and personal drive rather than direct supervision.\n\neven though the setup is different, the main takeaway still applies. in real estate, trust may actually matter more because leaders cannot force behavior. if agents do not trust leadership, they simply disengage, stop following guidance, or leave the brokerage. ethical leadership in this environment shows up through being honest, fair, and consistent. while burnout or bad behavior may look different in real estate, like cutting corners or checking out mentally, the idea that trust in leadership affects how people perform still holds true. so the context is different, but the findings still translate well.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Trusstin Perry</div>
+          <div class="user-email">perry.2589@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Linking Ethical Leadership to Employee Burnout, Workplace Deviance and Performance: Testing the Mediating Roles of Trust in Leader and Surface Acting</div>
+        <div>Mo (2015)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">One clear takeaway is that ethical leadership has to be visible. It cannot just be assumed. In real estate, that means being upfront about expectations, commissions, and how decisions are made. Something as simple as explaining why certain decisions are made can go a long way in building trust.<br><br>Another takeaway is creating an environment where people do not feel like they have to put on an act. Real estate can be stressful, and a lot of agents feel pressure to always look confident even when things are not going well. Encouraging open conversations about challenges and mistakes could help reduce stress and keep people engaged.<br><br>Lastly, the article shows that trust connects leadership behavior to performance. In practice, this means paying attention to how people respond over time. If leadership is fair and consistent, agents are more likely to stay engaged, communicate better, and perform at a higher level. These are simple things that do not cost money but can make a real difference.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The study was done in a more traditional work setting where employees worked in teams under managers who had formal authority. Those managers had control over things like schedules, evaluations, and job security. My situation in real estate is different. Agents work more independently and are not managed in a strict top down way. Most of our motivation comes from commissions and personal drive rather than direct supervision.<br><br>Even though the setup is different, the main takeaway still applies. In real estate, trust may actually matter more because leaders cannot force behavior. If agents do not trust leadership, they simply disengage, stop following guidance, or leave the brokerage. Ethical leadership in this environment shows up through being honest, fair, and consistent. While burnout or bad behavior may look different in real estate, like cutting corners or checking out mentally, the idea that trust in leadership affects how people perform still holds true. So the context is different, but the findings still translate well.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="robbie murphy murphy.1603@osu.edu {&quot;completedat&quot;:&quot;2026-01-23t21:28:43.256z&quot;,&quot;implementationlikelihood&quot;:5,&quot;strategies&quot;:[&quot;one sticking point for me is getting into the habit of self reflection and assessing how emotions shaped my decision making. another piece of action i can take is to use time weekly to jot down notes after meaningful interactions with friends, coworkers, classmates, really anyone but document those interactions. consistency is a big takeaway for developing authentic leadership, making sure you are consistent in the workplace will help drive what people see and think about you. so when it is time to make decisions or step up as a leader they know what they are getting and are not surprised by your action.&quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;the article is based on academic theory building scholarship in leadership and organizational behavior. it evaluates leaders that are high level executives. my situation is different as in my workplace we are a smaller group and the visibility between the group is sometimes hard to understand because we work on a hybrid schedule. authentic leadership in our workplace varies from different leaders but i do think it is easy to spot as they pointed out in the article it isn&#039;t something you can manufacture. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Robbie Murphy</div>
+          <div class="user-email">murphy.1603@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Authentic leadership development: Getting to the root of positive forms of leadership</div>
+        <div>Avolio (2005)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">One sticking point for me is getting into the habit of self reflection and assessing how emotions shaped my decision making. Another piece of action I can take is to use time weekly to jot down notes after meaningful interactions with friends, coworkers, classmates, really anyone but document those interactions. Consistency is a big takeaway for developing authentic leadership, making sure you are consistent in the workplace will help drive what people see and think about you. So when it is time to make decisions or step up as a leader they know what they are getting and are not surprised by your action.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The article is based on academic theory building scholarship in leadership and organizational behavior. It evaluates leaders that are high level executives. My situation is different as in my workplace we are a smaller group and the visibility between the group is sometimes hard to understand because we work on a hybrid schedule. Authentic leadership in our workplace varies from different leaders but I do think it is easy to spot as they pointed out in the article it isn&#039;t something you can manufacture. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="clayton mally mally.9@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-23t22:10:16.991z&quot;,&quot;implementationlikelihood&quot;:7,&quot;strategies&quot;:[&quot;currently working in a distribution warehouse setting, i can use this article and empowerment to increase employees voices and engagement in relation to the safety environment across the warehouse, while understanding that the decision making over the equipment use and safety would remain non negotiable allowing an environment of open dialogue to help foster a safer and more productive warehouse.&quot;],&quot;newstrategyconfidence&quot;:7,&quot;contexttranslation&quot;:[&quot;key differences are that the article focused on stable teams that had high autonomy where in a warehouse distribution setting, everything is streamlined with little to no autonomy. the manager employee relationship in my dc is much tighter then the article assumes in the leadership studies that it presented.  this wouldn&#039;t matter much to the direct reports i govern over, but if i moved up to where my direct reports would be salaried supervisors, the option to empower would go great lengths, but in my current setting not so much.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Clayton Mally</div>
+          <div class="user-email">mally.9@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 A review of the effectiveness of empowering leadership</div>
+        <div>Cheong (2019)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Currently working in a distribution warehouse setting, I can use this article and empowerment to increase employees voices and engagement in relation to the safety environment across the warehouse, while understanding that the decision making over the equipment use and safety would remain non negotiable allowing an environment of open dialogue to help foster a safer and more productive warehouse.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">Key differences are that the article focused on stable teams that had high autonomy where in a warehouse distribution setting, everything is streamlined with little to no autonomy. The manager employee relationship in my DC is much tighter then the article assumes in the leadership studies that it presented.  This wouldn&#039;t matter much to the direct reports I govern over, but if I moved up to where my direct reports would be salaried supervisors, the option to empower would go great lengths, but in my current setting not so much.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="erin rinto erin_rinto@yahoo.com {&quot;completedat&quot;:&quot;2026-01-24t01:51:15.621z&quot;,&quot;implementationlikelihood&quot;:3,&quot;strategies&quot;:[&quot;it may be challenging to test this in my workplace, but we could do an anonymous survey of residents&#039; perceptions of the attendings and ask nursing to participate as well. the article didn&#039;t list the specific attributes they were looking for, but i could assess the impressions of coworkers and rate ethical behavior in leadership in a numeric scale.  the er can be challenging, and there are situations that strain even the most kind and compassionate of people, so the variables can greatly impact interpretation of behavior. the other limit is that this is completely subjective information. therefor, there may be bias in reporting, as well as expectation of unrealistic behaviors.  &quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;the article noted that ethical leaders foster teams with ethical treatment of others, including caring, being respectful and socially sensitive, but mostly leaders exhibiting these behaviors and how they impact the team. as a leader in my current position, i strive to demonstrate ethical behavior consistently. i work with residents and students in emergency medicine, where we treat people of all walks of life.  showing respect for patients, caring about their conditions and struggles, and modeling behavior that demonstrates compassion, professionalism, and collaboration with others is vital. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Erin Rinto</div>
+          <div class="user-email">erin_rinto@yahoo.com</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 WHO DISPLAYS ETHICAL LEADERSHIP, AND WHY DOES IT MATTER? AN EXAMINATION OF ANTECEDENTS AND CONSEQUENCES OF ETHICAL LEADERSHIP</div>
+        <div>Mayer (2012)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">It may be challenging to test this in my workplace, but we could do an anonymous survey of residents&#039; perceptions of the attendings and ask nursing to participate as well. The article didn&#039;t list the specific attributes they were looking for, but I could assess the impressions of coworkers and rate ethical behavior in leadership in a numeric scale.  The ER can be challenging, and there are situations that strain even the most kind and compassionate of people, so the variables can greatly impact interpretation of behavior. The other limit is that this is completely subjective information. Therefor, there may be bias in reporting, as well as expectation of unrealistic behaviors.  </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The article noted that ethical leaders foster teams with ethical treatment of others, including caring, being respectful and socially sensitive, but mostly leaders exhibiting these behaviors and how they impact the team. As a leader in my current position, I strive to demonstrate ethical behavior consistently. I work with residents and students in emergency medicine, where we treat people of all walks of life.  Showing respect for patients, caring about their conditions and struggles, and modeling behavior that demonstrates compassion, professionalism, and collaboration with others is vital. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">3</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 42.857142857142854%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="david spatholt spatholt.4@osu.edu {&quot;completedat&quot;:&quot;2026-01-24t04:16:38.299z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;we presently have an abuse manager in my organization. that is being addressed and new leaders are being transitioned in, monitoring for the heritability of abusive leadership would be wise. i would want to do qualitative interviews with subordinates to establish rapport and create psychological safety to keep a pulse on this.&quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;the research was done with students and during leadership transitions; that is distinctly different from the more pragmatic workplace settings in which this might be applied. on the other hand the overt meaning of the study is decidedly transferrable if we focus on the rigor of the study design and journal&#039;s peer review process. overall the findings themselves seem easy and broadly useful to implement regardless of specific evidence.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">David Spatholt</div>
+          <div class="user-email">spatholt.4@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 24.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Breaking the Cycle: The Effects of Role Model Performance and Ideal Leadership Self-Concepts on Abusive Supervision Spillover</div>
+        <div>Tu (2018)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">We presently have an abuse manager in my organization. That is being addressed and new leaders are being transitioned in, monitoring for the heritability of abusive leadership would be wise. I would want to do qualitative interviews with subordinates to establish rapport and create psychological safety to keep a pulse on this.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The research was done with students and during leadership transitions; that is distinctly different from the more pragmatic workplace settings in which this might be applied. On the other hand the overt meaning of the study is decidedly transferrable if we focus on the rigor of the study design and journal&#039;s peer review process. Overall the findings themselves seem easy and broadly useful to implement regardless of specific evidence.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="zachary loudenslager loudenslager.17@osu.edu {&quot;completedat&quot;:&quot;2026-01-24t15:53:19.016z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;self autonomy within my own employees. this article mentioned one of th ebest practices was to give the employees the tools to successfully cvomplete the tasks on their own and let them figure out how to complete the task. providing a guidance along the way while allowing them to do it their own way is th ebest for the employee. &quot;,&quot;trust was another takeaway from the article. trusting th eemployees to do th etask correctly, and on time is integral for a successful work environment. &quot;,&quot;an additional takeaway was that emplyees need different individual help on completing tasks. letting the employees go on their own isn&#039;t the one size fits all solution. i would need to identify what each of my team members needs to have a successful, autonomous, work environment. &quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;the research context was very similar to my own workplace. i found the research for empowering leadership could be directly applied to my own role. this analysis took 55 independent studies to compare 12 traits of employee success, that could be applied to my workplace. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Zachary Loudenslager</div>
+          <div class="user-email">loudenslager.17@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Employee Responses to Empowering Leadership: A Meta-Analysis</div>
+        <div>Kim (2018)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Self Autonomy within my own employees. This article mentioned one of th ebest practices was to give the employees the tools to successfully cvomplete the tasks on their own and let them figure out how to complete the task. Providing a guidance along the way while allowing them to do it their own way is th ebest for the employee. <br><br>Trust was another takeaway from the article. Trusting th eemployees to do th etask correctly, and on time is integral for a successful work environment. <br><br>An additional takeaway was that emplyees need different individual help on completing tasks. Letting the employees go on their own isn&#039;t the one size fits all solution. I would need to identify what each of my team members needs to have a successful, autonomous, work environment. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The research context was very similar to my own workplace. I found the research for empowering leadership could be directly applied to my own role. This analysis took 55 independent studies to compare 12 traits of employee success, that could be applied to my workplace. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="matthew lang lang.650@osu.edu {&quot;completedat&quot;:&quot;2026-01-24t18:46:17.593z&quot;,&quot;implementationlikelihood&quot;:3,&quot;strategies&quot;:[&quot;i believe we could work with different groups (i.e., staff, faculty, leadership) to determine which groups benefit most from varied approaches. i would design an experiment for staff and faculty since these are the two groups with whom i interact most in a leadership context. depending on the role, staff and faculty would benefit greatly from learning more about how to interact with students from a leadership perspective. if we gave staff and faculty the same treatment - leadership training tailored to their jobs - it is highly likely we could replicate the study&#039;s success in terms of test scores and possibly even job placement, degree retention, and continuing education.&quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;one of the primary takeaways for me was that leadership training can be meaningful for a variety of industries if taken into context. not every organization is the same. with different visions, goals, and desired outcomes, each must carefully construct their own experiments to determine what kinds of trainings best apply. in my experience, higher education would benefit more from transformational leadership. employees and faculty who internalize the desired behaviors are more likely to pass the benefts on to student populations. of course, education is built on transactions....grades, tuition, degrees, certifications. all these things prove the original points: leadership trainings must be situational.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Matthew Lang</div>
+          <div class="user-email">lang.650@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Can Leadership Training Improve Organizational Effectiveness? Evidence from a Randomized Field Experiment on Transformational and Transactional Leadership</div>
+        <div>Eriksen (2021)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">I believe we could work with different groups (i.e., staff, faculty, leadership) to determine which groups benefit most from varied approaches. I would design an experiment for staff and faculty since these are the two groups with whom I interact most in a leadership context. Depending on the role, staff and faculty would benefit greatly from learning more about how to interact with students from a leadership perspective. If we gave staff and faculty the same treatment - leadership training tailored to their jobs - it is highly likely we could replicate the study&#039;s success in terms of test scores and possibly even job placement, degree retention, and continuing education.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">One of the primary takeaways for me was that leadership training can be meaningful for a variety of industries if taken into context. Not every organization is the same. With different visions, goals, and desired outcomes, each must carefully construct their own experiments to determine what kinds of trainings best apply. In my experience, higher education would benefit more from transformational leadership. Employees and faculty who internalize the desired behaviors are more likely to pass the benefts on to student populations. Of course, education is built on transactions....grades, tuition, degrees, certifications. All these things prove the original points: leadership trainings must be situational.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">3</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 42.857142857142854%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="jason martinez martinez.554@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-24t20:46:16.497z&quot;,&quot;implementationlikelihood&quot;:5,&quot;strategies&quot;:[&quot;there were a few takeaways from the article/ai chatbot that i plan to implement. for my project, i&#039;m focusing on the fact that i&#039;m a new member on a newly formed team with other members have more experience than me. part of our team development requires an improvement in overall data integrity which includes things such as forming sops for the team. the article and chatbot came up with some actionable insights such as displaying servant leadership in my day-to-day tasks even as my boss displays the same traits: things such as empowering/listening to teammates, taking ownership of tasks, and also seeking feedback often. it also shared an approach of an eisenhower matrix to help with task management. &quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;they aren&#039;t so much as differences as just findings based on a meta-analysis: this research focused on 130 other studies that looked at the benefits of servant leadership and so it covered many different industries and cultures that may not be relevant to my situation. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Jason Martinez</div>
+          <div class="user-email">martinez.554@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Servant leadership: A meta-analytic examination of incremental contribution, moderation, and mediation</div>
+        <div>Lee (2020)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">There were a few takeaways from the article/AI chatbot that I plan to implement. For my project, I&#039;m focusing on the fact that I&#039;m a new member on a newly formed team with other members have more experience than me. Part of our team development requires an improvement in overall data integrity which includes things such as forming SOPs for the team. The article and chatbot came up with some actionable insights such as displaying servant leadership in my day-to-day tasks even as my boss displays the same traits: things such as empowering/listening to teammates, taking ownership of tasks, and also seeking feedback often. It also shared an approach of an Eisenhower Matrix to help with task management. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">They aren&#039;t so much as differences as just findings based on a meta-analysis: this research focused on 130 other studies that looked at the benefits of servant leadership and so it covered many different industries and cultures that may not be relevant to my situation. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="jason seitz seitz.238@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-24t19:46:16.539z&quot;,&quot;implementationlikelihood&quot;:5,&quot;strategies&quot;:[&quot;coach your subordinates to make them better, whether that is training or one on one sessions to make sure expectations and individual knowledge align. find their individual strengths, so you can assign them tasks that fit those traits. find out what motivates them to come to work every day and then tie that in to their job through task assignment or reward structure. &quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;one of the main differences is the study population. as being in the military, those individuals do not have a choice where to work or if they can leave. so they could have potentially found more motivation in the fact that they were stuck there so they might as well make the best of it. however i believe we can extrapolate the results because people still want to do well in certain situations even if leaving is an option because find a new job is diffuclt.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Jason Seitz</div>
+          <div class="user-email">seitz.238@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Daily transformational leadership: A source of inspiration for follower performance?</div>
+        <div>Bakker (2023)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Coach your subordinates to make them better, whether that is training or one on one sessions to make sure expectations and individual knowledge align. Find their individual strengths, so you can assign them tasks that fit those traits. Find out what motivates them to come to work every day and then tie that in to their job through task assignment or reward structure. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">One of the main differences is the study population. As being in the military, those individuals do not have a choice where to work or if they can leave. So they could have potentially found more motivation in the fact that they were stuck there so they might as well make the best of it. However I believe we can extrapolate the results because people still want to do well in certain situations even if leaving is an option because find a new job is diffuclt.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="erik yarberry yarberry.4@osu.edu {&quot;completedat&quot;:&quot;2026-01-24t22:09:06.146z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;empowering leadership fostered participation in decision-making and enhanced the meaningfulness of work. this lead to employees with stronger goal-orientation who could take independent action to solve problems, rather than having to run it up the chain of command. i would test this by surveying my employees about how much independence and autonomy they currently feel they have and how comfortable they are making decisions for projects and day-to-day matter. i would implement empowering leadership principles, re-survey at a later date, and compare the results. &quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;this article focused on hospitals in india, and i work in us healthcare-focused higher education. there is a massive culture difference between the two countries, but maybe not as much between healthcare and academia, where evidence based practices are already strongly encouraged. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Erik Yarberry</div>
+          <div class="user-email">yarberry.4@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Empowering leadership in hospital employees: Effects on goal orientation, job conditions, and employee proactivity</div>
+        <div>Singh (2020)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Empowering leadership fostered participation in decision-making and enhanced the meaningfulness of work. This lead to employees with stronger goal-orientation who could take independent action to solve problems, rather than having to run it up the chain of command. I would test this by surveying my employees about how much independence and autonomy they currently feel they have and how comfortable they are making decisions for projects and day-to-day matter. I would implement empowering leadership principles, re-survey at a later date, and compare the results. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">This article focused on hospitals in India, and I work in US healthcare-focused higher education. There is a massive culture difference between the two countries, but maybe not as much between healthcare and academia, where evidence based practices are already strongly encouraged. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="russell hill rhill7389@gmail.com {&quot;completedat&quot;:&quot;2026-01-24t22:04:00.312z&quot;,&quot;implementationlikelihood&quot;:7,&quot;strategies&quot;:[&quot;the practical take aways from this article was that empowerment is not a one size fits all style of management. therefore, i would be more strategic in the ways i approach empowering leadership, as the implementation strategy that can or should be used, is often dependent on the context of the situation, the employee, or organization. furthermore, i will need to be conscious of situations where empowerment my not be the be style of management and lead to confusion or ambiguity of responsibility&#039;s.  &quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;the difference between the research article context and my own situation was that the research was a literature review evaluating numerus study&#039;s on empowerment leadership. therefore, it took into account a variety of workplace, organizational, and personnel situations that were different and sometimes similar to mine. due to this, it gave me the ability to apply the findings to my situations, as i was able to get a broad framework of how, when, and when not to use an empowerment leadership style.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Russell Hill</div>
+          <div class="user-email">rhill7389@gmail.com</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Leveraging Leaders: A Literature Review and Future Lines of Inquiry for Empowering Leadership Research</div>
+        <div>Sharma (2015)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">The practical take aways from this article was that empowerment is not a one size fits all style of management. Therefore, I would be more strategic in the ways I approach empowering leadership, as the implementation strategy that can or should be used, is often dependent on the context of the situation, the employee, or organization. Furthermore, I will need to be conscious of situations where empowerment my not be the be style of management and lead to confusion or ambiguity of responsibility&#039;s.  </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The difference between the research article context and my own situation was that the research was a literature review evaluating numerus study&#039;s on empowerment leadership. Therefore, it took into account a variety of workplace, organizational, and personnel situations that were different and sometimes similar to mine. Due to this, it gave me the ability to apply the findings to my situations, as I was able to get a broad framework of how, when, and when not to use an empowerment leadership style.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="danielle shank shank.189@osu.edu {&quot;completedat&quot;:&quot;2026-01-24t22:00:05.486z&quot;,&quot;implementationlikelihood&quot;:5,&quot;strategies&quot;:[&quot;a practical take away from this article is what constitutes and \&quot;empowering\&quot; leader. according to the article, an empowering leader is someone who works with direct reports to encourage professional development and who helps work through their responsibilities. this can be implemented in my own workplace by working with leadership to place focus on employee professional development by setting goals for promotion and/or recognition and working with my direct reports to improve their workflows and day-to-day hurdles. &quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;according the the study, empowering leadership is seen to decrease absenteeism in employees. i don&#039;t personally have differences with this study. in my experience, positive and \&quot;empowering\&quot; managers have definitely had a positive impact on employee attendance. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Danielle Shank</div>
+          <div class="user-email">shank.189@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Empowering leadership: leading people to be present through affective organizational commitment?</div>
+        <div>Kim (2020)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">A practical take away from this article is what constitutes and &quot;empowering&quot; leader. According to the article, an empowering leader is someone who works with direct reports to encourage professional development and who helps work through their responsibilities. This can be implemented in my own workplace by working with leadership to place focus on employee professional development by setting goals for promotion and/or recognition and working with my direct reports to improve their workflows and day-to-day hurdles. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">According the the study, empowering leadership is seen to decrease absenteeism in employees. I don&#039;t personally have differences with this study. In my experience, positive and &quot;empowering&quot; managers have definitely had a positive impact on employee attendance. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="aaron frump frump.6@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-24t23:29:28.312z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;i think all leaders can implement a sense of hope and optimism in regard to the company to foster a better workplace morale, provided the company is trying to achieve some level of transparency and vision for the future. leadership that constantly criticizes or points out flaws of the organization create a sense of impending doom and misery.&quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;unbeknownst to me, when i selected authentic leadership, i didn&#039;t realize it was a root core of several leadership categories i do try and portray such as transformational leadership or charismatic leadership. i feel like the article solidified my feelings on this optimistic style of leadership and spreading hope, inclusion, and transparency to create constructive relationships. i have seen on occasion certain types of unmotivated or employees with a hopeless outlook pushback on this style and take advantage of the leader when possible, i have also seen very good results from leadership rooted in fear and authority though it was not healthy for the culture and longevity of the workforce.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Aaron Frump</div>
+          <div class="user-email">frump.6@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Authentic leadership development: Getting to the root of positive forms of leadership</div>
+        <div>Avolio (2005)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">I think all leaders can implement a sense of hope and optimism in regard to the company to foster a better workplace morale, provided the company is trying to achieve some level of transparency and vision for the future. Leadership that constantly criticizes or points out flaws of the organization create a sense of impending doom and misery.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">Unbeknownst to me, when I selected authentic leadership, I didn&#039;t realize it was a root core of several leadership categories I do try and portray such as transformational leadership or charismatic leadership. I feel like the article solidified my feelings on this optimistic style of leadership and spreading hope, inclusion, and transparency to create constructive relationships. I have seen on occasion certain types of unmotivated or employees with a hopeless outlook pushback on this style and take advantage of the leader when possible, I have also seen very good results from leadership rooted in fear and authority though it was not healthy for the culture and longevity of the workforce.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="tanner patterson patterson.1519@osu.edu {&quot;completedat&quot;:&quot;2026-01-25t15:15:31.167z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;the signs of negative leadership. knowing these signs can allow me to analyze me owe behavior and become a stronger leader. &quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;in my current role i do not have direct reports or anyone i am in charge of. however, this article is good to see the effects of negative leadership and examples of what to try to avoid doing to be a good leader&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Tanner Patterson</div>
+          <div class="user-email">patterson.1519@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 25.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 How bad are the effects of bad leaders? A meta-analysis of destructive leadership and its outcomes</div>
+        <div>Schyns (2012)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">The signs of negative leadership. Knowing these signs can allow me to analyze me owe behavior and become a stronger leader. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">In my current role I do not have direct reports or anyone I am in charge of. However, this article is good to see the effects of negative leadership and examples of what to try to avoid doing to be a good leader</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="tyler walsh walsh.1042@osu.edu {&quot;completedat&quot;:&quot;2026-01-25t16:34:15.841z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;the article highlighted senior leadership and hr as areas that could implement these styles. it would be difficult at my current position to test this style but placing a greater emphasis on accomplishing tasks and meeting deadlines opposed to a laissez-faire style i could see the overall results of the team and their perceptions.&quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;the conclusions imply that authoritarian leadership styles when properly implemented do not hinder performance to the degree previously perceived. it would be interesting to see the application of a greater amount of task oriented authoritarian/autocratic leadership &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Tyler Walsh</div>
+          <div class="user-email">walsh.1042@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 26.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Authoritarian leadership styles and performance: a systematic literature review and research agenda</div>
+        <div>Pizzolitto (2023)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">The article highlighted senior leadership and HR as areas that could implement these styles. It would be difficult at my current position to test this style but placing a greater emphasis on accomplishing tasks and meeting deadlines opposed to a laissez-faire style I could see the overall results of the team and their perceptions.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The conclusions imply that authoritarian leadership styles when properly implemented do not hinder performance to the degree previously perceived. It would be interesting to see the application of a greater amount of task oriented authoritarian/autocratic leadership </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="christopher westrick westrick.37@osu.edu {&quot;completedat&quot;:&quot;2026-01-25t17:04:16.402z&quot;,&quot;implementationlikelihood&quot;:4,&quot;strategies&quot;:[&quot;my role on the healthcare team requires communication and teamwork to ensure positive patient outcomes as well as minimizing patient&#039;s receiving different messages from different types of health care professionals. i feel the aspect of highlighting the practice of communication and use of servant leadership would yield similar findings within my setting based on my current perceptions within my team. while i do not see current significant concerns within my team, i feel that replication of this work to obtain a larger representative population could be considered which would add in additional health care professionals and further test the hypothesis.&quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;one key difference is my specific profession (pharmacist) was not one of the studied professions. each health profession is different in its training, but feel there is still relevance given our role within the interdisciplinary team. the differences in training with regard to patient care and team approach is important though. although our degree and placement on team fits more closely with the physician/resident, i think our perception of collaboration and the takeaways would more closely align with nurses in this study.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Christopher Westrick</div>
+          <div class="user-email">westrick.37@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 26.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Attitudes towards collaboration and servant leadership among nurses, physicians and residents</div>
+        <div>Garber (2009)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">My role on the healthcare team requires communication and teamwork to ensure positive patient outcomes as well as minimizing patient&#039;s receiving different messages from different types of health care professionals. I feel the aspect of highlighting the practice of communication and use of servant leadership would yield similar findings within my setting based on my current perceptions within my team. While I do not see current significant concerns within my team, I feel that replication of this work to obtain a larger representative population could be considered which would add in additional health care professionals and further test the hypothesis.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">One key difference is my specific profession (pharmacist) was not one of the studied professions. Each health profession is different in its training, but feel there is still relevance given our role within the interdisciplinary team. The differences in training with regard to patient care and team approach is important though. Although our degree and placement on team fits more closely with the physician/resident, I think our perception of collaboration and the takeaways would more closely align with nurses in this study.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="kelsea westrick westrick.48@osu.edu {&quot;completedat&quot;:&quot;2026-01-25t16:58:59.598z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;there are some overlaps between traditional and empowering leadership, but empowering leadership allows employees to feel more valued. this allows for better team-based approaches to everyday tasks and issues. one example and it is something that the hospital is heavily adopting is hro practices like safety moments where it allows others to bring up process gaps or issues without blame or scrutiny. that person is then publicly thanked for bringing it up, which enforces this behavior. this helps reduce the stigma of bringing issues forth and gaining judgement because of it. &quot;],&quot;newstrategyconfidence&quot;:7,&quot;contexttranslation&quot;:[&quot;the findings are general and not field specific, but i think that empowering leadership teachings are becoming more and more popularly taught in the medical field. i do see an attempt at osuwmc where there have been numerous structural changes (especially since out current ceo has been in position) and a more push for empowering leadership approach to everyday issues. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Kelsea Westrick</div>
+          <div class="user-email">westrick.48@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 26.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 The empowering leadership questionnaire: the construction and validation of a new scale for measuring leader behaviors</div>
+        <div>Arnold (2000)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">There are some overlaps between traditional and empowering leadership, but empowering leadership allows employees to feel more valued. This allows for better team-based approaches to everyday tasks and issues. One example and it is something that the hospital is heavily adopting is HRO practices like safety moments where it allows others to bring up process gaps or issues without blame or scrutiny. That person is then publicly thanked for bringing it up, which enforces this behavior. This helps reduce the stigma of bringing issues forth and gaining judgement because of it. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The findings are general and not field specific, but I think that Empowering leadership teachings are becoming more and more popularly taught in the medical field. I do see an attempt at OSUWMC where there have been numerous structural changes (especially since out current CEO has been in position) and a more push for empowering leadership approach to everyday issues. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="joseph sexton sexton.358@osu.edu {&quot;completedat&quot;:&quot;2026-01-25t17:27:14.637z&quot;,&quot;implementationlikelihood&quot;:7,&quot;strategies&quot;:[&quot;intuitively, i do not believe that abusive supervision would be an effective way to lead. that said, i do believe there are circumstances where \&quot;tough love\&quot; can be effective; however, the article hints at a difference between \&quot;tough love\&quot; and abusive supervision. my key takeaway is that abusive supervision is not something i&#039;d want to test in the workplace, as it leads to negative outcomes like employees leaving the organization and/or low job and life satisfaction.&quot;],&quot;newstrategyconfidence&quot;:7,&quot;contexttranslation&quot;:[&quot;i personally have not experienced what the journal article would classify as abusive supervision, so it is difficult for me to assess how i might feel in a hostile work environment. however, i was not necessarily surprised by what the author found in the research. i do think my own context matters. while i was not surprised by the findings, this is not always the case. often, research findings are not intuitive, so it is helpful to understand perspectives outside of my own.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Joseph Sexton</div>
+          <div class="user-email">sexton.358@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 26.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Consequences of Abusive Supervision</div>
+        <div>Tepper (2000)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Intuitively, I do not believe that abusive supervision would be an effective way to lead. That said, I do believe there are circumstances where &quot;tough love&quot; can be effective; however, the article hints at a difference between &quot;tough love&quot; and abusive supervision. My key takeaway is that abusive supervision is not something I&#039;d want to test in the workplace, as it leads to negative outcomes like employees leaving the organization and/or low job and life satisfaction.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">I personally have not experienced what the journal article would classify as abusive supervision, so it is difficult for me to assess how I might feel in a hostile work environment. However, I was not necessarily surprised by what the author found in the research. I do think my own context matters. While I was not surprised by the findings, this is not always the case. Often, research findings are not intuitive, so it is helpful to understand perspectives outside of my own.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">7</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card control" data-condition="control" data-search="kelly frank frank.827@osu.edu {&quot;completedat&quot;:&quot;2026-01-25t18:00:35.877z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;this whole article is based on scholarly article data, not direct experimentation or observation. i loved how the ai tool created a video, podcast and infographic. in coaching the leader i mentioned in the prior question, i could use the infograph and the video to demonstrate how a good balance of eq with communion would help her succeed. &quot;],&quot;newstrategyconfidence&quot;:5,&quot;contexttranslation&quot;:[&quot;there actually are not many if any differences when i consider my situation. i am a female leader. i report to a female leader and i find her eq to have led to great transformation. i see it in my own workplace as well with my leadership style and the work i have had to execute in the last 4 years. currently i am working with another female leader who is very strong with a lot of potential. her eq is an interesting consideration. she is too emotional. too empathetic. it is actually paralyzing her from making decisions because she worries too much about upsetting or angering the team.   so in the three of us...you have three female leaders at different stages of development. &quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Kelly Frank</div>
+          <div class="user-email">frank.827@osu.edu</div>
+          <div class="user-meta">
+            mba6202_wed · 2026. 1. 26.
+          </div>
+        </div>
+        <span class="badge control">Control</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Emotional Intelligence and Transformational Leadership: Meta-Analysis and Explanatory Model of Female Leadership Advantage</div>
+        <div>Hsu (2022)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">This whole article is based on scholarly article data, not direct experimentation or observation. I loved how the AI tool created a video, podcast and infographic. In coaching the leader I mentioned in the prior question, I could use the infograph and the video to demonstrate how a good BALANCE of EQ with communion would help her succeed. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">There actually are not many if any differences when I consider my situation. I am a female leader. I report to a female leader and I find her EQ to have led to great transformation. I see it in my own workplace as well with my leadership style and the work I have had to execute in the last 4 years. Currently I am working with another female leader who is very strong with a lot of potential. Her EQ is an interesting consideration. She is too emotional. Too empathetic. It is actually paralyzing her from making decisions because she worries too much about upsetting or angering the team.   So in the three of us...you have three female leaders at different stages of development. </div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">5</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 71.42857142857143%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="jessica moore moore.4091@osu.edu {&quot;completedat&quot;:&quot;2026-01-25t18:27:55.988z&quot;,&quot;implementationlikelihood&quot;:6,&quot;strategies&quot;:[&quot;i work in medical retail, which some employees see as a gray area from an ethical standpoint. knowing that data supports ethical leadership results in more ethical subordinate behavior tells me i need to emulate the ethics my reports want to see. &quot;],&quot;newstrategyconfidence&quot;:6,&quot;contexttranslation&quot;:[&quot;the biggest difference is i am constantly questioning whether or not i am correctly interpreting the data, and with the podcast, video, and infographic, i can confirm my conclusions. it gives me confidence to apply the findings broadly.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">jessica moore</div>
+          <div class="user-email">moore.4091@osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 26.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 The Affective Processes of Ethical Leadership: The Role of Moral Emotions</div>
+        <div>Jeong (2025)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">I work in medical retail, which some employees see as a gray area from an ethical standpoint. Knowing that data supports ethical leadership results in more ethical subordinate behavior tells me I need to emulate the ethics my reports want to see. </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">The biggest difference is I am constantly questioning whether or not I am correctly interpreting the data, and with the podcast, video, and infographic, I can confirm my conclusions. It gives me confidence to apply the findings broadly.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">6</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 85.71428571428571%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card ebm_cimo" data-condition="ebm_cimo" data-search="bradley dsa dsa.7@buckeyemail.osu.edu {&quot;completedat&quot;:&quot;2026-01-25t18:59:33.730z&quot;,&quot;implementationlikelihood&quot;:2,&quot;strategies&quot;:[&quot;run small, trackable trials: pick one behavior for four weeks. example a: intellectual stimulation, more debate, more “what would disprove this,” more pre mortems. example b: individualized consideration, short coaching check ins and targeted stretch work. i would watch cycle time, rework, stakeholder satisfaction, and whether the team starts surfacing better options without being pushed.\nmake alignment concrete: i would call out tradeoffs explicitly and connect them to shared goals, so “go beyond self interest” does not feel like a slogan. it becomes a fair deal, clearly stated, and easier to sustain in a high pressure setting.\n&quot;],&quot;newstrategyconfidence&quot;:4,&quot;contexttranslation&quot;:[&quot;bass is pulling together two decades of studies across very different environments, with heavy reliance on mlq style surveys and correlational patterns, not a single clean experiment inside a modern finance team with tight deadlines and sharp accountability. that gap matters. incentives, pace, and risk tolerance can change how leadership behaviors land, even if the labels stay the same.\nthe paper also flags that the “transformational” pieces blur together in measurement, and that cause and effect is not always pinned down. so yes, i can use the conclusions, but i should treat them as a practical playbook to test, not a universal law. context can manipultate the result.&quot;]}">
+      <div class="card-header">
+        <div class="user-info">
+          <div class="user-name">Bradley Dsa</div>
+          <div class="user-email">dsa.7@buckeyemail.osu.edu</div>
+          <div class="user-meta">
+            mba6202_tue · 2026. 1. 26.
+          </div>
+        </div>
+        <span class="badge ebm_cimo">EBM-CIMO</span>
+      </div>
+
+      <div class="paper-info">
+        <div class="paper-title">📄 Two Decades of Research and Development in Transformational Leadership</div>
+        <div>Bass (1999)</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">💡</span> 실천 전략 (Strategies)</div>
+        <div class="response-text">Run small, trackable trials: pick one behavior for four weeks. Example A: intellectual stimulation, more debate, more “what would disprove this,” more pre mortems. Example B: individualized consideration, short coaching check ins and targeted stretch work. I would watch cycle time, rework, stakeholder satisfaction, and whether the team starts surfacing better options without being pushed.<br>Make alignment concrete: I would call out tradeoffs explicitly and connect them to shared goals, so “go beyond self interest” does not feel like a slogan. It becomes a fair deal, clearly stated, and easier to sustain in a high pressure setting.<br></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="icon">🔄</span> 맥락 전환 (Context Translation)</div>
+        <div class="response-text">Bass is pulling together two decades of studies across very different environments, with heavy reliance on MLQ style surveys and correlational patterns, not a single clean experiment inside a modern finance team with tight deadlines and sharp accountability. That gap matters. Incentives, pace, and risk tolerance can change how leadership behaviors land, even if the labels stay the same.<br>The paper also flags that the “transformational” pieces blur together in measurement, and that cause and effect is not always pinned down. So yes, I can use the conclusions, but I should treat them as a practical playbook to test, not a universal law. Context can manipultate the result.</div>
+      </div>
+
+      <div class="section" style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <div>
+          <div class="section-title"><span class="icon">📊</span> 새 전략 자신감</div>
+          <div class="rating">
+            <span class="rating-value">4</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 57.14285714285714%"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title"><span class="icon">🎯</span> 실행 가능성</div>
+          <div class="rating">
+            <span class="rating-value">2</span>
+            <span class="rating-label">/ 7</span>
+            <div class="rating-bar">
+              <div class="rating-fill" style="width: 28.57142857142857%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="no-results hidden" id="noResults">검색 결과가 없습니다.</div>
+
+  <script>
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const cards = document.querySelectorAll('.card');
+    const searchBox = document.getElementById('searchBox');
+    const noResults = document.getElementById('noResults');
+
+    let currentFilter = 'all';
+    let currentSearch = '';
+
+    function updateVisibility() {
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const matchesFilter = currentFilter === 'all' || card.dataset.condition === currentFilter;
+        const matchesSearch = !currentSearch || card.dataset.search.includes(currentSearch);
+
+        if (matchesFilter && matchesSearch) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+      noResults.classList.toggle('hidden', visibleCount > 0);
+    }
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        updateVisibility();
+      });
+    });
+
+    searchBox.addEventListener('input', (e) => {
+      currentSearch = e.target.value.toLowerCase();
+      updateVisibility();
+    });
+  </script>
+</body>
+</html>

@@ -1067,7 +1067,7 @@ exports.sendCompletionEmail = onRequest(
   <p>Thank you for completing the reading assignment! Here's a summary of your responses for your records.</p>
 
   <p><strong>Paper:</strong> ${paperTitle}</p>
-  <p><strong>Completed:</strong> ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+  <p><strong>Completed:</strong> ${new Date().toLocaleString("en-US", { timeZone: "America/New_York", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })} (ET)</p>
 
   <h2>Q1. Context Differences</h2>
   <p><em>Key differences between the research context and your own situation:</em></p>

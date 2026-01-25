@@ -26,6 +26,7 @@ __pycache__/
 # Firebase credentials (NEVER COMMIT!)
 firebase-service-account.json
 *-service-account*.json
+*-firebase-adminsdk-*.json
 
 # Data exports (contains participant data)
 data_exports/
