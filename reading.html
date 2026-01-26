@@ -634,40 +634,47 @@
                             }
                         }
 
-                        // Load Video Slideshow from Firebase Storage (using SDK to avoid CORS)
+                        // Load Video Slideshow from Firebase Storage
                         if (mediaUrls.video && mediaUrls.video !== 'firestore') {
                             try {
-                                // Extract storage path from URL
-                                // URL format: https://firebasestorage.googleapis.com/v0/b/bucket/o/path%2Fto%2Ffile?...
-                                const url = new URL(mediaUrls.video);
-                                const pathMatch = url.pathname.match(/\/o\/(.+)$/);
-                                if (pathMatch) {
-                                    const storagePath = decodeURIComponent(pathMatch[1]);
-                                    console.log('Loading video from storage path:', storagePath);
+                                let videoData = null;
 
-                                    // Use Firebase Storage SDK to get bytes (avoids CORS)
-                                    const storageRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
-                                    const bytes = await window.firebaseGetBytes(storageRef);
-                                    const text = new TextDecoder().decode(bytes);
-                                    const videoData = JSON.parse(text);
-
-                                    if (videoData?.scenes && videoData.scenes.length > 0) {
-                                        // Convert raw API response format to player format
-                                        const processedScenes = videoData.scenes.map(scene => ({
-                                            sceneNumber: scene.sceneNumber || scene.scene_number,
-                                            imageUrl: scene.imageUrl || (scene.imageBase64 ? `data:image/png;base64,${scene.imageBase64}` : null),
-                                            audioUrl: scene.audioUrl || (scene.audioBase64 ? `data:audio/mpeg;base64,${scene.audioBase64}` : null),
-                                            duration: scene.duration || 9,
-                                            narration: scene.narration
-                                        }));
-
-                                        setVideoSlideshow({
-                                            title: videoData.title,
-                                            scenes: processedScenes,
-                                            totalScenes: videoData.totalScenes || processedScenes.length
-                                        });
-                                        console.log('✅ Video slideshow loaded from Storage:', processedScenes.length, 'scenes');
+                                // Check URL format and load accordingly
+                                if (mediaUrls.video.includes('storage.googleapis.com')) {
+                                    // Public URL format - fetch directly
+                                    console.log('Loading video from public URL:', mediaUrls.video);
+                                    const response = await fetch(mediaUrls.video);
+                                    videoData = await response.json();
+                                } else if (mediaUrls.video.includes('firebasestorage.googleapis.com')) {
+                                    // Firebase Storage URL format - use SDK
+                                    const url = new URL(mediaUrls.video);
+                                    const pathMatch = url.pathname.match(/\/o\/(.+)$/);
+                                    if (pathMatch) {
+                                        const storagePath = decodeURIComponent(pathMatch[1]);
+                                        console.log('Loading video from storage path:', storagePath);
+                                        const storageRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
+                                        const bytes = await window.firebaseGetBytes(storageRef);
+                                        const text = new TextDecoder().decode(bytes);
+                                        videoData = JSON.parse(text);
                                     }
+                                }
+
+                                if (videoData?.scenes && videoData.scenes.length > 0) {
+                                    // Convert raw API response format to player format
+                                    const processedScenes = videoData.scenes.map(scene => ({
+                                        sceneNumber: scene.sceneNumber || scene.scene_number,
+                                        imageUrl: scene.imageUrl || (scene.imageBase64 ? `data:image/png;base64,${scene.imageBase64}` : null),
+                                        audioUrl: scene.audioUrl || (scene.audioBase64 ? `data:audio/mpeg;base64,${scene.audioBase64}` : null),
+                                        duration: scene.duration || 9,
+                                        narration: scene.narration
+                                    }));
+
+                                    setVideoSlideshow({
+                                        title: videoData.title,
+                                        scenes: processedScenes,
+                                        totalScenes: videoData.totalScenes || processedScenes.length
+                                    });
+                                    console.log('✅ Video slideshow loaded from Storage:', processedScenes.length, 'scenes');
                                 }
                             } catch (e) {
                                 console.error('Error loading video slideshow from Storage:', e);
