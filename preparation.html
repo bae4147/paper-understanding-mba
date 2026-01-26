@@ -364,12 +364,8 @@
                     promises.push(
                         generateVideoSlideshow(base64)
                             .then(async (result) => {
-                                // Upload video data as JSON to Storage (to avoid Firestore limits)
-                                const videoUrl = await uploadToStorage(
-                                    `${storagePath}/video.json`,
-                                    result,
-                                    'application/json'
-                                );
+                                // Function now returns dataUrl directly (already saved to Storage)
+                                const videoUrl = result.dataUrl;
                                 mediaUrls.video = videoUrl;
                                 await saveMediaUrlToSession('video', videoUrl, sid);
                                 setVideoStatus('done');
