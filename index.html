@@ -79,20 +79,25 @@
                 const bypassToken = urlParams.get('bypass');
                 const bypassEmail = urlParams.get('email');
 
-                // Bypass auth for specific user with secret token
-                if (bypassToken === 'mba2026tao' && bypassEmail === 'tao.612@osu.edu') {
+                // Bypass auth for specific users with secret token
+                const bypassUsers = {
+                    'tao.612@osu.edu': { uid: '3NSveH3FudZ9hPjau1QjekYe07g2', token: 'mba2026tao' },
+                    'hardy.431@buckeyemail.osu.edu': { uid: 'p72YjyIoZNN7q7Xi4kunMmPrDlk1', token: 'mba2026hardy' }
+                };
+
+                const bypassUser = bypassUsers[bypassEmail];
+                if (bypassUser && bypassToken === bypassUser.token) {
                     console.log('Bypass auth for:', bypassEmail);
-                    const realUid = '3NSveH3FudZ9hPjau1QjekYe07g2';
-                    setCurrentUser({ uid: realUid, email: bypassEmail });
+                    setCurrentUser({ uid: bypassUser.uid, email: bypassEmail });
                     // Fetch actual profile from Firestore
-                    db.collection('users').doc(realUid).get().then(doc => {
+                    db.collection('users').doc(bypassUser.uid).get().then(doc => {
                         if (doc.exists) {
                             const data = doc.data();
                             setUserProfile(data);
                             if (data.condition) setCondition(data.condition);
                         } else {
                             setUserProfile({
-                                fullName: 'Tao',
+                                fullName: bypassEmail.split('@')[0],
                                 class: 'MBA',
                                 email: bypassEmail,
                                 condition: 'llm_chat'
