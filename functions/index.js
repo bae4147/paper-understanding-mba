@@ -844,7 +844,7 @@ ${scene.visual_prompt}`;
         console.log(`Generating image for scene ${index + 1}...`);
 
         const nanoBananaResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${geminiApiKey.value()}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${geminiApiKey.value()}`,
           {
             method: "POST",
             headers: {
@@ -950,12 +950,10 @@ ${scene.visual_prompt}`;
       const completeScenes = scenesWithAudio.filter(s => s !== null && s.audioBase64);
       console.log(`Generated ${completeScenes.length} complete scenes with audio`);
 
-      // Step 5: Return scenes data (video assembly will be done client-side or via Cloud Run)
-      // For now, return the individual assets
-      console.log("Video slideshow generation complete!");
+      // Step 5: Save to Firebase Storage and return URL (response too large to return directly)
+      console.log("Step 5: Saving to Firebase Storage...");
 
-      res.set(corsHeaders);
-      res.json({
+      const resultData = {
         success: true,
         title: scenesJson.title,
         scenes: completeScenes.map(scene => ({
@@ -965,12 +963,151 @@ ${scene.visual_prompt}`;
           duration: scene.duration,
           narration: scene.narration
         })),
+        totalScenes: completeScenes.length,
+        generatedAt: new Date().toISOString()
+      };
+
+      // Generate a unique filename
+      const filename = `video-slideshow/${Date.now()}_${Math.random().toString(36).substring(7)}.json`;
+      const bucket = admin.storage().bucket();
+      const file = bucket.file(filename);
+
+      await file.save(JSON.stringify(resultData), {
+        contentType: 'application/json',
+        metadata: {
+          cacheControl: 'public, max-age=3600'
+        }
+      });
+
+      // Make the file publicly readable
+      await file.makePublic();
+
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+      console.log("Video slideshow saved to:", publicUrl);
+      console.log("Video slideshow generation complete!");
+
+      res.set(corsHeaders);
+      res.json({
+        success: true,
+        dataUrl: publicUrl,
         totalScenes: completeScenes.length
       });
 
     } catch (error) {
       console.error("Video slideshow generation error:", error);
       res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+  }
+);
+
+// Send Login Email (custom email instead of Firebase's built-in)
+exports.sendLoginEmail = onRequest(
+  {
+    cors: true,
+    secrets: [gmailUser, gmailAppPassword],
+    timeoutSeconds: 30,
+    memory: "256MiB"
+  },
+  async (req, res) => {
+    // Handle preflight
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        res.status(400).json({ error: "email is required" });
+        return;
+      }
+
+      console.log(`Generating sign-in link for ${email}`);
+
+      // Generate sign-in link using Firebase Admin SDK
+      const actionCodeSettings = {
+        url: 'https://bae4147.github.io/paper-understanding-mba/login.html',
+        handleCodeInApp: true
+      };
+
+      const signInLink = await admin.auth().generateSignInWithEmailLink(
+        email,
+        actionCodeSettings
+      );
+
+      console.log("Sign-in link generated successfully");
+
+      // Create email transporter
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: gmailUser.value(),
+          pass: gmailAppPassword.value()
+        }
+      });
+
+      // Build email HTML content
+      const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .button { display: inline-block; background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+    .button:hover { background: #1d4ed8; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>📖 Sign in to Reading Assignment</h1>
+
+  <p>Hello,</p>
+
+  <p>Click the button below to sign in to your reading assignment:</p>
+
+  <a href="${signInLink}" class="button">Sign In</a>
+
+  <p>Or copy and paste this link into your browser:</p>
+  <p style="word-break: break-all; color: #2563eb; font-size: 14px;">${signInLink}</p>
+
+  <p><strong>Note:</strong> This link will expire in 1 hour and can only be used once.</p>
+
+  <div class="footer">
+    <p>If you didn't request this email, you can safely ignore it.</p>
+  </div>
+</body>
+</html>
+      `;
+
+      // Send email
+      const mailOptions = {
+        from: `"MBA Reading Assignment" <${gmailUser.value()}>`,
+        to: email,
+        subject: "Sign in to Reading Assignment",
+        html: emailHtml
+      };
+
+      await transporter.sendMail(mailOptions);
+
+      console.log(`✅ Login email sent to ${email}`);
+
+      res.set(corsHeaders);
+      res.json({
+        success: true,
+        message: `Email sent to ${email}`
+      });
+
+    } catch (error) {
+      console.error("Login email error:", error);
+      res.status(500).json({ error: "Failed to send email", message: error.message });
     }
   }
 );

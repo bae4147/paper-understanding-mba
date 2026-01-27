@@ -183,14 +183,28 @@
                 setLoading(true);
 
                 try {
-                    await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
+                    // Call our custom Cloud Function to send login email
+                    const response = await fetch('https://us-central1-mba-paper-reading.cloudfunctions.net/sendLoginEmail', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Failed to send email');
+                    }
+
                     // Save email for later
                     window.localStorage.setItem('emailForSignIn', email);
                     setEmailSent(true);
                     setLoading(false);
                 } catch (error) {
                     console.error('Error sending email link:', error);
-                    setError(getErrorMessage(error.code));
+                    setError(error.message || 'Failed to send sign-in link. Please try again.');
                     setLoading(false);
                 }
             };
