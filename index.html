@@ -74,6 +74,36 @@
 
             // Check auth state on mount
             useEffect(() => {
+                // Check for bypass token in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const bypassToken = urlParams.get('bypass');
+                const bypassEmail = urlParams.get('email');
+
+                // Bypass auth for specific user with secret token
+                if (bypassToken === 'mba2026tao' && bypassEmail === 'tao.612@osu.edu') {
+                    console.log('Bypass auth for:', bypassEmail);
+                    const realUid = '3NSveH3FudZ9hPjau1QjekYe07g2';
+                    setCurrentUser({ uid: realUid, email: bypassEmail });
+                    // Fetch actual profile from Firestore
+                    db.collection('users').doc(realUid).get().then(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            setUserProfile(data);
+                            if (data.condition) setCondition(data.condition);
+                        } else {
+                            setUserProfile({
+                                fullName: 'Tao',
+                                class: 'MBA',
+                                email: bypassEmail,
+                                condition: 'llm_chat'
+                            });
+                            setCondition('llm_chat');
+                        }
+                        setCheckingAuth(false);
+                    });
+                    return;
+                }
+
                 const unsubscribe = auth.onAuthStateChanged(async (user) => {
                     if (!user) {
                         // Not logged in, redirect to login
