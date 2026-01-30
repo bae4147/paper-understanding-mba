@@ -267,13 +267,24 @@ Return format: {"title": "...", "firstAuthorLastName": "...", "year": 2023, "ven
                 const file = e.target.files[0];
                 if (!file) return;
 
-                if (file.type !== 'application/pdf') {
-                    setPdfError('Please select a valid PDF file');
+                // Detailed validation with specific error messages
+                const fileExtension = file.name.split('.').pop()?.toLowerCase();
+                const isPdfExtension = fileExtension === 'pdf';
+                const isPdfMimeType = file.type === 'application/pdf';
+
+                if (!isPdfExtension && !isPdfMimeType) {
+                    setPdfError(`Invalid file type: "${fileExtension || 'unknown'}". Please upload a PDF file.`);
+                    return;
+                }
+
+                if (file.size === 0) {
+                    setPdfError('The file is empty. Please select a valid PDF file.');
                     return;
                 }
 
                 if (file.size > 15 * 1024 * 1024) {
-                    setPdfError('PDF file size must be less than 15MB');
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    setPdfError(`File too large (${sizeMB}MB). Maximum size is 15MB.`);
                     return;
                 }
 
