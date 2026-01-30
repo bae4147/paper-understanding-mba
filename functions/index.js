@@ -979,7 +979,7 @@ ${scene.visual_prompt}`;
         }
       });
 
-      // Make the file publicly readable
+      // Make file publicly accessible
       await file.makePublic();
 
       const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;

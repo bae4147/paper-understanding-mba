@@ -1,0 +1,214 @@
+======================================================================
+기술통계 보고서 (Descriptive Statistics Report)
+생성일시: 2026-01-25T23:04:05.248Z
+실험 시작: 2026-01-20T19:00:00.000Z
+======================================================================
+
+[ 요약 ]
+총 참가자: 39명
+총 세션: 39개
+완료 세션: 39개 (100%)
+
+[ 참가자 통계 ]
+--------------------------------------------------
+조건별 배정:
+  - control: 20명
+  - ebm_cimo: 19명
+
+완료율 (최소 1개 세션 완료):
+  - control: 20/20명 (100%)
+  - ebm_cimo: 19/19명 (100%)
+
+클래스별 분포:
+  - mba6202_tue: 15명
+  - mba6202_wed: 24명
+
+[ 세션 통계 ]
+--------------------------------------------------
+상태별 분포:
+  - complete: 39개
+
+[ 읽기 행동 통계 ]
+--------------------------------------------------
+
+전체:
+  총 소요 시간 (분): M=13.45, SD=16.04, Min=0.1, Max=74.66, Median=8.28 (n=39)
+  읽기 시간 (분): M=2.33, SD=4.9, Min=0, Max=26.95, Median=0.33 (n=39)
+  채팅 시간 (분): M=5.45, SD=10.1, Min=0.01, Max=42.74, Median=0.57 (n=39)
+
+Control 그룹:
+  총 소요 시간 (분): M=11.08, SD=14.17, Min=0.1, Max=65.64, Median=6.15 (n=20)
+  읽기 시간 (분): M=1.95, SD=2.96, Min=0.01, Max=12.82, Median=0.85 (n=20)
+
+EBM-CIMO 그룹:
+  총 소요 시간 (분): M=15.95, SD=17.44, Min=0.35, Max=74.66, Median=10.58 (n=19)
+  읽기 시간 (분): M=2.74, SD=6.31, Min=0, Max=26.95, Median=0.25 (n=19)
+  채팅 시간 (분): M=8.7, SD=13.13, Min=0.02, Max=42.74, Median=1.25 (n=19)
+
+리소스 사용 (focusTime >= 5초):
+                        Control (n=20)     EBM-CIMO (n=19)
+  - Infographics:       12명 (60%)            9명 (47.4%)
+  - Video:              12명 (60%)            9명 (47.4%)
+  - Audio/Podcast:      11명 (55%)            8명 (42.1%)
+  - Chat (1회 이상):    10명 (50%)            10명 (52.6%)
+
+[ LLM 사용 통계 ]
+--------------------------------------------------
+총 메시지 수: 78개
+  세션당 메시지 수 (전체): M=2, SD=3.45, Min=0, Max=17, Median=1 (n=39)
+  세션당 메시지 수 (Control): M=1.55, SD=2.2, Min=0, Max=8, Median=0.5 (n=20)
+  세션당 메시지 수 (EBM-CIMO): M=2.47, SD=4.35, Min=0, Max=17, Median=1 (n=19)
+  질문 길이 (문자): M=80.59, SD=82.75, Min=3, Max=545, Median=51 (n=78)
+  응답 시간 (초): M=10.37, SD=6.74, Min=2.69, Max=35.37, Median=8.42 (n=78)
+
+[ 설문 통계 ]
+--------------------------------------------------
+
+NASA-TLX (1-7점):
+                        Control                    EBM-CIMO
+  항목              M(SD)                      M(SD)
+  mentalDemand       3.55(1.07)                4.11(1.12)
+  physicalDemand     1.45(0.67)                2.26(1.33)
+  temporalDemand     1.75(0.89)                2.26(1.37)
+  effort             4.4(1.32)                 4.47(1.43)
+  frustration        2.05(1.12)                2.84(1.39)
+  performance        5.65(0.91)                5.63(0.87)
+
+Self-Efficacy (1-7점):
+  [overallComprehension]
+                          Control                    EBM-CIMO
+    researchDesignUnderstanding 5.5(1.07)                 5.16(1.46)
+    evidenceUnderstanding    5.5(0.92)                 5.26(1.29)
+  [criticalEngagement]
+                          Control                    EBM-CIMO
+    verifyCredibility        5(1.34)                   5.16(1.56)
+    broaderImplications      5.9(0.77)                 5.79(1)
+  [applicability]
+                          Control                    EBM-CIMO
+    decision                 5.55(0.97)                5.53(1.27)
+    outcomes                 4.9(1.18)                 5.26(1.41)
+  ... (추가 항목은 JSON 파일 참조)
+
+외부 도구 사용:
+  - 외부 AI 도구: 1/39명 (2.6%)
+  - 외부 PDF 뷰어: 7/39명 (17.9%)
+
+Post Task:
+                          Control                    EBM-CIMO
+  Q1 답변 개수            1.15(0.48) 1.11(0.31)
+  Q2 답변 개수            1(0) 1.05(0.22)
+  새 전략 자신감 (1-7)    5.35(1.11) 5.16(1.31)
+  실행 가능성 (1-7)       5.1(1.45) 4.79(1.61)
+
+======================================================================
+[ Chat 사용자 대상 분석 (Chat 1회 이상 사용) ]
+--------------------------------------------------
+
+표본 크기: 전체 20명 (Control: 10명, EBM-CIMO: 10명)
+
+LLM 사용 통계:
+                        Control                    EBM-CIMO
+  메시지 수             3.1(2.21) 4.7(5.04)
+
+NASA-TLX (1-7점):
+                        Control                    EBM-CIMO
+  항목              M(SD)                      M(SD)
+  mentalDemand       3.2(1.25)                 3.9(1.04)
+  physicalDemand     1.5(0.5)                  1.9(1.04)
+  temporalDemand     1.7(0.9)                  2.1(1.14)
+  effort             4.8(1.33)                 4.1(1.45)
+  frustration        2(1.1)                    2(0.77)
+  performance        5.8(0.75)                 5.7(0.9)
+
+Self-Efficacy (1-7점):
+  [overallComprehension]
+                          Control                    EBM-CIMO
+    researchDesignUnderstanding 5.7(0.78)                 5.3(1.55)
+    evidenceUnderstanding    5.5(0.81)                 5.1(1.64)
+  [criticalEngagement]
+                          Control                    EBM-CIMO
+    verifyCredibility        4.6(1.2)                  5(1.79)
+    broaderImplications      6(0.77)                   5.7(1.1)
+  [applicability]
+                          Control                    EBM-CIMO
+    decision                 5.4(1.02)                 6(1.18)
+    outcomes                 4.9(0.94)                 5.6(1.5)
+  ... (추가 항목은 JSON 파일 참조)
+
+Post Task:
+                          Control                    EBM-CIMO
+  Q1 답변 개수            1.2(0.6) 1.1(0.3)
+  Q2 답변 개수            1(0) 1(0)
+  새 전략 자신감 (1-7)    5.1(1.14) 4.9(1.04)
+  실행 가능성 (1-7)       4.4(1.5) 4.7(1.35)
+
+[ 클래스별 통계 ]
+--------------------------------------------------
+
+mba6202_tue:
+  참가자: 15명 (control: 8, ebm_cimo: 7)
+  세션: 15개 (완료: 15개, 100%)
+
+mba6202_wed:
+  참가자: 24명 (control: 12, ebm_cimo: 12)
+  세션: 24개 (완료: 24개, 100%)
+
+[ 참가자 피드백 (18명) ]
+--------------------------------------------------
+
+[1] ike.34@osu.edu (control, mba6202_tue)
+I like seeing the questions before starting an assignment so I can know what to look for and what to think about as I am reading the article. I wish I had picked a better article if what you wanted me to do was relate it to myself directly and not to a problem I want to resolve in my work place. I also am not sure what you mean when you want me to apply this to my work place. Realistically, no one at my job would pay e any attention. I am not high enough in leadership to effect real change. Do you mean to ask how I would effect these changes at work if I had the power to do so? I guess I am a little unclear if you want me to imagine what I can actually do or what I could potentially do. What I can actually do is quite small in the position I am in now, but what I could potentially do is as big as my imagination.
+
+[2] stalnaker.63@buckeyemail.osu.edu (ebm_cimo, mba6202_tue)
+NA
+
+[3] petite.9@osu.edu (ebm_cimo, mba6202_wed)
+The AI chatbot gave some interesting and practical information that sounded reasonable, but the questions it was asking seemed to go beyond the scope of the paper.
+
+[4] murphy.1603@osu.edu (control, mba6202_wed)
+Good, what do we submit to carmen?
+
+[5] yoho.18@osu.edu (control, mba6202_tue)
+I enjoyed utilizing the AI capabilities to relay the information of the article.
+
+[6] perry.2589@buckeyemail.osu.edu (ebm_cimo, mba6202_wed)
+This was actually kind of cool.
+
+[7] kelly.470@osu.edu (ebm_cimo, mba6202_wed)
+Other than the platform itself being a little clunky at times, I think this is an amazing resource, especially for myself being in the healthcare field. I would have loved to have access to this in the past and would look forward to having access to it in the future!
+
+[8] mally.9@buckeyemail.osu.edu (control, mba6202_wed)
+N/A
+
+[9] erin_rinto@yahoo.com (control, mba6202_tue)
+I thought the article was relevant.  The journal has an IF of 10.55, which I thought indicated it was used to support the arguments contained and to support its conclusions. I think it is hard to generalize the two studies within the article, as they were surveys sent to the corporations, and the return rate was only 54%. I don't know if there is a better way to assess this, but I found the conclusions relevant and consistent with my professional experiences. The article states that the results were statistically significant, but I think to be used, the N needs to be much larger.
+
+[10] spatholt.4@osu.edu (ebm_cimo, mba6202_tue)
+Interesting assignment. I wonder if the chat bot was backed by a gemini api key? The infographic seemed reminiscent of NotebookLM and I noticed output structures that looked Gemini-familiar in the chat.
+
+[11] loudenslager.17@osu.edu (control, mba6202_tue)
+This tool was very cool to use, and made doing this assignment more interesting.
+
+[12] martinez.554@buckeyemail.osu.edu (ebm_cimo, mba6202_wed)
+The chatbot was very conversational and seemed well built.
+
+[13] shank.189@osu.edu (control, mba6202_wed)
+I was a little unclear on the first few questions about the key differences between the article and my current situation.
+
+[14] walsh.1042@osu.edu (control, mba6202_wed)
+I didn't use the GenAI tools, I clicked finished prematurely thinking it meant that I was finished uploading the article, hence all of the answers are 3's.
+
+[15] frank.827@osu.edu (control, mba6202_wed)
+I really liked the tool that disseminated the article into all those options. Is this something you built or is this readily available at all times? I went to bookmark it but it appeared specific to this assignment. It would be a really useful tool -- especially for efficiency.
+
+[16] westrick.37@osu.edu (ebm_cimo, mba6202_wed)
+I did not like that if you had to pause the video it would then restart and there was no ability to go back to where you left off.
+
+[17] westrick.48@osu.edu (ebm_cimo, mba6202_wed)
+Not being able to pause the video was frustrating.
+
+[18] moore.4091@osu.edu (ebm_cimo, mba6202_tue)
+Very useful tool!
+
+======================================================================
+상세 데이터는 descriptive_stats.json 파일을 참조하세요.
