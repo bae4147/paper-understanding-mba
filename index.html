@@ -389,8 +389,8 @@ Return format: {"title": "...", "firstAuthorLastName": "...", "year": 2023, "ven
                     return;
                 }
 
-                // Show session warning popup
-                setShowSessionWarning(true);
+                // Start session directly
+                handleStartSession();
             };
 
             const handleStartSession = async () => {
@@ -451,32 +451,6 @@ Return format: {"title": "...", "firstAuthorLastName": "...", "year": 2023, "ven
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-                    {/* Session Warning Popup */}
-                    {showSessionWarning && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4">Start a new assignment?</h2>
-                                <p className="text-gray-600 mb-6">
-                                    Starting a new assignment will replace your previous submission. Only your most recent submission will be graded.
-                                </p>
-                                <div className="flex space-x-3">
-                                    <button
-                                        onClick={() => setShowSessionWarning(false)}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleStartSession}
-                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                    >
-                                        Start Assignment
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     <div className="max-w-2xl mx-auto">
                         <div className="bg-white rounded-xl shadow-2xl p-8">
                             {/* Header */}
