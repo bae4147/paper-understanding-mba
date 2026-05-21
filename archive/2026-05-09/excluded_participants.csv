@@ -1,0 +1,75 @@
+name_key,S1_email,S1_class,S1_condition,active_min,exclusion_reason
+alvin nash,alvin_nash@na.honda.com,honda,ebm_cimo,7.19655,non_mba (ClassCode=4.0)
+james oberhaus,oberhaus.11@buckeyemail.osu.edu,mba6202_wed,control,0.0869,active_min<=1.0 (0.087min)
+jason tate,,,,0.0,no_session_match
+jonah durst,durst.136@buckeyemail.osu.edu,mba6202_sat,control,0.8838166666666667,active_min<=1.0 (0.884min)
+chad doan,,,,0.0,no_session_match
+melia prince,prince.245@osu.edu,mba6202_sat,control,0.3520666666666667,active_min<=1.0 (0.352min)
+kevin fenstermacher,fenstermacher.13@buckeyemail.osu.edu,mba6202_wed,ebm_cimo,0.7037833333333333,active_min<=1.0 (0.704min)
+nick sabetta,nick_sabetta@na.honda.com,honda,ebm_cimo,8.713516666666667,non_mba (ClassCode=4.0)
+caroline coburn,,,,0.0,no_session_match
+gary ault,ault.186@buckeyemail.osu.edu,busoba7399,control,14.0686,non_mba (ClassCode=5.0)
+esteban valenzuela,esteban_valenzuela@na.honda.com,honda,control,9.0409,non_mba (ClassCode=4.0)
+jack yates,,,,0.0,no_session_match
+ana vickers,,,,0.0,no_session_match
+bj (william) henderson,,,,0.0,no_session_match
+adam batman,batman.10@buckeyemail.osu.edu,honda,ebm_cimo,9.404583333333333,non_mba (ClassCode=4.0)
+ria shrikanth,,,,0.0,no_session_match
+geethanjali anand,anand.294@buckeyemail.osu.edu,honda,ebm_cimo,9.71385,non_mba (ClassCode=4.0)
+bradley d'sa,dsa.7@buckeyemail.osu.edu,mba6202_tue,ebm_cimo,0.19585,active_min<=1.0 (0.196min)
+justin johnston,johnston.785@buckeyemail.osu.edu,mba6202_wed,ebm_cimo,0.6647333333333333,active_min<=1.0 (0.665min)
+david perzynski,dddagreat@yahoo.com,honda,ebm_cimo,5.34015,non_mba (ClassCode=4.0)
+marcelo nogoseke,marcelo_nogoseke@yahoo.com.br,honda,control,2.1369166666666666,non_mba (ClassCode=4.0)
+clayton mally,mally.9@buckeyemail.osu.edu,mba6202_wed,control,0.17526666666666665,active_min<=1.0 (0.175min)
+karli lane-hinrichs,,,,0.0,no_session_match
+sheridan scott,,,,0.0,no_session_match
+neal yarberry,yarberry.9@osu.edu,honda,control,9.728383333333333,non_mba (ClassCode=4.0)
+yuki takahashi,yuki_takahashi@na.honda.com,honda,ebm_cimo,1.5888833333333334,non_mba (ClassCode=4.0)
+karthikeyan maniyarasan,karthy.md@gmail.com,honda,ebm_cimo,12.14495,non_mba (ClassCode=4.0)
+nicolas st-pierre,st-pierre.18@buckeyemail.osu.edu,mba6202_wed,control,0.04438333333333333,active_min<=1.0 (0.044min)
+umair jumani,,,,0.0,no_session_match
+lucia miranda,,,,0.0,no_session_match
+logan snyder,,,,0.0,no_session_match
+tyler walsh,walsh.1042@osu.edu,mba6202_wed,control,0.10193333333333333,active_min<=1.0 (0.102min)
+russell hill,rhill7389@gmail.com,mba6202_tue,control,65.64335,video_outlier (window_active_video=3880s)
+latia gwin,gwin.66@osu.edu,busoba7399,ebm_cimo,0.31798333333333334,non_mba (ClassCode=5.0)
+jacob lowery,lowery.274@buckeyemail.osu.edu,honda,control,9.795316666666666,non_mba (ClassCode=4.0)
+elijah george,elijah_george@na.honda.com,honda,ebm_cimo,2.22025,non_mba (ClassCode=4.0)
+trusstin perry,perry.2589@buckeyemail.osu.edu,mba6202_wed,ebm_cimo,0.34863333333333335,active_min<=1.0 (0.349min)
+katie girouard,,,,0.0,no_session_match
+erin muenchen,muenchen.10@buckeyemail.osu.edu,honda,control,12.768166666666668,non_mba (ClassCode=4.0)
+margaret wuebker,wuebker.31@buckeyemail.osu.edu,mba6202_tue,control,0.9329,active_min<=1.0 (0.933min)
+alec lisy,,,,0.0,no_session_match
+randy calhoun,calhoun.318@buckeyemail.osu.edu,mba6202_tue,control,0.9665166666666667,active_min<=1.0 (0.967min)
+liza bare,bare.61@osu.edu,honda,control,7.909016666666667,non_mba (ClassCode=4.0)
+mallory allen,,,,0.0,no_session_match
+evan frederick,ewfrederick2@gmail.com,honda,control,1.9800166666666668,non_mba (ClassCode=4.0)
+sean beattie,beattie.38@osu.edu,busoba7399,control,8.397566666666666,non_mba (ClassCode=5.0)
+tyler reyes,tyler_reyes@na.honda.com,honda,ebm_cimo,3.3084166666666666,non_mba (ClassCode=4.0)
+myles weaver,weaver.1081@buckeyemail.osu.edu,mba6202_wed,control,0.02723333333333333,active_min<=1.0 (0.027min)
+nazm furniturewala,nazm_furniturewala@na.honda.com,honda,control,7.9142166666666665,non_mba (ClassCode=4.0)
+aubrey columber,,,,0.0,no_session_match
+ryan wilson,wilson.3911@buckeyemail.osu.edu,honda,ebm_cimo,15.06895,non_mba (ClassCode=4.0)
+dj brestensky,,,,0.0,no_session_match
+sri iyengar,iyengar.68@buckeyemail.osu.edu,honda,control,13.340883333333334,non_mba (ClassCode=4.0)
+tristan galyon,tjgalyon@gmail.com,honda,control,0.9388,non_mba (ClassCode=4.0)
+andrew garzony,garzony.3@osu.edu,mba6202_wed,ebm_cimo,0.7365333333333334,active_min<=1.0 (0.737min)
+karyn frost,frost.379@osu.edu,busoba7399,control,0.32626666666666665,non_mba (ClassCode=5.0)
+sydney bell,sydney_bell@na.honda.com,honda,ebm_cimo,1.8394833333333334,non_mba (ClassCode=4.0)
+steven wise,wise.1440@buckeyemail.osu.edu,honda,ebm_cimo,12.912283333333333,non_mba (ClassCode=4.0)
+imahn crowder,,,,0.0,no_session_match
+lucy berg,lucy_berg@na.honda.com,honda,ebm_cimo,4.887883333333333,non_mba (ClassCode=4.0)
+dan rice,rice.576@buckeyemail.osu.edu,mba6202_wed,control,0.12938333333333332,active_min<=1.0 (0.129min)
+pat andersen,,,,0.0,no_session_match
+daniel buell,daniel_buell@na.honda.com,honda,control,6.782416666666666,non_mba (ClassCode=4.0)
+gordana seifert,,,,0.0,no_session_match
+emily enslen,enslen.4@osu.edu,mba6202_tue,ebm_cimo,112.749,video_outlier (window_active_video=4553s)
+austin winchester,winchester.38@osu.edu,busoba7399,control,9.320966666666667,non_mba (ClassCode=5.0)
+madison gilliland,,,,0.0,no_session_match
+hannah pereira,,,,0.0,no_session_match
+jessica macmurray,,,,0.0,no_session_match
+michael martin,,,,0.0,no_session_match
+david ducharme,,,,0.0,no_session_match
+max rosinski,rosinski.22@osu.edu,busoba7399,ebm_cimo,2.8446,non_mba (ClassCode=5.0)
+eddie rhode,,,,0.0,no_session_match
+anthony mak,amakattack@gmail.com,honda,control,0.8947333333333334,non_mba (ClassCode=4.0)

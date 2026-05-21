@@ -1,0 +1,13 @@
+{
+  "sessions": {
+    "chatMessageCount": {
+      "control_mean": 1.19,
+      "control_sd": 1.65,
+      "control_n": 52,
+      "ebm_mean": 1.82,
+      "ebm_sd": 2.91,
+      "ebm_n": 56,
+      "F": 1.836,
+      "p": 0.17835913683732543,
+      "p_formatted": "0.178",
+      "significant": 

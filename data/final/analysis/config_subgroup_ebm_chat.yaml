@@ -1,0 +1,53 @@
+name: "subgroup_ebm_chat_engagement"
+
+filters:
+  exclude_external_ai: true
+  exclude_external_pdf: true
+  min_reading_time_ms: 0
+  min_chat_count: 0
+  min_attn_focus: 3
+  require_attn_check_pass: true
+
+# ebm_cimo 내에서 chat_count 기준으로 두 그룹 분리
+subgroup:
+  condition: "ebm_cimo"
+  split_col: "chat_count"
+  threshold: 3
+  label_low: "low_chat (≤2턴)"
+  label_high: "high_chat (≥3턴)"
+
+dependent_vars:
+  # Self-efficacy (subcategory 평균)
+  - se_oc
+  - se_ce
+  - se_ap
+  # NASA-TLX
+  - nasa_mentalDemand
+  - nasa_physicalDemand
+  - nasa_temporalDemand
+  - nasa_performance
+  - nasa_effort
+  - nasa_frustration
+  # LLM Usefulness
+  - llmUsefulness_overall
+  - llmUsefulness_conceptHelp
+  - llmUsefulness_findingsHelp
+  - llmUsefulness_practicalHelp
+  - llmUsefulness_timeSaving
+  # LLM Trust
+  - llmTrust_competence
+  - llmTrust_accuracy
+  - llmTrust_benevolence
+  - llmTrust_reliability
+  - llmTrust_comfortActing
+  - llmTrust_comfortUsing
+  - llmTrust_relyWithoutReading
+  - llmTrust_assumeClearIsAccurate
+  - llmTrust_confidentWithoutDetails
+  - llmTrust_relyForImportance
+  # Post-task
+  - postTask_implementationLikelihood
+  - postTask_newStrategyConfidence
+  # Reading behavior
+  - reading_totalDuration_ms
+  - chat_count

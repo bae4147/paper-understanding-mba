@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Assignment - Preparing</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBeBZVsyiwBmOUPAFyOF6xkq0o43ylYc-Q",
+            authDomain: "mba-paper-reading.firebaseapp.com",
+            projectId: "mba-paper-reading",
+            storageBucket: "mba-paper-reading.firebasestorage.app",
+            messagingSenderId: "562003057084",
+            appId: "1:562003057084:web:f57043a9250f588049b3b9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // API Endpoints
+        const ENDPOINTS = {
+            podcast: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generatePodcast',
+            infographic: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateInfographic',
+            videoSlideshow: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateVideoSlideshow'
+        };
+
+        function Preparation() {
+            // Auth state
+            const [currentUser, setCurrentUser] = useState(null);
+            const [checkingAuth, setCheckingAuth] = useState(true);
+
+            // URL params
+            const [sessionId, setSessionId] = useState('');
+            const [mode, setMode] = useState('experiment');
+            const [condition, setCondition] = useState('control');
+            const [paper, setPaper] = useState('custom');
+
+            // Generation status
+            const [podcastStatus, setPodcastStatus] = useState('pending'); // pending, generating, done, error
+            const [infographicStatus, setInfographicStatus] = useState('pending');
+            const [videoStatus, setVideoStatus] = useState('pending');
+
+            // Overall status
+            const [allDone, setAllDone] = useState(false);
+            const [pdfBase64, setPdfBase64] = useState(null);
+
+            // Error log for debugging
+            const [errorLogs, setErrorLogs] = useState([]);
+            const addErrorLog = (msg) => setErrorLogs(prev => [...prev, `[${new Date().toISOString()}] ${msg}`]);
+
+            // Prevent duplicate generation
+            const generationStartedRef = useRef(false);
+
+            // Auth guard
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    if (!user) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    setCurrentUser(user);
+                    setCheckingAuth(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            // IndexedDB helpers
+            const openDatabase = (dbName, storeName) => {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(dbName, 1);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(storeName)) {
+                            db.createObjectStore(storeName, { keyPath: 'id' });
+                        }
+                    };
+                });
+            };
+
+            const getFromIndexedDB = async (dbName, storeName, key) => {
+                const db = await openDatabase(dbName, storeName);
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([storeName], 'readonly');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.get(key);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve(request.result);
+                });
+            };
+
+            const saveToIndexedDB = async (dbName, storeName, data) => {
+                const db = await openDatabase(dbName, storeName);
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([storeName], 'readwrite');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.put(data);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve();
+                });
+            };
+
+            // Update session phase in Firestore
+            const updateSessionPhase = async (sid) => {
+                if (!currentUser || !sid) return;
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update({
+                        currentPhase: 'generating'
+                    });
+                    console.log('Phase updated to: generating');
+                } catch (err) {
+                    console.error('Error updating session phase:', err);
+                }
+            };
+
+            // Upload file to Firebase Storage
+            const uploadToStorage = async (path, data, contentType) => {
+                const storageRef = storage.ref(path);
+                let blob;
+
+                if (typeof data === 'string' && data.startsWith('data:')) {
+                    // Base64 data URL
+                    const response = await fetch(data);
+                    blob = await response.blob();
+                } else if (typeof data === 'string') {
+                    // Plain base64 string - detect content type
+                    const byteCharacters = atob(data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    blob = new Blob([byteArray], { type: contentType });
+                } else if (data instanceof Blob) {
+                    blob = data;
+                } else {
+                    // JSON data
+                    blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                }
+
+                await storageRef.put(blob, { contentType });
+                const downloadUrl = await storageRef.getDownloadURL();
+                console.log(`Uploaded to ${path}:`, downloadUrl);
+                return downloadUrl;
+            };
+
+            // Save individual media URL to Firestore session (avoids race conditions)
+            const saveMediaUrlToSession = async (key, value, sid) => {
+                if (!currentUser || !sid) return;
+                try {
+                    const updateData = {};
+                    updateData[`mediaUrls.${key}`] = value;
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update(updateData);
+                    console.log(`Media URL saved: ${key}`);
+                } catch (err) {
+                    console.error(`Error saving media URL ${key}:`, err);
+                }
+            };
+
+            // Save multiple media URLs at once (for backwards compatibility)
+            const saveMediaUrlsToSession = async (mediaUrls, sid) => {
+                if (!currentUser || !sid) return;
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).set({
+                        mediaUrls: mediaUrls
+                    }, { merge: true });
+                    console.log('Media URLs saved to session');
+                } catch (err) {
+                    console.error('Error saving media URLs:', err);
+                }
+            };
+
+            // Load URL params and check existing state
+            useEffect(() => {
+                if (checkingAuth || !currentUser) return;
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const sid = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId') || '';
+                setSessionId(sid);
+                setMode(urlParams.get('mode') || 'experiment');
+                setCondition(urlParams.get('condition') || 'control');
+                setPaper(urlParams.get('paper') || 'custom');
+
+                if (!sid) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Update phase to generating
+                updateSessionPhase(sid);
+
+                // Load PDF and check existing generation status
+                loadPdfAndCheckStatus(sid);
+            }, [checkingAuth, currentUser]);
+
+            const loadPdfAndCheckStatus = async (sid) => {
+                try {
+                    // First, always check Firestore for existing media
+                    try {
+                        const sessionDoc = await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).get();
+                        if (sessionDoc.exists && sessionDoc.data().mediaUrls) {
+                            const mediaUrls = sessionDoc.data().mediaUrls;
+
+                            if (mediaUrls.podcast) setPodcastStatus('done');
+                            if (mediaUrls.infographic) setInfographicStatus('done');
+                            if (mediaUrls.video) setVideoStatus('done');
+
+                            // If media is already complete, no need for PDF at all
+                            if (mediaUrls.infographic && mediaUrls.video && mediaUrls.podcast) {
+                                setAllDone(true);
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Could not check existing session data:', e.message);
+                    }
+
+                    // Need to generate missing items - require PDF
+                    const pdfData = await getFromIndexedDB('CustomPdfDB', 'pdfs', 'customPdf');
+                    if (!pdfData?.base64) {
+                        console.error('No PDF found in IndexedDB');
+                        addErrorLog('PDF not found in browser storage. Please go back and re-upload the PDF.');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    setPdfBase64(pdfData.base64);
+
+                    // Start generation for pending items
+                    startGeneration(pdfData.base64, sid);
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                }
+            };
+
+            const startGeneration = async (base64, sid) => {
+                if (generationStartedRef.current) return;
+                generationStartedRef.current = true;
+
+                // Save that we started
+                sessionStorage.setItem('generationStatus', JSON.stringify({
+                    started: true,
+                    podcastStarted: true,
+                    infographicStarted: true,
+                    videoStarted: true
+                }));
+
+                // Check existing media URLs from Firestore session
+                let existingMediaUrls = {};
+                try {
+                    const sessionDoc = await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).get();
+                    if (sessionDoc.exists && sessionDoc.data().mediaUrls) {
+                        existingMediaUrls = sessionDoc.data().mediaUrls;
+                    }
+                } catch (e) {
+                    console.log('No existing media URLs');
+                }
+
+                const mediaUrls = { ...existingMediaUrls };
+                const storagePath = `sessions/${currentUser.uid}/${sid}`;
+
+                // Generate all in parallel
+                const promises = [];
+
+                // Upload PDF first
+                if (!mediaUrls.pdf) {
+                    try {
+                        const pdfUrl = await uploadToStorage(`${storagePath}/paper.pdf`, base64, 'application/pdf');
+                        mediaUrls.pdf = pdfUrl;
+                        await saveMediaUrlToSession('pdf', pdfUrl, sid);
+                    } catch (err) {
+                        console.error('PDF upload failed:', err);
+                    }
+                }
+
+                // Podcast
+                if (!mediaUrls.podcast) {
+                    setPodcastStatus('generating');
+                    promises.push(
+                        generatePodcast(base64)
+                            .then(async (result) => {
+                                // Upload podcast audio to Storage
+                                const audioUrl = await uploadToStorage(
+                                    `${storagePath}/podcast.mp3`,
+                                    result.audioBase64,
+                                    'audio/mpeg'
+                                );
+                                mediaUrls.podcast = audioUrl;
+                                // Stringify script to avoid nested entity issues
+                                const scriptStr = typeof result.script === 'string'
+                                    ? result.script
+                                    : JSON.stringify(result.script);
+                                mediaUrls.podcastScript = scriptStr;
+                                // Save each field individually to avoid race conditions
+                                await saveMediaUrlToSession('podcast', audioUrl, sid);
+                                await saveMediaUrlToSession('podcastScript', scriptStr, sid);
+                                setPodcastStatus('done');
+                            })
+                            .catch(err => {
+                                console.error('Podcast generation failed:', err);
+                                setPodcastStatus('error');
+                                addErrorLog(`Podcast failed: ${err.message}`);
+                            })
+                    );
+                } else {
+                    setPodcastStatus('done');
+                }
+
+                // Infographic
+                if (!mediaUrls.infographic) {
+                    setInfographicStatus('generating');
+                    promises.push(
+                        generateInfographic(base64)
+                            .then(async (result) => {
+                                // Upload infographic image to Storage
+                                const imageUrl = await uploadToStorage(
+                                    `${storagePath}/infographic.png`,
+                                    result.imageBase64,
+                                    'image/png'
+                                );
+                                mediaUrls.infographic = imageUrl;
+                                await saveMediaUrlToSession('infographic', imageUrl, sid);
+                                setInfographicStatus('done');
+                            })
+                            .catch(err => {
+                                console.error('Infographic generation failed:', err);
+                                setInfographicStatus('error');
+                                addErrorLog(`Infographic failed: ${err.message}`);
+                            })
+                    );
+                } else {
+                    setInfographicStatus('done');
+                }
+
+                // Video Slideshow
+                if (!mediaUrls.video) {
+                    setVideoStatus('generating');
+                    promises.push(
+                        generateVideoSlideshow(base64)
+                            .then(async (result) => {
+                                // Function now returns dataUrl directly (already saved to Storage)
+                                const videoUrl = result.dataUrl;
+                                mediaUrls.video = videoUrl;
+                                await saveMediaUrlToSession('video', videoUrl, sid);
+                                setVideoStatus('done');
+                            })
+                            .catch(err => {
+                                console.error('Video generation failed:', err);
+                                setVideoStatus('error');
+                                addErrorLog(`Video failed: ${err.message}`);
+                            })
+                    );
+                } else {
+                    setVideoStatus('done');
+                }
+
+                // Wait for all to complete
+                await Promise.allSettled(promises);
+
+                // Check final status (allow proceeding even if podcast/audio failed)
+                const sessionDoc = await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).get();
+                const finalMediaUrls = sessionDoc.data()?.mediaUrls || {};
+                if (finalMediaUrls.infographic && finalMediaUrls.video && finalMediaUrls.podcast) {
+                    setAllDone(true);
+                }
+            };
+
+            // API calls
+            const generatePodcast = async (base64) => {
+                const response = await fetch(ENDPOINTS.podcast, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdfBase64: base64, duration: 3, userEmail: currentUser?.email })
+                });
+                if (!response.ok) throw new Error('Podcast API failed');
+                return await response.json();
+            };
+
+            const generateInfographic = async (base64) => {
+                const response = await fetch(ENDPOINTS.infographic, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdfBase64: base64, userEmail: currentUser?.email })
+                });
+                if (!response.ok) throw new Error('Infographic API failed');
+                return await response.json();
+            };
+
+            const generateVideoSlideshow = async (base64) => {
+                const response = await fetch(ENDPOINTS.videoSlideshow, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdfBase64: base64, userEmail: currentUser?.email })
+                });
+                if (!response.ok) throw new Error('Video API failed');
+                return await response.json();
+            };
+
+            const retryVideoSlideshow = async () => {
+                const base64 = pdfBase64;
+                if (!base64) return;
+                setVideoStatus('generating');
+                const sid = sessionId || new URLSearchParams(window.location.search).get('sessionId') || sessionStorage.getItem('currentSessionId');
+                try {
+                    const result = await generateVideoSlideshow(base64);
+                    const videoUrl = result.dataUrl;
+                    await saveMediaUrlToSession('video', videoUrl, sid);
+                    setVideoStatus('done');
+                    const sessionDoc = await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).get();
+                    const finalMediaUrls = sessionDoc.data()?.mediaUrls || {};
+                    if (finalMediaUrls.infographic && finalMediaUrls.video && finalMediaUrls.podcast) {
+                        setAllDone(true);
+                    }
+                } catch (err) {
+                    console.error('Video retry failed:', err);
+                    setVideoStatus('error');
+                }
+            };
+
+            const handleStartReading = async () => {
+                // Get sessionId directly from multiple sources to avoid state timing issues
+                const sid = sessionId || new URLSearchParams(window.location.search).get('sessionId') || sessionStorage.getItem('currentSessionId');
+
+                if (!sid) {
+                    console.error('No sessionId found');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Update phase to reading before navigating
+                if (currentUser) {
+                    try {
+                        await db.collection('users').doc(currentUser.uid).collection('sessions').doc(sid).update({
+                            currentPhase: 'reading'
+                        });
+                        console.log('Phase updated to: reading');
+                    } catch (err) {
+                        console.error('Error updating phase to reading:', err);
+                    }
+                }
+
+                window.location.href = `reading.html?sessionId=${encodeURIComponent(sid)}&mode=${mode}&condition=${condition}&paper=${paper}`;
+            };
+
+            // Status indicator component
+            const StatusItem = ({ label, status }) => {
+                const getStatusIcon = () => {
+                    switch (status) {
+                        case 'pending':
+                            return <span className="text-gray-400">○</span>;
+                        case 'generating':
+                            return (
+                                <svg className="animate-spin h-5 w-5 text-blue-500" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            );
+                        case 'done':
+                            return <span className="text-green-500 text-xl">✓</span>;
+                        case 'error':
+                            return <span className="text-red-500">✗</span>;
+                        default:
+                            return null;
+                    }
+                };
+
+                const getStatusText = () => {
+                    switch (status) {
+                        case 'pending': return 'Waiting...';
+                        case 'generating': return 'Generating...';
+                        case 'done': return 'Ready';
+                        case 'error': return 'Failed';
+                        default: return '';
+                    }
+                };
+
+                return (
+                    <div className="flex items-center justify-between py-2 px-4 bg-gray-50 rounded-lg">
+                        <span className="text-gray-700">{label}</span>
+                        <div className="flex items-center space-x-2">
+                            <span className={`text-sm ${status === 'done' ? 'text-green-600' : status === 'error' ? 'text-red-600' : 'text-gray-500'}`}>
+                                {getStatusText()}
+                            </span>
+                            {getStatusIcon()}
+                        </div>
+                    </div>
+                );
+            };
+
+            const isGenerating = podcastStatus === 'generating' || infographicStatus === 'generating' || videoStatus === 'generating';
+
+            // Loading state while checking auth
+            if (checkingAuth) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                        <div className="text-center">
+                            <svg className="animate-spin h-10 w-10 text-blue-600 mx-auto mb-4" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-gray-600">Loading...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+                    <div className="max-w-2xl mx-auto">
+                        <div className="bg-white rounded-xl shadow-2xl p-8">
+                            {/* Header */}
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold text-gray-800">
+                                    {allDone ? (
+                                        <span className="text-green-600">GenAI has finished generating content!</span>
+                                    ) : (
+                                        'GenAI is reading the paper and generating content...'
+                                    )}
+                                </h1>
+                            </div>
+
+                            {/* Generation Status */}
+                            <div className="mb-8">
+
+                                {!allDone && (
+                                    <p className="text-sm text-amber-600 mb-4">
+                                        ⚠️ Please do not close this window during generation. (Estimated time: 5-6 minutes)
+                                    </p>
+                                )}
+
+                                <div className="space-y-2">
+                                    <StatusItem label="Podcast" status={podcastStatus} />
+                                    <StatusItem label="Video overview" status={videoStatus} />
+                                    {videoStatus === 'error' && (
+                                        <div className="px-4 py-3 bg-red-50 rounded-lg border border-red-200">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-red-600">Video generation failed.</span>
+                                                <button
+                                                    onClick={retryVideoSlideshow}
+                                                    className="ml-4 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                                                >
+                                                    Retry
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-red-500 mt-1">
+                                                If the problem persists, please contact us at <a href="mailto:osu.reading@gmail.com" className="underline">osu.reading@gmail.com</a>.
+                                            </p>
+                                        </div>
+                                    )}
+                                    <StatusItem label="Infographic" status={infographicStatus} />
+                                </div>
+                            </div>
+
+                            {/* Start Button */}
+                            <div className="mb-6">
+                                <button
+                                    onClick={handleStartReading}
+                                    disabled={!allDone}
+                                    className={`w-full px-6 py-4 rounded-lg font-medium text-lg transition-all ${
+                                        allDone
+                                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {allDone ? 'Start Reading' : 'Please wait...'}
+                                </button>
+                            </div>
+
+                            {/* Technical Support */}
+                            <div className="text-center text-sm text-gray-500 border-t pt-4">
+                                <p>
+                                    Having technical problems?{' '}
+                                    <a href="mailto:osu.reading@gmail.com" className="text-blue-600 hover:underline">
+                                        Contact osu.reading@gmail.com
+                                    </a>
+                                </p>
+                            </div>
+
+                            {/* Error Log - only shown when errors exist */}
+                            {errorLogs.length > 0 && (
+                                <div className="mt-4 border-t pt-4">
+                                    <p className="text-xs text-gray-500 mb-1">Error details (please copy and send to us):</p>
+                                    <textarea
+                                        readOnly
+                                        value={errorLogs.join('\n')}
+                                        className="w-full text-xs font-mono bg-gray-50 border border-gray-200 rounded p-2 h-24 resize-none"
+                                        onClick={e => e.target.select()}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<Preparation />, document.getElementById('root'));
+    </script>
+</body>
+</html>

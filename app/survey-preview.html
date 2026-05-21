@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[Preview] Survey Questions</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState } = React;
+
+        function Scale({ value, setValue, min=1, max=7, leftLabel, rightLabel, color='blue' }) {
+            const values = Array.from({length: max - min + 1}, (_, i) => min + i);
+            const activeClass = color === 'teal' ? 'bg-teal-500 text-white' : 'bg-blue-600 text-white';
+            return (
+                <div className="flex items-center justify-between mt-3">
+                    <span className="text-xs text-gray-500 w-28 shrink-0">{leftLabel}</span>
+                    <div className="flex space-x-1 flex-wrap justify-center">
+                        {values.map(v => (
+                            <button key={v} type="button" onClick={() => setValue(v.toString())}
+                                className={`w-9 h-9 rounded-full text-sm font-bold transition-colors mb-1 ${value === v.toString() ? activeClass : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'}`}>
+                                {v}
+                            </button>
+                        ))}
+                    </div>
+                    <span className="text-xs text-gray-500 w-28 text-right shrink-0">{rightLabel}</span>
+                </div>
+            );
+        }
+
+        function Q({ label, children }) {
+            return (
+                <div>
+                    <label className="block text-sm font-bold text-gray-800 mb-2">{label}</label>
+                    {children}
+                </div>
+            );
+        }
+
+        function Section({ title, subtitle, children, color='blue' }) {
+            const borderColor = color === 'teal' ? 'border-teal-400' : 'border-blue-400';
+            return (
+                <div className={`border-b pb-6`}>
+                    <h2 className="text-xl font-bold text-gray-800 mb-1">{title}</h2>
+                    {subtitle && <p className="text-sm text-gray-600 mb-4">{subtitle}</p>}
+                    <div className="space-y-6 mt-4">{children}</div>
+                </div>
+            );
+        }
+
+        /* ─────────── POST-TASK ─────────── */
+        function PostTask() {
+            const [contextResponses, setContextResponses] = useState(['']);
+            const [postStrategies, setPostStrategies] = useState(['']);
+            const [conf, setConf] = useState('');
+            const [impl, setImpl] = useState('');
+
+            return (
+                <div className="space-y-8">
+                    <div className="bg-teal-100 border-2 border-teal-400 p-5 rounded-xl">
+                        <p className="text-gray-700 text-base font-bold">Going forward, you'll be asked to reflect on your experience.</p>
+                        <p className="text-gray-600 text-sm mt-2">Think about how the article might apply to your work.</p>
+                    </div>
+
+                    {/* Q1 */}
+                    <div>
+                        <label className="block text-base font-bold text-gray-800 mb-4">
+                            Q1. Considering how to translate the article's conclusions to your own context, what are the key differences between the research context and your own situation? Would these matter for applying the findings? *
+                        </label>
+                        <div className="space-y-3">
+                            {contextResponses.map((r, i) => (
+                                <div key={i} className="flex items-start space-x-2">
+                                    <span className="text-sm font-medium text-gray-500 w-5 pt-2">{i+1}.</span>
+                                    <textarea value={r} onChange={e => { const s=[...contextResponses]; s[i]=e.target.value; setContextResponses(s); }}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder={`Response ${i+1}`} rows={3}/>
+                                    {contextResponses.length > 1 && <button type="button" onClick={() => setContextResponses(contextResponses.filter((_,j)=>j!==i))} className="text-gray-400 hover:text-red-500 pt-2">✕</button>}
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => setContextResponses([...contextResponses,''])} className="ml-7 px-4 py-2 border-2 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg text-sm font-medium">+ Add</button>
+                        </div>
+                    </div>
+
+                    {/* Q2 */}
+                    <div>
+                        <label className="block text-base font-bold text-gray-800 mb-4">
+                            Q2. What are practical takeaways from this article that you could realistically implement or test in your workplace? Briefly explain your approach. *
+                        </label>
+                        <div className="space-y-3">
+                            {postStrategies.map((s, i) => (
+                                <div key={i} className="flex items-start space-x-2">
+                                    <span className="text-sm font-medium text-gray-500 w-5 pt-2">{i+1}.</span>
+                                    <textarea value={s} onChange={e => { const ns=[...postStrategies]; ns[i]=e.target.value; setPostStrategies(ns); }}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder={`Takeaway ${i+1}`} rows={3}/>
+                                    {postStrategies.length > 1 && <button type="button" onClick={() => setPostStrategies(postStrategies.filter((_,j)=>j!==i))} className="text-gray-400 hover:text-red-500 pt-2">✕</button>}
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => setPostStrategies([...postStrategies,''])} className="ml-7 px-4 py-2 border-2 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg text-sm font-medium">+ Add</button>
+                        </div>
+                    </div>
+
+                    {/* Q3 */}
+                    <Q label="Q3. How confident are you that your takeaways will be effective in your workplace? *">
+                        <Scale value={conf} setValue={setConf} leftLabel="Not at all confident" rightLabel="Extremely confident" color="teal"/>
+                    </Q>
+
+                    {/* Q4 */}
+                    <Q label="Q4. How likely are you to actually implement these takeaways? *">
+                        <Scale value={impl} setValue={setImpl} leftLabel="Very unlikely" rightLabel="Very likely" color="teal"/>
+                    </Q>
+                </div>
+            );
+        }
+
+        /* ─────────── POST-STUDY SURVEY ─────────── */
+        function PostStudySurvey() {
+            const sd = 'Strongly disagree', sa = 'Strongly agree';
+            const [page, setPage] = useState(1);
+
+            // Section 1: NASA-TLX
+            const [mentalDemand, setMentalDemand] = useState('');
+            const [physicalDemand, setPhysicalDemand] = useState('');
+            const [temporalDemand, setTemporalDemand] = useState('');
+            const [performance, setPerformance] = useState('');
+            const [effort, setEffort] = useState('');
+            const [frustration, setFrustration] = useState('');
+
+            // Section 2: Reading comprehension
+            const [oc, setOc] = useState('');
+            const [kc, setKc] = useState('');
+            const [fi, setFi] = useState('');
+            const [ev, setEv] = useState('');
+            const [kr, setKr] = useState('');
+            const [kt, setKt] = useState('');
+            const [rd, setRd] = useState('');
+            const [sc, setSc] = useState('');
+            const [li, setLi] = useState('');
+            // Critical engagement
+            const [co, setCo] = useState('');
+            const [ca, setCa] = useState('');
+            const [cv, setCv] = useState('');
+            const [cq, setCq] = useState('');
+            const [cb, setCb] = useState('');
+            // Applicability
+            const [acd, setAcd] = useState('');
+            const [adi, setAdi] = useState('');
+            const [am, setAm] = useState('');
+            const [ao, setAo] = useState('');
+            const [ac, setAc] = useState('');
+            const [ad, setAd] = useState('');
+
+            // Section 3: LLM Usefulness
+            const [lu, setLu] = useState('');
+            const [lc, setLc] = useState('');
+            const [lf, setLf] = useState('');
+            const [lp, setLp] = useState('');
+            const [lt, setLt] = useState('');
+
+            // Section 4: LLM Trust
+            const [tc, setTc] = useState('');
+            const [ta, setTa] = useState('');
+            const [tb, setTb] = useState('');
+            const [tr, setTr] = useState('');
+            const [tca, setTca] = useState('');
+            const [tcu, setTcu] = useState('');
+            const [trwr, setTrwr] = useState('');
+            const [taci, setTaci] = useState('');
+            const [tcwd, setTcwd] = useState('');
+            const [trfi, setTrfi] = useState('');
+
+            // Section 5: Resource helpfulness (0-7)
+            const [chatbot, setChatbot] = useState('');
+            const [infographic, setInfographic] = useState('');
+            const [video, setVideo] = useState('');
+            const [podcast, setPodcast] = useState('');
+
+            // Attention + External tools + Feedback
+            const [af, setAf] = useState('');
+            const [ach, setAch] = useState('');
+            const [extAi, setExtAi] = useState('');
+            const [extAiDetails, setExtAiDetails] = useState('');
+            const [extPdf, setExtPdf] = useState('');
+            const [extPdfDetails, setExtPdfDetails] = useState('');
+            const [feedback, setFeedback] = useState('');
+
+            const pages = [
+                <>
+                    <Section title="Section 1. Perceived Task Load" subtitle="Please rate the following aspects of the reading task you just completed.">
+                        <Q label="Mental Demand: How mentally demanding was the task? (e.g., thinking, deciding, understanding, remembering) *">
+                            <Scale value={mentalDemand} setValue={setMentalDemand} leftLabel="Very Low" rightLabel="Very High"/>
+                        </Q>
+                        <Q label="Physical Demand: How physically demanding was the task? (e.g., clicking, scrolling, typing) *">
+                            <Scale value={physicalDemand} setValue={setPhysicalDemand} leftLabel="Very Low" rightLabel="Very High"/>
+                        </Q>
+                        <Q label="Temporal Demand: How hurried or rushed was the pace of the task? *">
+                            <Scale value={temporalDemand} setValue={setTemporalDemand} leftLabel="Very Low" rightLabel="Very High"/>
+                        </Q>
+                        <Q label="Effort: How much effort did you need to put in to read and understand the article? *">
+                            <Scale value={effort} setValue={setEffort} leftLabel="Very Low" rightLabel="Very High"/>
+                        </Q>
+                        <Q label="Frustration: How insecure, discouraged, irritated, stressed, or annoyed were you during the task? *">
+                            <Scale value={frustration} setValue={setFrustration} leftLabel="Very Low" rightLabel="Very High"/>
+                        </Q>
+                    </Section>
+
+                    <Section title="Section 2. Self-efficacy">
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-700 mb-4">1. Performance</h3>
+                            <Q label="How successful were you in understanding the article? *">
+                                <Scale value={performance} setValue={setPerformance} leftLabel="Poor" rightLabel="Excellent"/>
+                            </Q>
+                        </div>
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-700 mb-4 mt-4">2. Reading Comprehension</h3>
+                            <p className="text-sm text-gray-600 mb-4">Please rate your understanding of the article you just read.</p>
+                            <div className="space-y-6">
+                                <Q label="I understood the overall goal and main takeaways of the article. *"><Scale value={oc} setValue={setOc} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I understood the authors' explanations and reasoning presented in the main text. *"><Scale value={kc} setValue={setKc} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I was able to connect different sections or ideas across the article. *"><Scale value={fi} setValue={setFi} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I understood what evidence the authors used to support their claims. *"><Scale value={ev} setValue={setEv} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I understood the key results/findings reported in the article. *"><Scale value={kr} setValue={setKr} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I understood the key concepts/terms used in the article. *"><Scale value={kt} setValue={setKt} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I understood the research design used in the article (e.g., survey, experiment, interviews). *"><Scale value={rd} setValue={setRd} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I understood who or what was studied (sample/context) and why that matters. *"><Scale value={sc} setValue={setSc} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I understood the main limitations the authors described (if any). *"><Scale value={li} setValue={setLi} leftLabel={sd} rightLabel={sa}/></Q>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-700 mb-4 mt-4">3. Critical Engagement</h3>
+                            <p className="text-sm text-gray-600 mb-4">Please rate your agreement with the following statements.</p>
+                            <div className="space-y-6">
+                                <Q label="I explored my own ideas and interpretations related to the article. *"><Scale value={co} setValue={setCo} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I generated alternative perspectives that challenged some of the article's ideas. *"><Scale value={ca} setValue={setCa} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I thought about how to verify the credibility of the information sources cited in the article. *"><Scale value={cv} setValue={setCv} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I questioned what I read to judge whether the claims were convincing. *"><Scale value={cq} setValue={setCq} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I reflected on the broader implications of the article (e.g., for my team, organization, or decisions). *"><Scale value={cb} setValue={setCb} leftLabel={sd} rightLabel={sa}/></Q>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-700 mb-4 mt-4">4. Applicability</h3>
+                            <p className="text-sm text-gray-600 mb-4">Please rate your agreement with the following statements.</p>
+                            <div className="space-y-6">
+                                <Q label="I can clearly identify the key differences between the research context and my own situation. *"><Scale value={acd} setValue={setAcd} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I can tell which of these differences would matter for applying the findings to my situation. *"><Scale value={adi} setValue={setAdi} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I can judge whether the underlying mechanisms behind the study's results would also apply in my situation. *"><Scale value={am} setValue={setAm} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I can assess whether I would achieve similar outcomes if I applied the article's conclusions in my situation. *"><Scale value={ao} setValue={setAo} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I feel confident in judging the applicability of this research to my specific situation. *"><Scale value={ac} setValue={setAc} leftLabel={sd} rightLabel={sa}/></Q>
+                                <Q label="I can make an informed decision about whether to apply these findings in my context. *"><Scale value={ad} setValue={setAd} leftLabel={sd} rightLabel={sa}/></Q>
+                            </div>
+                        </div>
+                    </Section>
+                </>,
+                <>
+                    <Section title="Section 3. Usefulness of GenAI"
+                        subtitle="* GenAI refers to the AI Chatbot, Video Overview, Audio Overview, and Infographic provided during the reading task.">
+                        <Q label="How useful was the GenAI for reading and understanding the article? *"><Scale value={lu} setValue={setLu} leftLabel="Not at all useful" rightLabel="Extremely useful"/></Q>
+                        <Q label="How helpful was the GenAI for understanding difficult concepts or terminology? *"><Scale value={lc} setValue={setLc} leftLabel="Not at all helpful" rightLabel="Extremely helpful"/></Q>
+                        <Q label="How helpful was the GenAI for understanding the research findings? *"><Scale value={lf} setValue={setLf} leftLabel="Not at all helpful" rightLabel="Extremely helpful"/></Q>
+                        <Q label="How helpful was the GenAI for understanding practical applications? *"><Scale value={lp} setValue={setLp} leftLabel="Not at all helpful" rightLabel="Extremely helpful"/></Q>
+                        <Q label="How helpful was the GenAI for saving your time? *"><Scale value={lt} setValue={setLt} leftLabel="Not at all helpful" rightLabel="Extremely helpful"/></Q>
+                    </Section>
+
+                    <Section title="Section 4. Trust in GenAI"
+                        subtitle="* GenAI refers to the AI Chatbot, Video Overview, Audio Overview, and Infographic provided during the reading session.">
+                        <Q label="Overall, the GenAI was competent and effective as a tool for assisting with reading. *"><Scale value={tc} setValue={setTc} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="The information provided by the GenAI was accurate. *"><Scale value={ta} setValue={setTa} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="I believe the GenAI is made with my best interests in mind. *"><Scale value={tb} setValue={setTb} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="I can always rely on the GenAI when understanding articles. *"><Scale value={tr} setValue={setTr} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="I have no reservations about acting on the information provided by the GenAI. *"><Scale value={tca} setValue={setTca} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="I have no hesitation in using the information provided by the GenAI. *"><Scale value={tcu} setValue={setTcu} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="I can rely on the GenAI to understand an article even when I don't fully read it myself. *"><Scale value={trwr} setValue={setTrwr} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="If the GenAI's summary seems clear, I assume it is accurate. *"><Scale value={taci} setValue={setTaci} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="The GenAI's explanation makes me feel confident about an article even when I can't identify supporting details in the text. *"><Scale value={tcwd} setValue={setTcwd} leftLabel={sd} rightLabel={sa}/></Q>
+                        <Q label="I rely on the GenAI to tell me what matters instead of deciding for myself what is important in the article. *"><Scale value={trfi} setValue={setTrfi} leftLabel={sd} rightLabel={sa}/></Q>
+                    </Section>
+                </>,
+                <>
+                    <Section title="Section 5. GenAI Resource Helpfulness"
+                        subtitle="Please rate how helpful each resource was for your learning. (0 = I did not use this resource, 1 = Not at all helpful, 7 = Extremely helpful)">
+                        <Q label="How helpful was the AI chatbot? *"><Scale value={chatbot} setValue={setChatbot} min={0} max={7} leftLabel="Did not use" rightLabel="Extremely helpful"/></Q>
+                        <Q label="How helpful were the infographics? *"><Scale value={infographic} setValue={setInfographic} min={0} max={7} leftLabel="Did not use" rightLabel="Extremely helpful"/></Q>
+                        <Q label="How helpful was the video? *"><Scale value={video} setValue={setVideo} min={0} max={7} leftLabel="Did not use" rightLabel="Extremely helpful"/></Q>
+                        <Q label="How helpful was the podcast? *"><Scale value={podcast} setValue={setPodcast} min={0} max={7} leftLabel="Did not use" rightLabel="Extremely helpful"/></Q>
+                    </Section>
+
+                    <Section title="Final Questions" subtitle="Please indicate your agreement or disagreement with the following statements about this survey.">
+                        <Q label="In general, I was focused when reading and responding to the survey items. *">
+                            <Scale value={af} setValue={setAf} min={1} max={5} leftLabel="Strongly disagree" rightLabel="Strongly agree"/>
+                        </Q>
+                        <Q label="Click 'strongly disagree' if you are still paying attention. *">
+                            <Scale value={ach} setValue={setAch} min={1} max={5} leftLabel="Strongly disagree" rightLabel="Strongly agree"/>
+                        </Q>
+                    </Section>
+
+                    <Section title="External Tool Usage" subtitle="Please answer honestly. Your response will not affect your grade.">
+                        <Q label="Did you use any external AI tools (e.g., ChatGPT, Claude, Gemini, etc.) while completing this assignment? *">
+                            <div className="space-y-2 mt-2">
+                                {['yes','no'].map(v => (
+                                    <label key={v} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="radio" name="extAi" value={v} checked={extAi===v} onChange={()=>setExtAi(v)} className="w-5 h-5"/>
+                                        <span className="text-sm text-gray-700 capitalize">{v}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            {extAi==='yes' && (
+                                <textarea value={extAiDetails} onChange={e=>setExtAiDetails(e.target.value)}
+                                    className="mt-3 w-full p-3 border border-gray-300 rounded-lg text-sm" rows="3"
+                                    placeholder="e.g., I used ChatGPT to help understand the research methodology section..."/>
+                            )}
+                        </Q>
+                        <Q label="Did you use any external PDF viewer or app while completing this assignment? *">
+                            <div className="space-y-2 mt-2">
+                                {['yes','no'].map(v => (
+                                    <label key={v} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="radio" name="extPdf" value={v} checked={extPdf===v} onChange={()=>setExtPdf(v)} className="w-5 h-5"/>
+                                        <span className="text-sm text-gray-700 capitalize">{v}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            {extPdf==='yes' && (
+                                <textarea value={extPdfDetails} onChange={e=>setExtPdfDetails(e.target.value)}
+                                    className="mt-3 w-full p-3 border border-gray-300 rounded-lg text-sm" rows="3"
+                                    placeholder="e.g., I downloaded the PDF and opened it in Adobe Acrobat..."/>
+                            )}
+                        </Q>
+                    </Section>
+
+                    <Section title="Feedback (Optional)">
+                        <Q label="Do you have any feedback about this assignment?">
+                            <textarea value={feedback} onChange={e=>setFeedback(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg text-sm" rows="4"
+                                placeholder="Please share any feedback about your experience..."/>
+                        </Q>
+                    </Section>
+                </>
+            ];
+
+            return (
+                <div className="space-y-8">
+                    <div className="mb-4">
+                        <div className="flex justify-center items-center mb-2">
+                            <span className="text-sm text-gray-600">Page {page} of 3</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width:`${(page/3)*100}%`}}></div>
+                        </div>
+                    </div>
+                    {pages[page-1]}
+                    <div className="flex justify-between pt-4">
+                        {page > 1
+                            ? <button type="button" onClick={()=>{setPage(page-1);window.scrollTo(0,0);}} className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50">← Back</button>
+                            : <div/>}
+                        {page < 3
+                            ? <button type="button" onClick={()=>{setPage(page+1);window.scrollTo(0,0);}} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">Next →</button>
+                            : <button type="button" className="px-8 py-3 bg-green-400 text-white font-semibold rounded-lg cursor-not-allowed" disabled>Submit (Preview)</button>}
+                    </div>
+                </div>
+            );
+        }
+
+        /* ─────────── APP ─────────── */
+        function App() {
+            const [tab, setTab] = useState('task');
+            return (
+                <div className="min-h-screen bg-gray-100 py-6 px-4">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 text-sm px-4 py-2 rounded mb-4 text-center font-medium">
+                            ⚠️ Preview mode — 제출 비활성화됨
+                        </div>
+                        {/* Tabs */}
+                        <div className="flex mb-6 border-b border-gray-300">
+                            <button onClick={()=>setTab('task')}
+                                className={`px-6 py-3 font-semibold text-sm transition-colors ${tab==='task' ? 'border-b-2 border-teal-500 text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}>
+                                📝 Post-Task
+                            </button>
+                            <button onClick={()=>setTab('survey')}
+                                className={`px-6 py-3 font-semibold text-sm transition-colors ${tab==='survey' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}>
+                                📋 Post-Study Survey
+                            </button>
+                        </div>
+
+                        <div className="bg-white rounded-xl shadow-2xl p-8">
+                            {tab === 'task' ? (
+                                <>
+                                    <div className="text-center mb-8">
+                                        <div className="text-5xl mb-4">🎯</div>
+                                        <h1 className="text-3xl font-bold text-gray-800">Post-Reading Task</h1>
+                                    </div>
+                                    <PostTask/>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-center mb-8">
+                                        <div className="text-5xl mb-4">📋</div>
+                                        <h1 className="text-3xl font-bold text-gray-800">Post-reading survey</h1>
+                                        <p className="text-gray-600 mt-2">Please evaluate your experience with the reading task.</p>
+                                    </div>
+                                    <PostStudySurvey/>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App/>, document.getElementById('root'));
+    </script>
+</body>
+</html>

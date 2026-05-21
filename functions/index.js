@@ -23,6 +23,63 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+// Admin email for error notifications
+const ADMIN_EMAIL = "sh.bae@snu.ac.kr, osu.reading@gmail.com";
+
+// Helper function to send error notification email
+async function sendErrorNotification(subject, errorDetails, userEmail = null) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: gmailUser.value(),
+        pass: gmailAppPassword.value()
+      }
+    });
+
+    const timestamp = new Date().toISOString();
+    const mailOptions = {
+      from: `"MBA Reading Experiment" <${gmailUser.value()}>`,
+      to: ADMIN_EMAIL,
+      subject: `[Error] ${subject}`,
+      html: `
+        <h2>Error Notification</h2>
+        <p><strong>Time:</strong> ${timestamp}</p>
+        ${userEmail ? `<p><strong>User:</strong> ${userEmail}</p>` : ""}
+        <h3>Error Details:</h3>
+        <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">${errorDetails}</pre>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Error notification sent to ${ADMIN_EMAIL}`);
+  } catch (emailError) {
+    console.error("Failed to send error notification:", emailError);
+  }
+}
+
+// Helper function for API calls with retry logic (for rate limits)
+async function fetchWithRetry(url, options, maxRetries = 3, baseDelayMs = 5000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, options);
+
+    if (response.ok) {
+      return response;
+    }
+
+    // Check for rate limit error (429)
+    if (response.status === 429 && attempt < maxRetries) {
+      const delayMs = baseDelayMs * Math.pow(2, attempt - 1); // Exponential backoff
+      console.log(`Rate limit hit. Retrying in ${delayMs / 1000}s (attempt ${attempt}/${maxRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      continue;
+    }
+
+    // For other errors or final attempt, return the response
+    return response;
+  }
+}
+
 // OpenAI Chat Completion Proxy
 exports.chatCompletion = onRequest(
   {
@@ -89,7 +146,7 @@ exports.chatCompletion = onRequest(
 exports.generatePodcast = onRequest(
   {
     cors: true,
-    secrets: [openaiApiKey],
+    secrets: [openaiApiKey, gmailUser, gmailAppPassword],
     timeoutSeconds: 540, // 9 minutes
     memory: "1GiB"
   },
@@ -107,7 +164,7 @@ exports.generatePodcast = onRequest(
     }
 
     try {
-      const { pdfBase64, duration = 5 } = req.body;
+      const { pdfBase64, duration = 5, userEmail = null } = req.body;
 
       if (!pdfBase64) {
         res.status(400).json({ error: "pdfBase64 is required" });
@@ -264,6 +321,11 @@ Generate the podcast script now:`;
 
     } catch (error) {
       console.error("Podcast generation error:", error);
+      await sendErrorNotification(
+        "Podcast Generation - Critical Error",
+        `Error: ${error.message}\n\nStack: ${error.stack}`,
+        userEmail
+      );
       res.status(500).json({ error: "Internal server error", message: error.message });
     }
   }
@@ -273,7 +335,7 @@ Generate the podcast script now:`;
 exports.generateInfographic = onRequest(
   {
     cors: true,
-    secrets: [geminiApiKey],
+    secrets: [geminiApiKey, gmailUser, gmailAppPassword],
     timeoutSeconds: 120,
     memory: "512MiB"
   },
@@ -291,7 +353,7 @@ exports.generateInfographic = onRequest(
     }
 
     try {
-      const { pdfBase64 } = req.body;
+      const { pdfBase64, userEmail = null } = req.body;
 
       if (!pdfBase64) {
         res.status(400).json({ error: "pdfBase64 is required" });
@@ -387,6 +449,11 @@ Generate a visually appealing, informative infographic now.`;
 
     } catch (error) {
       console.error("Infographic generation error:", error);
+      await sendErrorNotification(
+        "Infographic Generation - Critical Error",
+        `Error: ${error.message}\n\nStack: ${error.stack}`,
+        userEmail
+      );
       res.status(500).json({ error: "Internal server error", message: error.message });
     }
   }
@@ -664,7 +731,7 @@ Return ONLY the JSON, nothing else.`
 exports.generateVideoSlideshow = onRequest(
   {
     cors: true,
-    secrets: [openaiApiKey, geminiApiKey],
+    secrets: [openaiApiKey, geminiApiKey, gmailUser, gmailAppPassword],
     timeoutSeconds: 540, // 9 minutes
     memory: "2GiB"
   },
@@ -682,7 +749,7 @@ exports.generateVideoSlideshow = onRequest(
     }
 
     try {
-      const { pdfBase64 } = req.body;
+      const { pdfBase64, userEmail } = req.body;
 
       if (!pdfBase64) {
         res.status(400).json({ error: "pdfBase64 is required" });
@@ -753,7 +820,8 @@ Return ONLY the JSON, no markdown code blocks.`;
             contents: [{ parts: [{ text: brainPrompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 16000
+              maxOutputTokens: 16000,
+              response_mime_type: "application/json"
             }
           })
         }
@@ -771,7 +839,38 @@ Return ONLY the JSON, no markdown code blocks.`;
       // Clean up markdown if present
       scenesContent = scenesContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
 
-      let scenesJson = JSON.parse(scenesContent);
+      let scenesJson;
+      try {
+        scenesJson = JSON.parse(scenesContent);
+      } catch (parseError) {
+        console.error("Failed to parse Gemini JSON (first attempt):", parseError.message);
+        console.error("Raw content:", scenesContent.substring(0, 500));
+        // Retry once with lower temperature
+        const parseRetryResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey.value()}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: brainPrompt }] }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 16000,
+                response_mime_type: "application/json"
+              }
+            })
+          }
+        );
+        if (!parseRetryResponse.ok) {
+          res.status(500).json({ error: "Failed to generate valid scene breakdown JSON" });
+          return;
+        }
+        const parseRetryData = await parseRetryResponse.json();
+        let parseRetryContent = parseRetryData.candidates[0].content.parts[0].text;
+        parseRetryContent = parseRetryContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        scenesJson = JSON.parse(parseRetryContent);
+        console.log("JSON parse succeeded on retry");
+      }
       let scenes = scenesJson.scenes;
       console.log(`Generated ${scenes.length} scenes (first attempt)`);
 
@@ -796,7 +895,8 @@ Do NOT generate fewer than 30 scenes. Count your scenes before responding.`;
               contents: [{ parts: [{ text: retryPrompt }] }],
               generationConfig: {
                 temperature: 0.5,
-                maxOutputTokens: 16000
+                maxOutputTokens: 16000,
+                response_mime_type: "application/json"
               }
             })
           }
@@ -806,8 +906,14 @@ Do NOT generate fewer than 30 scenes. Count your scenes before responding.`;
           const retryData = await retryResponse.json();
           let retryContent = retryData.candidates[0].content.parts[0].text;
           retryContent = retryContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-          const retryJson = JSON.parse(retryContent);
-          if (retryJson.scenes && retryJson.scenes.length > scenes.length) {
+          let retryJson;
+          try {
+            retryJson = JSON.parse(retryContent);
+          } catch (e) {
+            console.error("Failed to parse Gemini JSON on scene count retry:", e.message);
+            retryJson = null;
+          }
+          if (retryJson && retryJson.scenes && retryJson.scenes.length > scenes.length) {
             scenes = retryJson.scenes;
             scenesJson = retryJson;
             console.log(`Retry generated ${scenes.length} scenes`);
@@ -843,7 +949,7 @@ ${scene.visual_prompt}`;
 
         console.log(`Generating image for scene ${index + 1}...`);
 
-        const nanoBananaResponse = await fetch(
+        const nanoBananaResponse = await fetchWithRetry(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${geminiApiKey.value()}`,
           {
             method: "POST",
@@ -856,11 +962,14 @@ ${scene.visual_prompt}`;
                 responseModalities: ["image", "text"]
               }
             })
-          }
+          },
+          3, // maxRetries
+          5000 // baseDelayMs
         );
 
         if (!nanoBananaResponse.ok) {
-          console.error(`Nano Banana error for scene ${index + 1}:`, await nanoBananaResponse.text());
+          const errorText = await nanoBananaResponse.text();
+          console.error(`Image generation error for scene ${index + 1}:`, errorText);
           return null;
         }
 
@@ -881,9 +990,10 @@ ${scene.visual_prompt}`;
         return null;
       };
 
-      // Process in batches of 10 with 65 second delay between batches
+      // Process in batches of 10 with 30 second delay between batches
+      // (500 RPM quota - 30s delay provides safety margin for 25 concurrent users)
       const BATCH_SIZE = 10;
-      const BATCH_DELAY_MS = 65000; // 65 seconds to be safe
+      const BATCH_DELAY_MS = 30000; // 30 seconds (balanced speed & safety)
       const allImageResults = [];
 
       for (let i = 0; i < scenes.length; i += BATCH_SIZE) {
@@ -913,6 +1023,10 @@ ${scene.visual_prompt}`;
       console.log(`Generated ${validImages.length} images total`);
 
       if (validImages.length === 0) {
+        await sendErrorNotification(
+          "Video Slideshow - No Images Generated",
+          `All ${scenes.length} image generation attempts failed.\nPaper text length: ${paperText.length} chars`
+        );
         res.status(500).json({ error: "Failed to generate any images" });
         return;
       }
@@ -995,6 +1109,11 @@ ${scene.visual_prompt}`;
 
     } catch (error) {
       console.error("Video slideshow generation error:", error);
+      await sendErrorNotification(
+        "Video Slideshow - Critical Error",
+        `Error: ${error.message}\n\nStack: ${error.stack}`,
+        userEmail
+      );
       res.status(500).json({ error: "Internal server error", message: error.message });
     }
   }

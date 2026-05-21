@@ -1,0 +1,3143 @@
+{
+  "generatedAt": "2026-02-20T10:48:38.243Z",
+  "experimentStartDate": "2026-01-20T19:00:00.000Z",
+  "summary": {
+    "totalUsers": 108,
+    "totalSessions": 108,
+    "completedSessions": 108,
+    "completionRate": 100
+  },
+  "participants": {
+    "byCondition": {
+      "control": 52,
+      "ebm_cimo": 56
+    },
+    "byClass": {
+      "mba6202_tue": 45,
+      "mba6202_wed": 44,
+      "honda": 19
+    },
+    "completedByCondition": {
+      "control": 52,
+      "ebm_cimo": 56
+    },
+    "completionRateByCondition": {
+      "control": 100,
+      "ebm_cimo": 100
+    },
+    "multiSessionUsers": []
+  },
+  "sessions": {
+    "phaseDistribution": {
+      "complete": 108
+    },
+    "byCondition": {
+      "control": {
+        "total": 52,
+        "completed": 52
+      },
+      "ebm_cimo": {
+        "total": 56,
+        "completed": 56
+      }
+    }
+  },
+  "readingBehavior": {
+    "overall": {
+      "n": 108,
+      "totalDuration": {
+        "n": 108,
+        "mean": 19.07,
+        "sd": 47.38,
+        "min": 0.03,
+        "max": 373.61,
+        "median": 8.05
+      },
+      "readingTime": {
+        "n": 108,
+        "mean": 4.48,
+        "sd": 19.03,
+        "min": 0,
+        "max": 194.8,
+        "median": 0.87
+      },
+      "chatTime": {
+        "n": 108,
+        "mean": 4.39,
+        "sd": 11.43,
+        "min": 0,
+        "max": 98.58,
+        "median": 1.2
+      }
+    },
+    "byCondition": {
+      "control": {
+        "n": 52,
+        "totalDuration": {
+          "n": 52,
+          "mean": 14.11,
+          "sd": 37.08,
+          "min": 0.03,
+          "max": 268.34,
+          "median": 7.09
+        },
+        "readingTime": {
+          "n": 52,
+          "mean": 1.92,
+          "sd": 2.91,
+          "min": 0.01,
+          "max": 12.82,
+          "median": 0.64
+        },
+        "chatTime": {
+          "n": 52,
+          "mean": 1.92,
+          "sd": 2.88,
+          "min": 0.01,
+          "max": 15.39,
+          "median": 0.94
+        }
+      },
+      "ebm_cimo": {
+        "n": 56,
+        "totalDuration": {
+          "n": 56,
+          "mean": 23.68,
+          "sd": 54.85,
+          "min": 0.35,
+          "max": 373.61,
+          "median": 10.54
+        },
+        "readingTime": {
+          "n": 56,
+          "mean": 6.86,
+          "sd": 26.05,
+          "min": 0,
+          "max": 194.8,
+          "median": 0.9
+        },
+        "chatTime": {
+          "n": 56,
+          "mean": 6.69,
+          "sd": 15.27,
+          "min": 0,
+          "max": 98.58,
+          "median": 1.32
+        }
+      }
+    },
+    "resourceUsage": {
+      "control": {
+        "infographics": 27,
+        "video": 27,
+        "audio": 26,
+        "chat": 28,
+        "total": 52
+      },
+      "ebm_cimo": {
+        "infographics": 36,
+        "video": 36,
+        "audio": 27,
+        "chat": 34,
+        "total": 56
+      }
+    }
+  },
+  "llmUsage": {
+    "overall": {
+      "n": 108,
+      "mean": 1.52,
+      "sd": 2.41,
+      "min": 0,
+      "max": 17,
+      "median": 1
+    },
+    "control": {
+      "n": 52,
+      "mean": 1.19,
+      "sd": 1.65,
+      "min": 0,
+      "max": 8,
+      "median": 1
+    },
+    "ebm_cimo": {
+      "n": 56,
+      "mean": 1.82,
+      "sd": 2.91,
+      "min": 0,
+      "max": 17,
+      "median": 1
+    },
+    "totalMessages": 164,
+    "anova": {
+      "F": 1.836,
+      "p": 0.1784,
+      "higherGroup": "ebm_cimo",
+      "mean1": 1.19,
+      "mean2": 1.82
+    },
+    "questionLength": {
+      "n": 164,
+      "mean": 76.25,
+      "sd": 74.49,
+      "min": 3,
+      "max": 545,
+      "median": 52
+    },
+    "responseTime": {
+      "n": 164,
+      "mean": 9.91,
+      "sd": 5.63,
+      "min": 2.46,
+      "max": 35.37,
+      "median": 8.82
+    }
+  },
+  "survey": {
+    "nasaTLX": {
+      "overall": {
+        "mentalDemand": {
+          "n": 108,
+          "mean": 3.76,
+          "sd": 1.25,
+          "min": 1,
+          "max": 6,
+          "median": 4
+        },
+        "physicalDemand": {
+          "n": 108,
+          "mean": 1.77,
+          "sd": 1.05,
+          "min": 1,
+          "max": 6,
+          "median": 1
+        },
+        "temporalDemand": {
+          "n": 108,
+          "mean": 2.34,
+          "sd": 1.51,
+          "min": 1,
+          "max": 7,
+          "median": 2
+        },
+        "effort": {
+          "n": 108,
+          "mean": 4.18,
+          "sd": 1.53,
+          "min": 1,
+          "max": 7,
+          "median": 4
+        },
+        "frustration": {
+          "n": 108,
+          "mean": 2.4,
+          "sd": 1.49,
+          "min": 1,
+          "max": 7,
+          "median": 2
+        },
+        "performance": {
+          "n": 108,
+          "mean": 5.54,
+          "sd": 0.95,
+          "min": 3,
+          "max": 7,
+          "median": 6
+        }
+      },
+      "byCondition": {
+        "control": {
+          "mentalDemand": {
+            "n": 52,
+            "mean": 3.62,
+            "sd": 1.29,
+            "min": 1,
+            "max": 6,
+            "median": 4
+          },
+          "physicalDemand": {
+            "n": 52,
+            "mean": 1.62,
+            "sd": 0.9,
+            "min": 1,
+            "max": 4,
+            "median": 1
+          },
+          "temporalDemand": {
+            "n": 52,
+            "mean": 2.1,
+            "sd": 1.36,
+            "min": 1,
+            "max": 6,
+            "median": 2
+          },
+          "effort": {
+            "n": 52,
+            "mean": 4.08,
+            "sd": 1.64,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "frustration": {
+            "n": 52,
+            "mean": 2.21,
+            "sd": 1.42,
+            "min": 1,
+            "max": 7,
+            "median": 2
+          },
+          "performance": {
+            "n": 52,
+            "mean": 5.46,
+            "sd": 0.97,
+            "min": 3,
+            "max": 7,
+            "median": 6
+          }
+        },
+        "ebm_cimo": {
+          "mentalDemand": {
+            "n": 56,
+            "mean": 3.89,
+            "sd": 1.19,
+            "min": 1,
+            "max": 6,
+            "median": 4
+          },
+          "physicalDemand": {
+            "n": 56,
+            "mean": 1.91,
+            "sd": 1.15,
+            "min": 1,
+            "max": 6,
+            "median": 2
+          },
+          "temporalDemand": {
+            "n": 56,
+            "mean": 2.57,
+            "sd": 1.6,
+            "min": 1,
+            "max": 7,
+            "median": 2
+          },
+          "effort": {
+            "n": 56,
+            "mean": 4.27,
+            "sd": 1.42,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "frustration": {
+            "n": 56,
+            "mean": 2.57,
+            "sd": 1.53,
+            "min": 1,
+            "max": 6,
+            "median": 2
+          },
+          "performance": {
+            "n": 56,
+            "mean": 5.61,
+            "sd": 0.92,
+            "min": 3,
+            "max": 7,
+            "median": 6
+          }
+        }
+      },
+      "anova": {
+        "mentalDemand": {
+          "F": 1.328,
+          "p": 0.2517,
+          "higherGroup": "ebm_cimo",
+          "mean1": 3.62,
+          "mean2": 3.89
+        },
+        "physicalDemand": {
+          "F": 2.133,
+          "p": 0.1471,
+          "higherGroup": "ebm_cimo",
+          "mean1": 1.62,
+          "mean2": 1.91
+        },
+        "temporalDemand": {
+          "F": 2.687,
+          "p": 0.1041,
+          "higherGroup": "ebm_cimo",
+          "mean1": 2.1,
+          "mean2": 2.57
+        },
+        "effort": {
+          "F": 0.412,
+          "p": 0.5222,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.08,
+          "mean2": 4.27
+        },
+        "frustration": {
+          "F": 1.566,
+          "p": 0.2135,
+          "higherGroup": "ebm_cimo",
+          "mean1": 2.21,
+          "mean2": 2.57
+        },
+        "performance": {
+          "F": 0.629,
+          "p": 0.4294,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.46,
+          "mean2": 5.61
+        }
+      }
+    },
+    "selfEfficacy": {
+      "overall": {
+        "overallComprehension_researchDesignUnderstanding": {
+          "n": 108,
+          "mean": 5.21,
+          "sd": 1.34,
+          "min": 2,
+          "max": 7,
+          "median": 5.5
+        },
+        "overallComprehension_evidenceUnderstanding": {
+          "n": 108,
+          "mean": 5.24,
+          "sd": 1.19,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "overallComprehension_overallGoal": {
+          "n": 108,
+          "mean": 5.8,
+          "sd": 0.93,
+          "min": 3,
+          "max": 7,
+          "median": 6
+        },
+        "overallComprehension_limitationsUnderstanding": {
+          "n": 108,
+          "mean": 4.94,
+          "sd": 1.37,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        },
+        "overallComprehension_authorsReasoning": {
+          "n": 108,
+          "mean": 5.7,
+          "sd": 0.93,
+          "min": 3,
+          "max": 7,
+          "median": 6
+        },
+        "overallComprehension_keyResultsUnderstanding": {
+          "n": 108,
+          "mean": 5.81,
+          "sd": 0.99,
+          "min": 2,
+          "max": 7,
+          "median": 6
+        },
+        "overallComprehension_sampleContextUnderstanding": {
+          "n": 108,
+          "mean": 5.44,
+          "sd": 1.16,
+          "min": 2,
+          "max": 7,
+          "median": 6
+        },
+        "overallComprehension_connectingIdeas": {
+          "n": 108,
+          "mean": 5.55,
+          "sd": 1.04,
+          "min": 2,
+          "max": 7,
+          "median": 6
+        },
+        "overallComprehension_keyTermsUnderstanding": {
+          "n": 108,
+          "mean": 5.74,
+          "sd": 0.92,
+          "min": 4,
+          "max": 7,
+          "median": 6
+        },
+        "criticalEngagement_verifyCredibility": {
+          "n": 108,
+          "mean": 4.7,
+          "sd": 1.56,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        },
+        "criticalEngagement_broaderImplications": {
+          "n": 108,
+          "mean": 5.69,
+          "sd": 1.09,
+          "min": 1,
+          "max": 7,
+          "median": 6
+        },
+        "criticalEngagement_ownIdeas": {
+          "n": 108,
+          "mean": 5.36,
+          "sd": 1.19,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        },
+        "criticalEngagement_questionClaims": {
+          "n": 108,
+          "mean": 4.82,
+          "sd": 1.43,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        },
+        "criticalEngagement_alternativePerspectives": {
+          "n": 108,
+          "mean": 4.42,
+          "sd": 1.55,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        },
+        "applicability_decision": {
+          "n": 108,
+          "mean": 5.56,
+          "sd": 1.09,
+          "min": 1,
+          "max": 7,
+          "median": 6
+        },
+        "applicability_outcomes": {
+          "n": 108,
+          "mean": 5.05,
+          "sd": 1.32,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        },
+        "applicability_contextDifferences": {
+          "n": 108,
+          "mean": 5.49,
+          "sd": 1.17,
+          "min": 2,
+          "max": 7,
+          "median": 6
+        },
+        "applicability_confidence": {
+          "n": 108,
+          "mean": 5.36,
+          "sd": 1.21,
+          "min": 1,
+          "max": 7,
+          "median": 6
+        },
+        "applicability_differencesImpact": {
+          "n": 108,
+          "mean": 5.36,
+          "sd": 1.24,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        },
+        "applicability_mechanisms": {
+          "n": 108,
+          "mean": 5.26,
+          "sd": 1.26,
+          "min": 1,
+          "max": 7,
+          "median": 5
+        }
+      },
+      "byCondition": {
+        "control": {
+          "overallComprehension": {
+            "researchDesignUnderstanding": {
+              "n": 52,
+              "mean": 5.48,
+              "sd": 1.17,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "evidenceUnderstanding": {
+              "n": 52,
+              "mean": 5.27,
+              "sd": 1.18,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "overallGoal": {
+              "n": 52,
+              "mean": 5.75,
+              "sd": 1,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "limitationsUnderstanding": {
+              "n": 52,
+              "mean": 5.02,
+              "sd": 1.37,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "authorsReasoning": {
+              "n": 52,
+              "mean": 5.58,
+              "sd": 1.01,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "keyResultsUnderstanding": {
+              "n": 52,
+              "mean": 5.79,
+              "sd": 1.15,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "sampleContextUnderstanding": {
+              "n": 52,
+              "mean": 5.62,
+              "sd": 0.96,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "connectingIdeas": {
+              "n": 52,
+              "mean": 5.38,
+              "sd": 1.13,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "keyTermsUnderstanding": {
+              "n": 52,
+              "mean": 5.77,
+              "sd": 0.93,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            }
+          },
+          "criticalEngagement": {
+            "verifyCredibility": {
+              "n": 52,
+              "mean": 4.65,
+              "sd": 1.45,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "broaderImplications": {
+              "n": 52,
+              "mean": 5.62,
+              "sd": 1.13,
+              "min": 1,
+              "max": 7,
+              "median": 6
+            },
+            "ownIdeas": {
+              "n": 52,
+              "mean": 5.38,
+              "sd": 1.16,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "questionClaims": {
+              "n": 52,
+              "mean": 4.87,
+              "sd": 1.54,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "alternativePerspectives": {
+              "n": 52,
+              "mean": 4.37,
+              "sd": 1.49,
+              "min": 1,
+              "max": 7,
+              "median": 4
+            }
+          },
+          "applicability": {
+            "decision": {
+              "n": 52,
+              "mean": 5.6,
+              "sd": 1.15,
+              "min": 1,
+              "max": 7,
+              "median": 6
+            },
+            "outcomes": {
+              "n": 52,
+              "mean": 5.1,
+              "sd": 1.33,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "contextDifferences": {
+              "n": 52,
+              "mean": 5.44,
+              "sd": 1.18,
+              "min": 2,
+              "max": 7,
+              "median": 5.5
+            },
+            "confidence": {
+              "n": 52,
+              "mean": 5.31,
+              "sd": 1.34,
+              "min": 1,
+              "max": 7,
+              "median": 6
+            },
+            "differencesImpact": {
+              "n": 52,
+              "mean": 5.31,
+              "sd": 1.26,
+              "min": 1,
+              "max": 7,
+              "median": 5.5
+            },
+            "mechanisms": {
+              "n": 52,
+              "mean": 5.29,
+              "sd": 1.23,
+              "min": 1,
+              "max": 7,
+              "median": 5.5
+            }
+          }
+        },
+        "ebm_cimo": {
+          "overallComprehension": {
+            "researchDesignUnderstanding": {
+              "n": 56,
+              "mean": 4.96,
+              "sd": 1.44,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "evidenceUnderstanding": {
+              "n": 56,
+              "mean": 5.21,
+              "sd": 1.21,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "overallGoal": {
+              "n": 56,
+              "mean": 5.84,
+              "sd": 0.86,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "limitationsUnderstanding": {
+              "n": 56,
+              "mean": 4.88,
+              "sd": 1.36,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "authorsReasoning": {
+              "n": 56,
+              "mean": 5.82,
+              "sd": 0.83,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "keyResultsUnderstanding": {
+              "n": 56,
+              "mean": 5.82,
+              "sd": 0.8,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "sampleContextUnderstanding": {
+              "n": 56,
+              "mean": 5.27,
+              "sd": 1.29,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "connectingIdeas": {
+              "n": 56,
+              "mean": 5.7,
+              "sd": 0.92,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "keyTermsUnderstanding": {
+              "n": 56,
+              "mean": 5.71,
+              "sd": 0.9,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            }
+          },
+          "criticalEngagement": {
+            "verifyCredibility": {
+              "n": 56,
+              "mean": 4.75,
+              "sd": 1.65,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "broaderImplications": {
+              "n": 56,
+              "mean": 5.77,
+              "sd": 1.05,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "ownIdeas": {
+              "n": 56,
+              "mean": 5.34,
+              "sd": 1.21,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "questionClaims": {
+              "n": 56,
+              "mean": 4.79,
+              "sd": 1.31,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "alternativePerspectives": {
+              "n": 56,
+              "mean": 4.46,
+              "sd": 1.59,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            }
+          },
+          "applicability": {
+            "decision": {
+              "n": 56,
+              "mean": 5.54,
+              "sd": 1.03,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "outcomes": {
+              "n": 56,
+              "mean": 5,
+              "sd": 1.31,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "contextDifferences": {
+              "n": 56,
+              "mean": 5.54,
+              "sd": 1.15,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "confidence": {
+              "n": 56,
+              "mean": 5.41,
+              "sd": 1.07,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "differencesImpact": {
+              "n": 56,
+              "mean": 5.41,
+              "sd": 1.21,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "mechanisms": {
+              "n": 56,
+              "mean": 5.23,
+              "sd": 1.3,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            }
+          }
+        }
+      },
+      "anova": {
+        "overallComprehension": {
+          "researchDesignUnderstanding": {
+            "F": 4.079,
+            "p": 0.0459,
+            "higherGroup": "control",
+            "mean1": 5.48,
+            "mean2": 4.96
+          },
+          "evidenceUnderstanding": {
+            "F": 0.056,
+            "p": 0.8131,
+            "higherGroup": "control",
+            "mean1": 5.27,
+            "mean2": 5.21
+          },
+          "overallGoal": {
+            "F": 0.244,
+            "p": 0.6222,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.75,
+            "mean2": 5.84
+          },
+          "limitationsUnderstanding": {
+            "F": 0.296,
+            "p": 0.5878,
+            "higherGroup": "control",
+            "mean1": 5.02,
+            "mean2": 4.88
+          },
+          "authorsReasoning": {
+            "F": 1.88,
+            "p": 0.1733,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.58,
+            "mean2": 5.82
+          },
+          "keyResultsUnderstanding": {
+            "F": 0.03,
+            "p": 0.8637,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.79,
+            "mean2": 5.82
+          },
+          "sampleContextUnderstanding": {
+            "F": 2.443,
+            "p": 0.121,
+            "higherGroup": "control",
+            "mean1": 5.62,
+            "mean2": 5.27
+          },
+          "connectingIdeas": {
+            "F": 2.434,
+            "p": 0.1217,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.38,
+            "mean2": 5.7
+          },
+          "keyTermsUnderstanding": {
+            "F": 0.095,
+            "p": 0.7583,
+            "higherGroup": "control",
+            "mean1": 5.77,
+            "mean2": 5.71
+          }
+        },
+        "criticalEngagement": {
+          "verifyCredibility": {
+            "F": 0.101,
+            "p": 0.7516,
+            "higherGroup": "ebm_cimo",
+            "mean1": 4.65,
+            "mean2": 4.75
+          },
+          "broaderImplications": {
+            "F": 0.518,
+            "p": 0.4733,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.62,
+            "mean2": 5.77
+          },
+          "ownIdeas": {
+            "F": 0.038,
+            "p": 0.845,
+            "higherGroup": "control",
+            "mean1": 5.38,
+            "mean2": 5.34
+          },
+          "questionClaims": {
+            "F": 0.083,
+            "p": 0.7743,
+            "higherGroup": "control",
+            "mean1": 4.87,
+            "mean2": 4.79
+          },
+          "alternativePerspectives": {
+            "F": 0.108,
+            "p": 0.7427,
+            "higherGroup": "ebm_cimo",
+            "mean1": 4.37,
+            "mean2": 4.46
+          }
+        },
+        "applicability": {
+          "decision": {
+            "F": 0.081,
+            "p": 0.7761,
+            "higherGroup": "control",
+            "mean1": 5.6,
+            "mean2": 5.54
+          },
+          "outcomes": {
+            "F": 0.14,
+            "p": 0.7089,
+            "higherGroup": "control",
+            "mean1": 5.1,
+            "mean2": 5
+          },
+          "contextDifferences": {
+            "F": 0.17,
+            "p": 0.681,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.44,
+            "mean2": 5.54
+          },
+          "confidence": {
+            "F": 0.194,
+            "p": 0.6608,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.31,
+            "mean2": 5.41
+          },
+          "differencesImpact": {
+            "F": 0.184,
+            "p": 0.6686,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.31,
+            "mean2": 5.41
+          },
+          "mechanisms": {
+            "F": 0.053,
+            "p": 0.8192,
+            "higherGroup": "control",
+            "mean1": 5.29,
+            "mean2": 5.23
+          }
+        }
+      }
+    },
+    "llmTrust": {
+      "byCondition": {
+        "control": {
+          "assumeClearIsAccurate": {
+            "n": 52,
+            "mean": 4,
+            "sd": 1.92,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "relyForImportance": {
+            "n": 52,
+            "mean": 3.04,
+            "sd": 1.76,
+            "min": 1,
+            "max": 7,
+            "median": 3
+          },
+          "relyWithoutReading": {
+            "n": 52,
+            "mean": 4.19,
+            "sd": 1.78,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "competence": {
+            "n": 52,
+            "mean": 5.19,
+            "sd": 1.59,
+            "min": 1,
+            "max": 7,
+            "median": 5.5
+          },
+          "comfortActing": {
+            "n": 52,
+            "mean": 4.21,
+            "sd": 1.69,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "reliability": {
+            "n": 52,
+            "mean": 4.15,
+            "sd": 1.81,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "accuracy": {
+            "n": 52,
+            "mean": 5.42,
+            "sd": 1.51,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "benevolence": {
+            "n": 52,
+            "mean": 5.15,
+            "sd": 1.69,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "comfortUsing": {
+            "n": 52,
+            "mean": 4.15,
+            "sd": 1.75,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "confidentWithoutDetails": {
+            "n": 52,
+            "mean": 3.85,
+            "sd": 1.74,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          }
+        },
+        "ebm_cimo": {
+          "assumeClearIsAccurate": {
+            "n": 56,
+            "mean": 4,
+            "sd": 1.64,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "relyForImportance": {
+            "n": 56,
+            "mean": 3.29,
+            "sd": 1.53,
+            "min": 1,
+            "max": 6,
+            "median": 4
+          },
+          "relyWithoutReading": {
+            "n": 56,
+            "mean": 4.34,
+            "sd": 1.5,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "competence": {
+            "n": 56,
+            "mean": 5.48,
+            "sd": 1.31,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "comfortActing": {
+            "n": 56,
+            "mean": 3.96,
+            "sd": 1.57,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "reliability": {
+            "n": 56,
+            "mean": 4.11,
+            "sd": 1.6,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "accuracy": {
+            "n": 56,
+            "mean": 5.54,
+            "sd": 1.18,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "benevolence": {
+            "n": 56,
+            "mean": 5.02,
+            "sd": 1.67,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "comfortUsing": {
+            "n": 56,
+            "mean": 4.16,
+            "sd": 1.52,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "confidentWithoutDetails": {
+            "n": 56,
+            "mean": 4.16,
+            "sd": 1.76,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          }
+        }
+      },
+      "anova": {
+        "assumeClearIsAccurate": {
+          "F": 0,
+          "p": 1,
+          "higherGroup": "equal",
+          "mean1": 4,
+          "mean2": 4
+        },
+        "relyForImportance": {
+          "F": 0.596,
+          "p": 0.442,
+          "higherGroup": "ebm_cimo",
+          "mean1": 3.04,
+          "mean2": 3.29
+        },
+        "relyWithoutReading": {
+          "F": 0.212,
+          "p": 0.6458,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.19,
+          "mean2": 4.34
+        },
+        "competence": {
+          "F": 1.053,
+          "p": 0.3072,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.19,
+          "mean2": 5.48
+        },
+        "comfortActing": {
+          "F": 0.61,
+          "p": 0.4367,
+          "higherGroup": "control",
+          "mean1": 4.21,
+          "mean2": 3.96
+        },
+        "reliability": {
+          "F": 0.02,
+          "p": 0.8882,
+          "higherGroup": "control",
+          "mean1": 4.15,
+          "mean2": 4.11
+        },
+        "accuracy": {
+          "F": 0.184,
+          "p": 0.6685,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.42,
+          "mean2": 5.54
+        },
+        "benevolence": {
+          "F": 0.173,
+          "p": 0.6784,
+          "higherGroup": "control",
+          "mean1": 5.15,
+          "mean2": 5.02
+        },
+        "comfortUsing": {
+          "F": 0,
+          "p": 0.9828,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.15,
+          "mean2": 4.16
+        },
+        "confidentWithoutDetails": {
+          "F": 0.856,
+          "p": 0.3569,
+          "higherGroup": "ebm_cimo",
+          "mean1": 3.85,
+          "mean2": 4.16
+        }
+      }
+    },
+    "llmUsefulness": {
+      "byCondition": {
+        "control": {
+          "conceptHelp": {
+            "n": 52,
+            "mean": 5.21,
+            "sd": 1.68,
+            "min": 1,
+            "max": 7,
+            "median": 5.5
+          },
+          "findingsHelp": {
+            "n": 52,
+            "mean": 5.35,
+            "sd": 1.7,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "overall": {
+            "n": 52,
+            "mean": 5.5,
+            "sd": 1.78,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "timeSaving": {
+            "n": 52,
+            "mean": 5.71,
+            "sd": 1.78,
+            "min": 1,
+            "max": 7,
+            "median": 6.5
+          },
+          "practicalHelp": {
+            "n": 52,
+            "mean": 5.04,
+            "sd": 1.7,
+            "min": 1,
+            "max": 7,
+            "median": 5
+          }
+        },
+        "ebm_cimo": {
+          "conceptHelp": {
+            "n": 56,
+            "mean": 5.63,
+            "sd": 1.3,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "findingsHelp": {
+            "n": 56,
+            "mean": 5.73,
+            "sd": 1.3,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "overall": {
+            "n": 56,
+            "mean": 5.73,
+            "sd": 1.26,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "timeSaving": {
+            "n": 56,
+            "mean": 5.82,
+            "sd": 1.56,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "practicalHelp": {
+            "n": 56,
+            "mean": 5.43,
+            "sd": 1.29,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          }
+        }
+      },
+      "anova": {
+        "conceptHelp": {
+          "F": 2.021,
+          "p": 0.1581,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.21,
+          "mean2": 5.63
+        },
+        "findingsHelp": {
+          "F": 1.74,
+          "p": 0.19,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.35,
+          "mean2": 5.73
+        },
+        "overall": {
+          "F": 0.606,
+          "p": 0.4379,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.5,
+          "mean2": 5.73
+        },
+        "timeSaving": {
+          "F": 0.115,
+          "p": 0.7355,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.71,
+          "mean2": 5.82
+        },
+        "practicalHelp": {
+          "F": 1.785,
+          "p": 0.1844,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.04,
+          "mean2": 5.43
+        }
+      }
+    },
+    "resourceHelpfulness": {
+      "byCondition": {
+        "control": {
+          "chatbot": {
+            "n": 52,
+            "mean": 4.27,
+            "sd": 2.44,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          },
+          "infographic": {
+            "n": 52,
+            "mean": 4.62,
+            "sd": 2.4,
+            "min": 0,
+            "max": 7,
+            "median": 6
+          },
+          "podcast": {
+            "n": 52,
+            "mean": 3.79,
+            "sd": 2.8,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          },
+          "video": {
+            "n": 52,
+            "mean": 4.17,
+            "sd": 2.67,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          }
+        },
+        "ebm_cimo": {
+          "chatbot": {
+            "n": 56,
+            "mean": 4.3,
+            "sd": 2.46,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          },
+          "infographic": {
+            "n": 56,
+            "mean": 4.73,
+            "sd": 2.28,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          },
+          "podcast": {
+            "n": 56,
+            "mean": 3.54,
+            "sd": 2.62,
+            "min": 0,
+            "max": 7,
+            "median": 4
+          },
+          "video": {
+            "n": 56,
+            "mean": 4.55,
+            "sd": 2.29,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          }
+        }
+      },
+      "anova": {
+        "chatbot": {
+          "F": 0.005,
+          "p": 0.9427,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.27,
+          "mean2": 4.3
+        },
+        "infographic": {
+          "F": 0.066,
+          "p": 0.7979,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.62,
+          "mean2": 4.73
+        },
+        "podcast": {
+          "F": 0.231,
+          "p": 0.6318,
+          "higherGroup": "control",
+          "mean1": 3.79,
+          "mean2": 3.54
+        },
+        "video": {
+          "F": 0.624,
+          "p": 0.4314,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.17,
+          "mean2": 4.55
+        }
+      }
+    },
+    "externalToolUsage": {
+      "usedExternalAi": 4,
+      "usedExternalPdfViewer": 17,
+      "total": 108,
+      "rateAi": 3.7,
+      "ratePdf": 15.7
+    },
+    "postTask": {
+      "strategiesCount": {
+        "control": {
+          "n": 52,
+          "mean": 1.1,
+          "sd": 0.35,
+          "min": 1,
+          "max": 3,
+          "median": 1
+        },
+        "ebm_cimo": {
+          "n": 56,
+          "mean": 1.05,
+          "sd": 0.23,
+          "min": 1,
+          "max": 2,
+          "median": 1
+        },
+        "anova": {
+          "F": 0.554,
+          "p": 0.4584,
+          "higherGroup": "control",
+          "mean1": 1.1,
+          "mean2": 1.05
+        }
+      },
+      "contextTranslationCount": {
+        "control": {
+          "n": 52,
+          "mean": 1.04,
+          "sd": 0.27,
+          "min": 1,
+          "max": 3,
+          "median": 1
+        },
+        "ebm_cimo": {
+          "n": 56,
+          "mean": 1.02,
+          "sd": 0.13,
+          "min": 1,
+          "max": 2,
+          "median": 1
+        },
+        "anova": {
+          "F": 0.247,
+          "p": 0.62,
+          "higherGroup": "control",
+          "mean1": 1.04,
+          "mean2": 1.02
+        }
+      },
+      "newStrategyConfidence": {
+        "control": {
+          "n": 52,
+          "mean": 5.1,
+          "sd": 1.21,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "ebm_cimo": {
+          "n": 56,
+          "mean": 5.2,
+          "sd": 1.2,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "anova": {
+          "F": 0.183,
+          "p": 0.67,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.1,
+          "mean2": 5.2
+        }
+      },
+      "implementationLikelihood": {
+        "control": {
+          "n": 52,
+          "mean": 4.81,
+          "sd": 1.54,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "ebm_cimo": {
+          "n": 56,
+          "mean": 5.02,
+          "sd": 1.48,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "anova": {
+          "F": 0.511,
+          "p": 0.4763,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.81,
+          "mean2": 5.02
+        }
+      }
+    }
+  },
+  "byClass": {
+    "mba6202_tue": {
+      "users": 45,
+      "sessions": 45,
+      "completed": 45,
+      "completionRate": 100,
+      "conditionDistribution": {
+        "control": 20,
+        "ebm_cimo": 25
+      }
+    },
+    "mba6202_wed": {
+      "users": 44,
+      "sessions": 44,
+      "completed": 44,
+      "completionRate": 100,
+      "conditionDistribution": {
+        "control": 23,
+        "ebm_cimo": 21
+      }
+    },
+    "honda": {
+      "users": 19,
+      "sessions": 19,
+      "completed": 19,
+      "completionRate": 100,
+      "conditionDistribution": {
+        "control": 9,
+        "ebm_cimo": 10
+      }
+    }
+  },
+  "chatUsersOnly": {
+    "sampleSize": {
+      "total": 62,
+      "control": 28,
+      "ebm_cimo": 34
+    },
+    "llmUsage": {
+      "control": {
+        "n": 28,
+        "mean": 2.21,
+        "sd": 1.68,
+        "min": 1,
+        "max": 8,
+        "median": 2
+      },
+      "ebm_cimo": {
+        "n": 34,
+        "mean": 3,
+        "sd": 3.23,
+        "min": 1,
+        "max": 17,
+        "median": 2
+      },
+      "anova": {
+        "F": 1.314,
+        "p": 0.2562,
+        "higherGroup": "ebm_cimo",
+        "mean1": 2.21,
+        "mean2": 3
+      }
+    },
+    "nasaTLX": {
+      "overall": {},
+      "byCondition": {
+        "control": {
+          "mentalDemand": {
+            "n": 28,
+            "mean": 3.71,
+            "sd": 1.33,
+            "min": 1,
+            "max": 6,
+            "median": 4
+          },
+          "physicalDemand": {
+            "n": 28,
+            "mean": 1.68,
+            "sd": 0.85,
+            "min": 1,
+            "max": 4,
+            "median": 1.5
+          },
+          "temporalDemand": {
+            "n": 28,
+            "mean": 2.04,
+            "sd": 1.24,
+            "min": 1,
+            "max": 5,
+            "median": 2
+          },
+          "effort": {
+            "n": 28,
+            "mean": 4.75,
+            "sd": 1.45,
+            "min": 2,
+            "max": 7,
+            "median": 5
+          },
+          "frustration": {
+            "n": 28,
+            "mean": 2.46,
+            "sd": 1.32,
+            "min": 1,
+            "max": 5,
+            "median": 2
+          },
+          "performance": {
+            "n": 28,
+            "mean": 5.36,
+            "sd": 1.04,
+            "min": 3,
+            "max": 7,
+            "median": 6
+          }
+        },
+        "ebm_cimo": {
+          "mentalDemand": {
+            "n": 34,
+            "mean": 3.94,
+            "sd": 1.14,
+            "min": 1,
+            "max": 6,
+            "median": 4
+          },
+          "physicalDemand": {
+            "n": 34,
+            "mean": 1.88,
+            "sd": 1.13,
+            "min": 1,
+            "max": 5,
+            "median": 1.5
+          },
+          "temporalDemand": {
+            "n": 34,
+            "mean": 2.56,
+            "sd": 1.61,
+            "min": 1,
+            "max": 7,
+            "median": 2
+          },
+          "effort": {
+            "n": 34,
+            "mean": 4.26,
+            "sd": 1.46,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "frustration": {
+            "n": 34,
+            "mean": 2.35,
+            "sd": 1.39,
+            "min": 1,
+            "max": 6,
+            "median": 2
+          },
+          "performance": {
+            "n": 34,
+            "mean": 5.62,
+            "sd": 0.97,
+            "min": 3,
+            "max": 7,
+            "median": 6
+          }
+        }
+      },
+      "anova": {
+        "mentalDemand": {
+          "F": 0.507,
+          "p": 0.4793,
+          "higherGroup": "ebm_cimo",
+          "mean1": 3.71,
+          "mean2": 3.94
+        },
+        "physicalDemand": {
+          "F": 0.601,
+          "p": 0.4412,
+          "higherGroup": "ebm_cimo",
+          "mean1": 1.68,
+          "mean2": 1.88
+        },
+        "temporalDemand": {
+          "F": 1.919,
+          "p": 0.1711,
+          "higherGroup": "ebm_cimo",
+          "mean1": 2.04,
+          "mean2": 2.56
+        },
+        "effort": {
+          "F": 1.645,
+          "p": 0.2045,
+          "higherGroup": "control",
+          "mean1": 4.75,
+          "mean2": 4.26
+        },
+        "frustration": {
+          "F": 0.1,
+          "p": 0.7535,
+          "higherGroup": "control",
+          "mean1": 2.46,
+          "mean2": 2.35
+        },
+        "performance": {
+          "F": 1.001,
+          "p": 0.3211,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.36,
+          "mean2": 5.62
+        }
+      }
+    },
+    "selfEfficacy": {
+      "overall": {},
+      "byCondition": {
+        "control": {
+          "overallComprehension": {
+            "researchDesignUnderstanding": {
+              "n": 28,
+              "mean": 5.5,
+              "sd": 0.94,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "evidenceUnderstanding": {
+              "n": 28,
+              "mean": 5,
+              "sd": 1.31,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "overallGoal": {
+              "n": 28,
+              "mean": 5.64,
+              "sd": 1.08,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "limitationsUnderstanding": {
+              "n": 28,
+              "mean": 4.75,
+              "sd": 1.45,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "authorsReasoning": {
+              "n": 28,
+              "mean": 5.54,
+              "sd": 1.02,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "keyResultsUnderstanding": {
+              "n": 28,
+              "mean": 5.71,
+              "sd": 1.22,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "sampleContextUnderstanding": {
+              "n": 28,
+              "mean": 5.5,
+              "sd": 1.02,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "connectingIdeas": {
+              "n": 28,
+              "mean": 5.14,
+              "sd": 1.19,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "keyTermsUnderstanding": {
+              "n": 28,
+              "mean": 5.61,
+              "sd": 0.9,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            }
+          },
+          "criticalEngagement": {
+            "verifyCredibility": {
+              "n": 28,
+              "mean": 4.32,
+              "sd": 1.42,
+              "min": 1,
+              "max": 7,
+              "median": 4
+            },
+            "broaderImplications": {
+              "n": 28,
+              "mean": 5.46,
+              "sd": 1.24,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "ownIdeas": {
+              "n": 28,
+              "mean": 5.11,
+              "sd": 1.26,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "questionClaims": {
+              "n": 28,
+              "mean": 4.64,
+              "sd": 1.61,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "alternativePerspectives": {
+              "n": 28,
+              "mean": 3.86,
+              "sd": 1.51,
+              "min": 1,
+              "max": 7,
+              "median": 4
+            }
+          },
+          "applicability": {
+            "decision": {
+              "n": 28,
+              "mean": 5.36,
+              "sd": 1.32,
+              "min": 1,
+              "max": 7,
+              "median": 5.5
+            },
+            "outcomes": {
+              "n": 28,
+              "mean": 5,
+              "sd": 1.28,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "contextDifferences": {
+              "n": 28,
+              "mean": 5.25,
+              "sd": 1.21,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "confidence": {
+              "n": 28,
+              "mean": 5.11,
+              "sd": 1.37,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "differencesImpact": {
+              "n": 28,
+              "mean": 5.14,
+              "sd": 1.3,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "mechanisms": {
+              "n": 28,
+              "mean": 5.07,
+              "sd": 1.36,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            }
+          }
+        },
+        "ebm_cimo": {
+          "overallComprehension": {
+            "researchDesignUnderstanding": {
+              "n": 34,
+              "mean": 5,
+              "sd": 1.51,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "evidenceUnderstanding": {
+              "n": 34,
+              "mean": 5.29,
+              "sd": 1.32,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "overallGoal": {
+              "n": 34,
+              "mean": 5.94,
+              "sd": 0.8,
+              "min": 5,
+              "max": 7,
+              "median": 6
+            },
+            "limitationsUnderstanding": {
+              "n": 34,
+              "mean": 4.94,
+              "sd": 1.37,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "authorsReasoning": {
+              "n": 34,
+              "mean": 5.74,
+              "sd": 0.88,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "keyResultsUnderstanding": {
+              "n": 34,
+              "mean": 5.88,
+              "sd": 0.87,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "sampleContextUnderstanding": {
+              "n": 34,
+              "mean": 5.32,
+              "sd": 1.23,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "connectingIdeas": {
+              "n": 34,
+              "mean": 5.65,
+              "sd": 1,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "keyTermsUnderstanding": {
+              "n": 34,
+              "mean": 5.79,
+              "sd": 0.87,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            }
+          },
+          "criticalEngagement": {
+            "verifyCredibility": {
+              "n": 34,
+              "mean": 4.65,
+              "sd": 1.75,
+              "min": 1,
+              "max": 7,
+              "median": 5
+            },
+            "broaderImplications": {
+              "n": 34,
+              "mean": 5.68,
+              "sd": 1.1,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "ownIdeas": {
+              "n": 34,
+              "mean": 5.41,
+              "sd": 1.17,
+              "min": 3,
+              "max": 7,
+              "median": 6
+            },
+            "questionClaims": {
+              "n": 34,
+              "mean": 4.82,
+              "sd": 1.22,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "alternativePerspectives": {
+              "n": 34,
+              "mean": 4.5,
+              "sd": 1.65,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            }
+          },
+          "applicability": {
+            "decision": {
+              "n": 34,
+              "mean": 5.74,
+              "sd": 1.01,
+              "min": 4,
+              "max": 7,
+              "median": 6
+            },
+            "outcomes": {
+              "n": 34,
+              "mean": 5.09,
+              "sd": 1.4,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "contextDifferences": {
+              "n": 34,
+              "mean": 5.41,
+              "sd": 1.24,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "confidence": {
+              "n": 34,
+              "mean": 5.5,
+              "sd": 1.12,
+              "min": 2,
+              "max": 7,
+              "median": 6
+            },
+            "differencesImpact": {
+              "n": 34,
+              "mean": 5.47,
+              "sd": 1.24,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            },
+            "mechanisms": {
+              "n": 34,
+              "mean": 5.26,
+              "sd": 1.36,
+              "min": 2,
+              "max": 7,
+              "median": 5
+            }
+          }
+        }
+      },
+      "anova": {
+        "overallComprehension": {
+          "researchDesignUnderstanding": {
+            "F": 2.236,
+            "p": 0.1401,
+            "higherGroup": "control",
+            "mean1": 5.5,
+            "mean2": 5
+          },
+          "evidenceUnderstanding": {
+            "F": 0.744,
+            "p": 0.3917,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5,
+            "mean2": 5.29
+          },
+          "overallGoal": {
+            "F": 1.51,
+            "p": 0.224,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.64,
+            "mean2": 5.94
+          },
+          "limitationsUnderstanding": {
+            "F": 0.273,
+            "p": 0.6029,
+            "higherGroup": "ebm_cimo",
+            "mean1": 4.75,
+            "mean2": 4.94
+          },
+          "authorsReasoning": {
+            "F": 0.66,
+            "p": 0.4197,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.54,
+            "mean2": 5.74
+          },
+          "keyResultsUnderstanding": {
+            "F": 0.387,
+            "p": 0.5362,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.71,
+            "mean2": 5.88
+          },
+          "sampleContextUnderstanding": {
+            "F": 0.357,
+            "p": 0.5526,
+            "higherGroup": "control",
+            "mean1": 5.5,
+            "mean2": 5.32
+          },
+          "connectingIdeas": {
+            "F": 3.2,
+            "p": 0.0787,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.14,
+            "mean2": 5.65
+          },
+          "keyTermsUnderstanding": {
+            "F": 0.668,
+            "p": 0.4171,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.61,
+            "mean2": 5.79
+          }
+        },
+        "criticalEngagement": {
+          "verifyCredibility": {
+            "F": 0.611,
+            "p": 0.4375,
+            "higherGroup": "ebm_cimo",
+            "mean1": 4.32,
+            "mean2": 4.65
+          },
+          "broaderImplications": {
+            "F": 0.491,
+            "p": 0.486,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.46,
+            "mean2": 5.68
+          },
+          "ownIdeas": {
+            "F": 0.94,
+            "p": 0.3361,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.11,
+            "mean2": 5.41
+          },
+          "questionClaims": {
+            "F": 0.244,
+            "p": 0.6233,
+            "higherGroup": "ebm_cimo",
+            "mean1": 4.64,
+            "mean2": 4.82
+          },
+          "alternativePerspectives": {
+            "F": 2.442,
+            "p": 0.1234,
+            "higherGroup": "ebm_cimo",
+            "mean1": 3.86,
+            "mean2": 4.5
+          }
+        },
+        "applicability": {
+          "decision": {
+            "F": 1.586,
+            "p": 0.2127,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.36,
+            "mean2": 5.74
+          },
+          "outcomes": {
+            "F": 0.064,
+            "p": 0.8017,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5,
+            "mean2": 5.09
+          },
+          "contextDifferences": {
+            "F": 0.258,
+            "p": 0.6134,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.25,
+            "mean2": 5.41
+          },
+          "confidence": {
+            "F": 1.494,
+            "p": 0.2264,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.11,
+            "mean2": 5.5
+          },
+          "differencesImpact": {
+            "F": 0.991,
+            "p": 0.3236,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.14,
+            "mean2": 5.47
+          },
+          "mechanisms": {
+            "F": 0.301,
+            "p": 0.5855,
+            "higherGroup": "ebm_cimo",
+            "mean1": 5.07,
+            "mean2": 5.26
+          }
+        }
+      }
+    },
+    "postTask": {
+      "strategiesCount": {
+        "control": {
+          "n": 28,
+          "mean": 1.07,
+          "sd": 0.37,
+          "min": 1,
+          "max": 3,
+          "median": 1
+        },
+        "ebm_cimo": {
+          "n": 34,
+          "mean": 1.03,
+          "sd": 0.17,
+          "min": 1,
+          "max": 2,
+          "median": 1
+        },
+        "anova": {
+          "F": 0.337,
+          "p": 0.5638,
+          "higherGroup": "control",
+          "mean1": 1.07,
+          "mean2": 1.03
+        }
+      },
+      "contextTranslationCount": {
+        "control": {
+          "n": 28,
+          "mean": 1,
+          "sd": 0,
+          "min": 1,
+          "max": 1,
+          "median": 1
+        },
+        "ebm_cimo": {
+          "n": 34,
+          "mean": 1,
+          "sd": 0,
+          "min": 1,
+          "max": 1,
+          "median": 1
+        },
+        "anova": {
+          "F": 0,
+          "p": 1,
+          "higherGroup": "equal",
+          "mean1": 1,
+          "mean2": 1
+        }
+      },
+      "newStrategyConfidence": {
+        "control": {
+          "n": 28,
+          "mean": 4.86,
+          "sd": 1.27,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "ebm_cimo": {
+          "n": 34,
+          "mean": 5.12,
+          "sd": 1.11,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "anova": {
+          "F": 0.719,
+          "p": 0.3998,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.86,
+          "mean2": 5.12
+        }
+      },
+      "implementationLikelihood": {
+        "control": {
+          "n": 28,
+          "mean": 4.43,
+          "sd": 1.55,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "ebm_cimo": {
+          "n": 34,
+          "mean": 5.03,
+          "sd": 1.48,
+          "min": 2,
+          "max": 7,
+          "median": 5
+        },
+        "anova": {
+          "F": 2.345,
+          "p": 0.1309,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.43,
+          "mean2": 5.03
+        }
+      }
+    },
+    "llmTrust": {
+      "byCondition": {
+        "control": {
+          "assumeClearIsAccurate": {
+            "n": 28,
+            "mean": 4.04,
+            "sd": 1.8,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "relyForImportance": {
+            "n": 28,
+            "mean": 2.96,
+            "sd": 1.61,
+            "min": 1,
+            "max": 6,
+            "median": 3
+          },
+          "relyWithoutReading": {
+            "n": 28,
+            "mean": 4.36,
+            "sd": 1.54,
+            "min": 1,
+            "max": 7,
+            "median": 5
+          },
+          "competence": {
+            "n": 28,
+            "mean": 5.46,
+            "sd": 1.38,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "comfortActing": {
+            "n": 28,
+            "mean": 4.25,
+            "sd": 1.53,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "reliability": {
+            "n": 28,
+            "mean": 4.14,
+            "sd": 1.71,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "accuracy": {
+            "n": 28,
+            "mean": 5.54,
+            "sd": 1.38,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "benevolence": {
+            "n": 28,
+            "mean": 5.32,
+            "sd": 1.44,
+            "min": 1,
+            "max": 7,
+            "median": 5.5
+          },
+          "comfortUsing": {
+            "n": 28,
+            "mean": 4.14,
+            "sd": 1.68,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "confidentWithoutDetails": {
+            "n": 28,
+            "mean": 3.79,
+            "sd": 1.57,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          }
+        },
+        "ebm_cimo": {
+          "assumeClearIsAccurate": {
+            "n": 34,
+            "mean": 3.74,
+            "sd": 1.58,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "relyForImportance": {
+            "n": 34,
+            "mean": 3.18,
+            "sd": 1.6,
+            "min": 1,
+            "max": 6,
+            "median": 3.5
+          },
+          "relyWithoutReading": {
+            "n": 34,
+            "mean": 4.38,
+            "sd": 1.59,
+            "min": 1,
+            "max": 7,
+            "median": 5
+          },
+          "competence": {
+            "n": 34,
+            "mean": 5.47,
+            "sd": 1.27,
+            "min": 2,
+            "max": 7,
+            "median": 6
+          },
+          "comfortActing": {
+            "n": 34,
+            "mean": 3.94,
+            "sd": 1.68,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "reliability": {
+            "n": 34,
+            "mean": 3.94,
+            "sd": 1.73,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "accuracy": {
+            "n": 34,
+            "mean": 5.47,
+            "sd": 1.06,
+            "min": 4,
+            "max": 7,
+            "median": 5.5
+          },
+          "benevolence": {
+            "n": 34,
+            "mean": 4.97,
+            "sd": 1.65,
+            "min": 1,
+            "max": 7,
+            "median": 5.5
+          },
+          "comfortUsing": {
+            "n": 34,
+            "mean": 4.12,
+            "sd": 1.59,
+            "min": 1,
+            "max": 7,
+            "median": 4
+          },
+          "confidentWithoutDetails": {
+            "n": 34,
+            "mean": 3.88,
+            "sd": 1.76,
+            "min": 1,
+            "max": 6,
+            "median": 4
+          }
+        }
+      },
+      "anova": {
+        "assumeClearIsAccurate": {
+          "F": 0.474,
+          "p": 0.494,
+          "higherGroup": "control",
+          "mean1": 4.04,
+          "mean2": 3.74
+        },
+        "relyForImportance": {
+          "F": 0.259,
+          "p": 0.6124,
+          "higherGroup": "ebm_cimo",
+          "mean1": 2.96,
+          "mean2": 3.18
+        },
+        "relyWithoutReading": {
+          "F": 0.004,
+          "p": 0.9508,
+          "higherGroup": "ebm_cimo",
+          "mean1": 4.36,
+          "mean2": 4.38
+        },
+        "competence": {
+          "F": 0,
+          "p": 0.9853,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.46,
+          "mean2": 5.47
+        },
+        "comfortActing": {
+          "F": 0.545,
+          "p": 0.4631,
+          "higherGroup": "control",
+          "mean1": 4.25,
+          "mean2": 3.94
+        },
+        "reliability": {
+          "F": 0.204,
+          "p": 0.6528,
+          "higherGroup": "control",
+          "mean1": 4.14,
+          "mean2": 3.94
+        },
+        "accuracy": {
+          "F": 0.043,
+          "p": 0.8369,
+          "higherGroup": "control",
+          "mean1": 5.54,
+          "mean2": 5.47
+        },
+        "benevolence": {
+          "F": 0.751,
+          "p": 0.3897,
+          "higherGroup": "control",
+          "mean1": 5.32,
+          "mean2": 4.97
+        },
+        "comfortUsing": {
+          "F": 0.004,
+          "p": 0.9527,
+          "higherGroup": "control",
+          "mean1": 4.14,
+          "mean2": 4.12
+        },
+        "confidentWithoutDetails": {
+          "F": 0.049,
+          "p": 0.8249,
+          "higherGroup": "ebm_cimo",
+          "mean1": 3.79,
+          "mean2": 3.88
+        }
+      }
+    },
+    "llmUsefulness": {
+      "byCondition": {
+        "control": {
+          "conceptHelp": {
+            "n": 28,
+            "mean": 5.36,
+            "sd": 1.39,
+            "min": 1,
+            "max": 7,
+            "median": 5
+          },
+          "findingsHelp": {
+            "n": 28,
+            "mean": 5.46,
+            "sd": 1.4,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "overall": {
+            "n": 28,
+            "mean": 5.64,
+            "sd": 1.47,
+            "min": 1,
+            "max": 7,
+            "median": 6
+          },
+          "timeSaving": {
+            "n": 28,
+            "mean": 5.96,
+            "sd": 1.4,
+            "min": 1,
+            "max": 7,
+            "median": 6.5
+          },
+          "practicalHelp": {
+            "n": 28,
+            "mean": 5.18,
+            "sd": 1.36,
+            "min": 1,
+            "max": 7,
+            "median": 5
+          }
+        },
+        "ebm_cimo": {
+          "conceptHelp": {
+            "n": 34,
+            "mean": 5.68,
+            "sd": 1.16,
+            "min": 3,
+            "max": 7,
+            "median": 6
+          },
+          "findingsHelp": {
+            "n": 34,
+            "mean": 5.79,
+            "sd": 1.08,
+            "min": 2,
+            "max": 7,
+            "median": 6
+          },
+          "overall": {
+            "n": 34,
+            "mean": 5.76,
+            "sd": 1.03,
+            "min": 3,
+            "max": 7,
+            "median": 6
+          },
+          "timeSaving": {
+            "n": 34,
+            "mean": 5.79,
+            "sd": 1.47,
+            "min": 2,
+            "max": 7,
+            "median": 6
+          },
+          "practicalHelp": {
+            "n": 34,
+            "mean": 5.56,
+            "sd": 1.03,
+            "min": 3,
+            "max": 7,
+            "median": 6
+          }
+        }
+      },
+      "anova": {
+        "conceptHelp": {
+          "F": 0.941,
+          "p": 0.336,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.36,
+          "mean2": 5.68
+        },
+        "findingsHelp": {
+          "F": 1.06,
+          "p": 0.3073,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.46,
+          "mean2": 5.79
+        },
+        "overall": {
+          "F": 0.142,
+          "p": 0.7079,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.64,
+          "mean2": 5.76
+        },
+        "timeSaving": {
+          "F": 0.208,
+          "p": 0.6503,
+          "higherGroup": "control",
+          "mean1": 5.96,
+          "mean2": 5.79
+        },
+        "practicalHelp": {
+          "F": 1.505,
+          "p": 0.2246,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.18,
+          "mean2": 5.56
+        }
+      }
+    },
+    "resourceHelpfulness": {
+      "byCondition": {
+        "control": {
+          "chatbot": {
+            "n": 28,
+            "mean": 5.18,
+            "sd": 1.83,
+            "min": 0,
+            "max": 7,
+            "median": 6
+          },
+          "infographic": {
+            "n": 28,
+            "mean": 4.5,
+            "sd": 2.49,
+            "min": 0,
+            "max": 7,
+            "median": 6
+          },
+          "podcast": {
+            "n": 28,
+            "mean": 3.39,
+            "sd": 2.85,
+            "min": 0,
+            "max": 7,
+            "median": 4
+          },
+          "video": {
+            "n": 28,
+            "mean": 3.71,
+            "sd": 2.66,
+            "min": 0,
+            "max": 7,
+            "median": 4.5
+          }
+        },
+        "ebm_cimo": {
+          "chatbot": {
+            "n": 34,
+            "mean": 5.32,
+            "sd": 1.68,
+            "min": 1,
+            "max": 7,
+            "median": 5.5
+          },
+          "infographic": {
+            "n": 34,
+            "mean": 4.18,
+            "sd": 2.37,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          },
+          "podcast": {
+            "n": 34,
+            "mean": 3.15,
+            "sd": 2.45,
+            "min": 0,
+            "max": 7,
+            "median": 4
+          },
+          "video": {
+            "n": 34,
+            "mean": 4.21,
+            "sd": 2.23,
+            "min": 0,
+            "max": 7,
+            "median": 5
+          }
+        }
+      },
+      "anova": {
+        "chatbot": {
+          "F": 0.102,
+          "p": 0.7504,
+          "higherGroup": "ebm_cimo",
+          "mean1": 5.18,
+          "mean2": 5.32
+        },
+        "infographic": {
+          "F": 0.265,
+          "p": 0.6086,
+          "higherGroup": "control",
+          "mean1": 4.5,
+          "mean2": 4.18
+        },
+        "podcast": {
+          "F": 0.129,
+          "p": 0.7206,
+          "higherGroup": "control",
+          "mean1": 3.39,
+          "mean2": 3.15
+        },
+        "video": {
+          "F": 0.606,
+          "p": 0.4393,
+          "higherGroup": "ebm_cimo",
+          "mean1": 3.71,
+          "mean2": 4.21
+        }
+      }
+    }
+  },
+  "participantFeedback": [
+    {
+      "email": "ike.34@osu.edu",
+      "condition": "control",
+      "class": "mba6202_tue",
+      "feedback": "I like seeing the questions before starting an assignment so I can know what to look for and what to think about as I am reading the article. I wish I had picked a better article if what you wanted me to do was relate it to myself directly and not to a problem I want to resolve in my work place. I also am not sure what you mean when you want me to apply this to my work place. Realistically, no one at my job would pay e any attention. I am not high enough in leadership to effect real change. Do you mean to ask how I would effect these changes at work if I had the power to do so? I guess I am a little unclear if you want me to imagine what I can actually do or what I could potentially do. What I can actually do is quite small in the position I am in now, but what I could potentially do is as big as my imagination."
+    },
+    {
+      "email": "stalnaker.63@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "NA"
+    },
+    {
+      "email": "petite.9@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "The AI chatbot gave some interesting and practical information that sounded reasonable, but the questions it was asking seemed to go beyond the scope of the paper."
+    },
+    {
+      "email": "murphy.1603@osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "Good, what do we submit to carmen?"
+    },
+    {
+      "email": "yoho.18@osu.edu",
+      "condition": "control",
+      "class": "mba6202_tue",
+      "feedback": "I enjoyed utilizing the AI capabilities to relay the information of the article."
+    },
+    {
+      "email": "perry.2589@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "This was actually kind of cool."
+    },
+    {
+      "email": "kelly.470@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "Other than the platform itself being a little clunky at times, I think this is an amazing resource, especially for myself being in the healthcare field. I would have loved to have access to this in the past and would look forward to having access to it in the future!"
+    },
+    {
+      "email": "mally.9@buckeyemail.osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "N/A"
+    },
+    {
+      "email": "erin_rinto@yahoo.com",
+      "condition": "control",
+      "class": "mba6202_tue",
+      "feedback": "I thought the article was relevant.  The journal has an IF of 10.55, which I thought indicated it was used to support the arguments contained and to support its conclusions. I think it is hard to generalize the two studies within the article, as they were surveys sent to the corporations, and the return rate was only 54%. I don't know if there is a better way to assess this, but I found the conclusions relevant and consistent with my professional experiences. The article states that the results were statistically significant, but I think to be used, the N needs to be much larger."
+    },
+    {
+      "email": "spatholt.4@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "Interesting assignment. I wonder if the chat bot was backed by a gemini api key? The infographic seemed reminiscent of NotebookLM and I noticed output structures that looked Gemini-familiar in the chat."
+    },
+    {
+      "email": "loudenslager.17@osu.edu",
+      "condition": "control",
+      "class": "mba6202_tue",
+      "feedback": "This tool was very cool to use, and made doing this assignment more interesting."
+    },
+    {
+      "email": "martinez.554@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "The chatbot was very conversational and seemed well built."
+    },
+    {
+      "email": "shank.189@osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "I was a little unclear on the first few questions about the key differences between the article and my current situation."
+    },
+    {
+      "email": "blaine.83@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "This is a great resource to get high level information about a topic."
+    },
+    {
+      "email": "walsh.1042@osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "I didn't use the GenAI tools, I clicked finished prematurely thinking it meant that I was finished uploading the article, hence all of the answers are 3's."
+    },
+    {
+      "email": "frank.827@osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "I really liked the tool that disseminated the article into all those options. Is this something you built or is this readily available at all times? I went to bookmark it but it appeared specific to this assignment. It would be a really useful tool -- especially for efficiency."
+    },
+    {
+      "email": "westrick.37@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "I did not like that if you had to pause the video it would then restart and there was no ability to go back to where you left off."
+    },
+    {
+      "email": "westrick.48@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "Not being able to pause the video was frustrating."
+    },
+    {
+      "email": "moore.4091@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "Very useful tool!"
+    },
+    {
+      "email": "fenstermacher.13@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "There is no feedback at this time."
+    },
+    {
+      "email": "calhoun.318@buckeyemail.osu.edu",
+      "condition": "control",
+      "class": "mba6202_tue",
+      "feedback": "These instructions on using this platform should have been better explained upfront. I did not use any AI tools because I did not understand their purpose going into this assignment. The teacher's video should have explained that we are to evaluate the AI tool using our article."
+    },
+    {
+      "email": "montgomery.714@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "Some of the steps in the AI tool were a little unclear, the chatbot didn't seem very helpful but it might have also been related to the content of the article."
+    },
+    {
+      "email": "mcalhaney.1@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "I try to enter assignments and tasks with an open mind but I do struggle with the use of AI in these types of setting still. Specifically I'm considering the environmental and ethical implications of having the platform create content (a podcast, infographic, and video) all at once that I didn't necessarily want when I believe I could have gathered and analyzed the same information by reading the paper personally."
+    },
+    {
+      "email": "ijazi.1@buckeyemail.osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "If I knew in advance that I would be answering questions pertaining to the article, I would have paid more attention to the contents of the article and asked the chatbot more questions to clarify my understanding of the article"
+    },
+    {
+      "email": "minerd.11@osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "The podcast was the most effective tool in understanding this research study, and it made the information presented much more digestible."
+    },
+    {
+      "email": "enslen.4@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "I experienced significant technical challenges completing this task. I was unable to get my video to load for ~4 hours. I spent this time refreshing, trying different browsers, and eventually reaching out to the tech support referenced in the survey."
+    },
+    {
+      "email": "welkie.1@osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "I was a little confused on what I was supposed to be using the AI chat for. I read the article and understood the content of the article, and I used the chat to ask general questions and applications to verify what I read myself."
+    },
+    {
+      "email": "maggie.murray@osumc.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "N/A, I loved it !"
+    },
+    {
+      "email": "holzworth.19@buckeyemail.osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "The reason I put this was frustrating is each time I would go back or go forward within the github website it would delete my answers.  I had to retype my questions 3 times due to this and the restriction of using other applications whilst completing this.  This was very frustrating and for future uses it would be extremely helpful if this website would save my answers to avoid redoing them.  I do feel that each time the quality of my work decreased a bit as I was frustrated then immediately tried to remember what I had just typed.  I do like the fact we are using GenAI for the assignments, and I found the podcast and video extremely helpful.  Just frustrating having to retype my answers multiple times."
+    },
+    {
+      "email": "huang.2321@osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "Very interesting assignment. I ended up selecting an article that was a review rather than primary literature which I hope is okay. It seemed to provide a good overview of the topic. \n\nI do wish that the video and podcast could be paused and sped up."
+    },
+    {
+      "email": "mulukutla.7@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "I was under the impression that the assignment needs to be completed by Wed whereas it was supposed to be finished this Monday EOD. I'll ensure I pay more attention to the submission dates going forward. One other thing, I did was reading thru the article first to understand (without using AI) before submitting the assignment and it took a considerable amount of time and effort to go back and forth between the pages."
+    },
+    {
+      "email": "esler.20@osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "I was not sure exactly how detailed we needed to be in our responses on page 1. Based on the intro video, it did not seem we were tasked with reading the entire article in depth. So, I skimmed over sections and asked the AI tool random questions to see what it would show. The AI tool was generic and did not point to where it gathered the details or what section it got the answer from, so I was a bit wary of how accurate the information was. I also felt the answers from AI kept repeating and reworded it differently, not providing new details based on what it said earlier."
+    },
+    {
+      "email": "aiken.74@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_tue",
+      "feedback": "This was a fun assignment that taught practical skills"
+    },
+    {
+      "email": "manuel.92@buckeyemail.osu.edu",
+      "condition": "control",
+      "class": "mba6202_wed",
+      "feedback": "None."
+    },
+    {
+      "email": "klue.2@buckeyemail.osu.edu",
+      "condition": "ebm_cimo",
+      "class": "mba6202_wed",
+      "feedback": "Honestly, pretty cool."
+    },
+    {
+      "email": "lowery.274@buckeyemail.osu.edu",
+      "condition": "control",
+      "class": "honda",
+      "feedback": "I think this is a very useful tool and appreciate those who developed it!"
+    },
+    {
+      "email": "alvin_nash@na.honda.com",
+      "condition": "ebm_cimo",
+      "class": "honda",
+      "feedback": "AI has tendency to spell words incorrectly."
+    },
+    {
+      "email": "lucy_berg@na.honda.com",
+      "condition": "ebm_cimo",
+      "class": "honda",
+      "feedback": "Love this tool!"
+    },
+    {
+      "email": "dddagreat@yahoo.com",
+      "condition": "ebm_cimo",
+      "class": "honda",
+      "feedback": "I found this fascinating and would love to see if there are other tools to help me make presentations"
+    },
+    {
+      "email": "karthy.md@gmail.com",
+      "condition": "ebm_cimo",
+      "class": "honda",
+      "feedback": "I really like this AI, and wondering if i am able to use this AI through IOS App store."
+    }
+  ],
+  "_filterInfo": {
+    "originalUsers": 126,
+    "filteredUsers": 108,
+    "filterRules": [
+      "complete 세션이 1개 이상 있는 사용자만 포함",
+      "complete 세션이 2개 이상이면 첫 번째 complete 세션만 포함"
+    ]
+  }
+}

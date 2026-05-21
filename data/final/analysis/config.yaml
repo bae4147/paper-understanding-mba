@@ -1,0 +1,45 @@
+name: "reading_5min_min_chat_count_3"
+
+filters:
+  exclude_external_ai: true       # externalAi_used == 'no'
+  exclude_external_pdf: true      # externalPdf_used == 'no'
+  min_reading_time_ms: 300000     # focusTime_reading_ms >= X (0 = 비활성)
+  min_chat_count: 3               # chat_count >= k (0 = 비활성)
+  min_attn_focus: 3               # attn_focus >= X
+  require_attn_check_pass: true   # attn_stronglyDisagreeCheck == 1
+
+dependent_vars:
+  # Self-efficacy (subcategory 평균)
+  - se_oc   # Overall Comprehension 평균
+  - se_ce   # Critical Engagement 평균
+  - se_ap   # Applicability 평균
+  # NASA-TLX
+  - nasa_mentalDemand
+  - nasa_physicalDemand
+  - nasa_temporalDemand
+  - nasa_performance
+  - nasa_effort
+  - nasa_frustration
+  # LLM Usefulness
+  - llmUsefulness_overall
+  - llmUsefulness_conceptHelp
+  - llmUsefulness_findingsHelp
+  - llmUsefulness_practicalHelp
+  - llmUsefulness_timeSaving
+  # LLM Trust
+  - llmTrust_competence
+  - llmTrust_accuracy
+  - llmTrust_benevolence
+  - llmTrust_reliability
+  - llmTrust_comfortActing
+  - llmTrust_comfortUsing
+  - llmTrust_relyWithoutReading
+  - llmTrust_assumeClearIsAccurate
+  - llmTrust_confidentWithoutDetails
+  - llmTrust_relyForImportance
+  # Post-task
+  - postTask_implementationLikelihood
+  - postTask_newStrategyConfidence
+  # Reading behavior
+  - reading_totalDuration_ms
+  - chat_count

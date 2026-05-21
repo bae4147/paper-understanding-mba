@@ -1,0 +1,72 @@
+name: "se_chat_3_attn3"
+
+filters:
+  exclude_external_ai: true
+  min_chat_count: 3
+  min_attn_focus: 3
+  require_attn_check_pass: true
+
+dependent_vars:
+  # Self-efficacy — Overall Comprehension (개별 문항 → 평균 순)
+  - se_oc_overallGoal
+  - se_oc_authorsReasoning
+  - se_oc_connectingIdeas
+  - se_oc_evidenceUnderstanding
+  - se_oc_keyResultsUnderstanding
+  - se_oc_keyTermsUnderstanding
+  - se_oc_researchDesignUnderstanding
+  - se_oc_sampleContextUnderstanding
+  - se_oc_limitationsUnderstanding
+  - se_oc   # OC 평균
+
+  # Self-efficacy — Critical Engagement (개별 문항 → 평균 순)
+  - se_ce_ownIdeas
+  - se_ce_alternativePerspectives
+  - se_ce_verifyCredibility
+  - se_ce_questionClaims
+  - se_ce_broaderImplications
+  - se_ce   # CE 평균
+
+  # Self-efficacy — Applicability (개별 문항 → 평균 순)
+  - se_ap_contextDifferences
+  - se_ap_differencesImpact
+  - se_ap_mechanisms
+  - se_ap_outcomes
+  - se_ap_confidence
+  - se_ap_decision
+  - se_ap   # AP 평균
+
+  # NASA-TLX
+  - nasa_mentalDemand
+  - nasa_physicalDemand
+  - nasa_temporalDemand
+  - nasa_performance
+  - nasa_effort
+  - nasa_frustration
+
+  # LLM Usefulness
+  - llmUsefulness_overall
+  - llmUsefulness_conceptHelp
+  - llmUsefulness_findingsHelp
+  - llmUsefulness_practicalHelp
+  - llmUsefulness_timeSaving
+
+  # LLM Trust
+  - llmTrust_competence
+  - llmTrust_accuracy
+  - llmTrust_benevolence
+  - llmTrust_reliability
+  - llmTrust_comfortActing
+  - llmTrust_comfortUsing
+  - llmTrust_relyWithoutReading
+  - llmTrust_assumeClearIsAccurate
+  - llmTrust_confidentWithoutDetails
+  - llmTrust_relyForImportance
+
+  # Post-task
+  - postTask_implementationLikelihood
+  - postTask_newStrategyConfidence
+
+  # Reading behavior
+  - reading_totalDuration_ms
+  - chat_count

@@ -1,0 +1,287 @@
+======================================================================
+기술통계 보고서 (Descriptive Statistics Report)
+생성일시: 2026-02-02T05:19:21.061Z
+실험 시작: 2026-01-20T19:00:00.000Z
+======================================================================
+
+[ 요약 ]
+총 참가자: 108명
+총 세션: 108개
+완료 세션: 108개 (100%)
+
+[ 참가자 통계 ]
+--------------------------------------------------
+조건별 배정:
+  - control: 52명
+  - ebm_cimo: 56명
+
+완료율 (최소 1개 세션 완료):
+  - control: 52/52명 (100%)
+  - ebm_cimo: 56/56명 (100%)
+
+클래스별 분포:
+  - mba6202_tue: 45명
+  - mba6202_wed: 44명
+  - honda: 19명
+
+[ 세션 통계 ]
+--------------------------------------------------
+상태별 분포:
+  - complete: 108개
+
+[ 읽기 행동 통계 ]
+--------------------------------------------------
+
+전체:
+  총 소요 시간 (분): M=19.07, SD=47.38, Min=0.03, Max=373.61, Median=8.05 (n=108)
+  읽기 시간 (분): M=4.48, SD=19.03, Min=0, Max=194.8, Median=0.87 (n=108)
+  채팅 시간 (분): M=4.39, SD=11.43, Min=0, Max=98.58, Median=1.2 (n=108)
+
+Control 그룹:
+  총 소요 시간 (분): M=14.11, SD=37.08, Min=0.03, Max=268.34, Median=7.09 (n=52)
+  읽기 시간 (분): M=1.92, SD=2.91, Min=0.01, Max=12.82, Median=0.64 (n=52)
+
+EBM-CIMO 그룹:
+  총 소요 시간 (분): M=23.68, SD=54.85, Min=0.35, Max=373.61, Median=10.54 (n=56)
+  읽기 시간 (분): M=6.86, SD=26.05, Min=0, Max=194.8, Median=0.9 (n=56)
+  채팅 시간 (분): M=6.69, SD=15.27, Min=0, Max=98.58, Median=1.32 (n=56)
+
+리소스 사용 (focusTime >= 5초):
+                        Control (n=52)     EBM-CIMO (n=56)
+  - Infographics:       27명 (51.9%)            36명 (64.3%)
+  - Video:              27명 (51.9%)            36명 (64.3%)
+  - Audio/Podcast:      26명 (50%)            27명 (48.2%)
+  - Chat (1회 이상):    28명 (53.8%)            34명 (60.7%)
+
+[ LLM 사용 통계 ]
+--------------------------------------------------
+총 메시지 수: 164개
+  세션당 메시지 수 (전체): M=1.52, SD=2.41, Min=0, Max=17, Median=1 (n=108)
+  세션당 메시지 수 (Control): M=1.19, SD=1.65, Min=0, Max=8, Median=1 (n=52)
+  세션당 메시지 수 (EBM-CIMO): M=1.82, SD=2.91, Min=0, Max=17, Median=1 (n=56)
+  질문 길이 (문자): M=76.25, SD=74.49, Min=3, Max=545, Median=52 (n=164)
+  응답 시간 (초): M=9.91, SD=5.63, Min=2.46, Max=35.37, Median=8.82 (n=164)
+
+[ 설문 통계 ]
+--------------------------------------------------
+
+NASA-TLX (1-7점):
+                        Control                    EBM-CIMO
+  항목              M(SD)                      M(SD)
+  mentalDemand       3.62(1.29)                3.89(1.19)
+  physicalDemand     1.62(0.9)                 1.91(1.15)
+  temporalDemand     2.1(1.36)                 2.57(1.6)
+  effort             4.08(1.64)                4.27(1.42)
+  frustration        2.21(1.42)                2.57(1.53)
+  performance        5.46(0.97)                5.61(0.92)
+
+Self-Efficacy (1-7점):
+  [overallComprehension]
+                          Control                    EBM-CIMO
+    researchDesignUnderstanding 5.48(1.17)                4.96(1.44)
+    evidenceUnderstanding    5.27(1.18)                5.21(1.21)
+  [criticalEngagement]
+                          Control                    EBM-CIMO
+    verifyCredibility        4.65(1.45)                4.75(1.65)
+    broaderImplications      5.62(1.13)                5.77(1.05)
+  [applicability]
+                          Control                    EBM-CIMO
+    decision                 5.6(1.15)                 5.54(1.03)
+    outcomes                 5.1(1.33)                 5(1.31)
+  ... (추가 항목은 JSON 파일 참조)
+
+외부 도구 사용:
+  - 외부 AI 도구: 4/108명 (3.7%)
+  - 외부 PDF 뷰어: 17/108명 (15.7%)
+
+Post Task:
+                          Control                    EBM-CIMO
+  Q1 답변 개수            1.1(0.35) 1.05(0.23)
+  Q2 답변 개수            1.04(0.27) 1.02(0.13)
+  새 전략 자신감 (1-7)    5.1(1.21) 5.2(1.2)
+  실행 가능성 (1-7)       4.81(1.54) 5.02(1.48)
+
+======================================================================
+[ Chat 사용자 대상 분석 (Chat 1회 이상 사용) ]
+--------------------------------------------------
+
+표본 크기: 전체 62명 (Control: 28명, EBM-CIMO: 34명)
+
+LLM 사용 통계:
+                        Control                    EBM-CIMO
+  메시지 수             2.21(1.68) 3(3.23)
+
+NASA-TLX (1-7점):
+                        Control                    EBM-CIMO
+  항목              M(SD)                      M(SD)
+  mentalDemand       3.71(1.33)                3.94(1.14)
+  physicalDemand     1.68(0.85)                1.88(1.13)
+  temporalDemand     2.04(1.24)                2.56(1.61)
+  effort             4.75(1.45)                4.26(1.46)
+  frustration        2.46(1.32)                2.35(1.39)
+  performance        5.36(1.04)                5.62(0.97)
+
+Self-Efficacy (1-7점):
+  [overallComprehension]
+                          Control                    EBM-CIMO
+    researchDesignUnderstanding 5.5(0.94)                 5(1.51)
+    evidenceUnderstanding    5(1.31)                   5.29(1.32)
+  [criticalEngagement]
+                          Control                    EBM-CIMO
+    verifyCredibility        4.32(1.42)                4.65(1.75)
+    broaderImplications      5.46(1.24)                5.68(1.1)
+  [applicability]
+                          Control                    EBM-CIMO
+    decision                 5.36(1.32)                5.74(1.01)
+    outcomes                 5(1.28)                   5.09(1.4)
+  ... (추가 항목은 JSON 파일 참조)
+
+Post Task:
+                          Control                    EBM-CIMO
+  Q1 답변 개수            1.07(0.37) 1.03(0.17)
+  Q2 답변 개수            1(0) 1(0)
+  새 전략 자신감 (1-7)    4.86(1.27) 5.12(1.11)
+  실행 가능성 (1-7)       4.43(1.55) 5.03(1.48)
+
+[ 클래스별 통계 ]
+--------------------------------------------------
+
+mba6202_tue:
+  참가자: 45명 (control: 20, ebm_cimo: 25)
+  세션: 45개 (완료: 45개, 100%)
+
+mba6202_wed:
+  참가자: 44명 (control: 23, ebm_cimo: 21)
+  세션: 44개 (완료: 44개, 100%)
+
+honda:
+  참가자: 19명 (control: 9, ebm_cimo: 10)
+  세션: 19개 (완료: 19개, 100%)
+
+[ 참가자 피드백 (40명) ]
+--------------------------------------------------
+
+[1] ike.34@osu.edu (control, mba6202_tue)
+I like seeing the questions before starting an assignment so I can know what to look for and what to think about as I am reading the article. I wish I had picked a better article if what you wanted me to do was relate it to myself directly and not to a problem I want to resolve in my work place. I also am not sure what you mean when you want me to apply this to my work place. Realistically, no one at my job would pay e any attention. I am not high enough in leadership to effect real change. Do you mean to ask how I would effect these changes at work if I had the power to do so? I guess I am a little unclear if you want me to imagine what I can actually do or what I could potentially do. What I can actually do is quite small in the position I am in now, but what I could potentially do is as big as my imagination.
+
+[2] stalnaker.63@buckeyemail.osu.edu (ebm_cimo, mba6202_tue)
+NA
+
+[3] petite.9@osu.edu (ebm_cimo, mba6202_wed)
+The AI chatbot gave some interesting and practical information that sounded reasonable, but the questions it was asking seemed to go beyond the scope of the paper.
+
+[4] murphy.1603@osu.edu (control, mba6202_wed)
+Good, what do we submit to carmen?
+
+[5] yoho.18@osu.edu (control, mba6202_tue)
+I enjoyed utilizing the AI capabilities to relay the information of the article.
+
+[6] perry.2589@buckeyemail.osu.edu (ebm_cimo, mba6202_wed)
+This was actually kind of cool.
+
+[7] kelly.470@osu.edu (ebm_cimo, mba6202_wed)
+Other than the platform itself being a little clunky at times, I think this is an amazing resource, especially for myself being in the healthcare field. I would have loved to have access to this in the past and would look forward to having access to it in the future!
+
+[8] mally.9@buckeyemail.osu.edu (control, mba6202_wed)
+N/A
+
+[9] erin_rinto@yahoo.com (control, mba6202_tue)
+I thought the article was relevant.  The journal has an IF of 10.55, which I thought indicated it was used to support the arguments contained and to support its conclusions. I think it is hard to generalize the two studies within the article, as they were surveys sent to the corporations, and the return rate was only 54%. I don't know if there is a better way to assess this, but I found the conclusions relevant and consistent with my professional experiences. The article states that the results were statistically significant, but I think to be used, the N needs to be much larger.
+
+[10] spatholt.4@osu.edu (ebm_cimo, mba6202_tue)
+Interesting assignment. I wonder if the chat bot was backed by a gemini api key? The infographic seemed reminiscent of NotebookLM and I noticed output structures that looked Gemini-familiar in the chat.
+
+[11] loudenslager.17@osu.edu (control, mba6202_tue)
+This tool was very cool to use, and made doing this assignment more interesting.
+
+[12] martinez.554@buckeyemail.osu.edu (ebm_cimo, mba6202_wed)
+The chatbot was very conversational and seemed well built.
+
+[13] shank.189@osu.edu (control, mba6202_wed)
+I was a little unclear on the first few questions about the key differences between the article and my current situation.
+
+[14] blaine.83@buckeyemail.osu.edu (ebm_cimo, mba6202_tue)
+This is a great resource to get high level information about a topic.
+
+[15] walsh.1042@osu.edu (control, mba6202_wed)
+I didn't use the GenAI tools, I clicked finished prematurely thinking it meant that I was finished uploading the article, hence all of the answers are 3's.
+
+[16] frank.827@osu.edu (control, mba6202_wed)
+I really liked the tool that disseminated the article into all those options. Is this something you built or is this readily available at all times? I went to bookmark it but it appeared specific to this assignment. It would be a really useful tool -- especially for efficiency.
+
+[17] westrick.37@osu.edu (ebm_cimo, mba6202_wed)
+I did not like that if you had to pause the video it would then restart and there was no ability to go back to where you left off.
+
+[18] westrick.48@osu.edu (ebm_cimo, mba6202_wed)
+Not being able to pause the video was frustrating.
+
+[19] moore.4091@osu.edu (ebm_cimo, mba6202_tue)
+Very useful tool!
+
+[20] fenstermacher.13@buckeyemail.osu.edu (ebm_cimo, mba6202_wed)
+There is no feedback at this time.
+
+[21] calhoun.318@buckeyemail.osu.edu (control, mba6202_tue)
+These instructions on using this platform should have been better explained upfront. I did not use any AI tools because I did not understand their purpose going into this assignment. The teacher's video should have explained that we are to evaluate the AI tool using our article.
+
+[22] montgomery.714@osu.edu (ebm_cimo, mba6202_tue)
+Some of the steps in the AI tool were a little unclear, the chatbot didn't seem very helpful but it might have also been related to the content of the article.
+
+[23] mcalhaney.1@osu.edu (ebm_cimo, mba6202_wed)
+I try to enter assignments and tasks with an open mind but I do struggle with the use of AI in these types of setting still. Specifically I'm considering the environmental and ethical implications of having the platform create content (a podcast, infographic, and video) all at once that I didn't necessarily want when I believe I could have gathered and analyzed the same information by reading the paper personally.
+
+[24] ijazi.1@buckeyemail.osu.edu (control, mba6202_wed)
+If I knew in advance that I would be answering questions pertaining to the article, I would have paid more attention to the contents of the article and asked the chatbot more questions to clarify my understanding of the article
+
+[25] minerd.11@osu.edu (control, mba6202_wed)
+The podcast was the most effective tool in understanding this research study, and it made the information presented much more digestible.
+
+[26] enslen.4@osu.edu (ebm_cimo, mba6202_tue)
+I experienced significant technical challenges completing this task. I was unable to get my video to load for ~4 hours. I spent this time refreshing, trying different browsers, and eventually reaching out to the tech support referenced in the survey.
+
+[27] welkie.1@osu.edu (control, mba6202_wed)
+I was a little confused on what I was supposed to be using the AI chat for. I read the article and understood the content of the article, and I used the chat to ask general questions and applications to verify what I read myself.
+
+[28] maggie.murray@osumc.edu (ebm_cimo, mba6202_wed)
+N/A, I loved it !
+
+[29] holzworth.19@buckeyemail.osu.edu (control, mba6202_wed)
+The reason I put this was frustrating is each time I would go back or go forward within the github website it would delete my answers.  I had to retype my questions 3 times due to this and the restriction of using other applications whilst completing this.  This was very frustrating and for future uses it would be extremely helpful if this website would save my answers to avoid redoing them.  I do feel that each time the quality of my work decreased a bit as I was frustrated then immediately tried to remember what I had just typed.  I do like the fact we are using GenAI for the assignments, and I found the podcast and video extremely helpful.  Just frustrating having to retype my answers multiple times.
+
+[30] huang.2321@osu.edu (ebm_cimo, mba6202_tue)
+Very interesting assignment. I ended up selecting an article that was a review rather than primary literature which I hope is okay. It seemed to provide a good overview of the topic. 
+
+I do wish that the video and podcast could be paused and sped up.
+
+[31] mulukutla.7@buckeyemail.osu.edu (ebm_cimo, mba6202_wed)
+I was under the impression that the assignment needs to be completed by Wed whereas it was supposed to be finished this Monday EOD. I'll ensure I pay more attention to the submission dates going forward. One other thing, I did was reading thru the article first to understand (without using AI) before submitting the assignment and it took a considerable amount of time and effort to go back and forth between the pages.
+
+[32] esler.20@osu.edu (control, mba6202_wed)
+I was not sure exactly how detailed we needed to be in our responses on page 1. Based on the intro video, it did not seem we were tasked with reading the entire article in depth. So, I skimmed over sections and asked the AI tool random questions to see what it would show. The AI tool was generic and did not point to where it gathered the details or what section it got the answer from, so I was a bit wary of how accurate the information was. I also felt the answers from AI kept repeating and reworded it differently, not providing new details based on what it said earlier.
+
+[33] aiken.74@buckeyemail.osu.edu (ebm_cimo, mba6202_tue)
+This was a fun assignment that taught practical skills
+
+[34] manuel.92@buckeyemail.osu.edu (control, mba6202_wed)
+None.
+
+[35] klue.2@buckeyemail.osu.edu (ebm_cimo, mba6202_wed)
+Honestly, pretty cool.
+
+[36] lowery.274@buckeyemail.osu.edu (control, honda)
+I think this is a very useful tool and appreciate those who developed it!
+
+[37] alvin_nash@na.honda.com (ebm_cimo, honda)
+AI has tendency to spell words incorrectly.
+
+[38] lucy_berg@na.honda.com (ebm_cimo, honda)
+Love this tool!
+
+[39] dddagreat@yahoo.com (ebm_cimo, honda)
+I found this fascinating and would love to see if there are other tools to help me make presentations
+
+[40] karthy.md@gmail.com (ebm_cimo, honda)
+I really like this AI, and wondering if i am able to use this AI through IOS App store.
+
+======================================================================
+상세 데이터는 descriptive_stats.json 파일을 참조하세요.
