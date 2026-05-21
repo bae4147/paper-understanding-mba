@@ -1,8 +1,0 @@
-{
-  "originalUsers": 48,
-  "filteredUsers": 36,
-  "filterRules": [
-    "complete 세션이 1개 이상 있는 사용자만 포함",
-    "complete 세션이 2개 이상이면 첫 번째 complete 세션만 포함"
-  ]
-}

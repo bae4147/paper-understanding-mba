@@ -30,3 +30,9 @@ firebase-service-account.json
 
 # Data exports (contains participant data)
 data_exports/
+
+# Research data - stored outside repo
+data/
+analysis/
+pipeline/
+archive/
