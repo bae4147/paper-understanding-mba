@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study2 preview - Done</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function Complete() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const condition = urlParams.get('condition') || '';
+
+            const tryOther = () => {
+                sessionStorage.removeItem('currentSessionId');
+                sessionStorage.removeItem('hasCustomPdf');
+                sessionStorage.removeItem('customPaperTitle');
+                sessionStorage.removeItem('paperMetadata');
+                window.location.href = 'index.html';
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-12 max-w-xl w-full text-center">
+                        <div className="text-6xl mb-6">🎉</div>
+                        <h1 className="text-3xl font-bold text-gray-800 mb-4">That's it — thank you!</h1>
+                        <p className="text-gray-600 mb-6">
+                            This was a standalone preview of the reading interface
+                            {condition ? ` (${condition === 'ebm_cimo' ? 'Multimodal / CIMO' : 'Control'} condition)` : ''}.
+                            There is no further survey. Nothing from this session was saved, logged,
+                            or linked to you in any way — closing this tab discards it completely.
+                        </p>
+                        <button
+                            onClick={tryOther}
+                            className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-lg font-medium"
+                        >
+                            Try the other condition
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<Complete />, document.getElementById('root'));
+    </script>
+</body>
+</html>
