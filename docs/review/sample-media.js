@@ -13,10 +13,15 @@ const SAMPLE_VIDEO_DATA_URL = "https://storage.googleapis.com/mba-paper-reading.
 
 // Helper: save sample PDF + pre-generated media to IndexedDB, then redirect to reading.html
 window.loadSampleAndGo = async function(condition) {
-    const _openDB = (name, store) => new Promise((res, rej) => {
+    const _openDB = (name, store, isRetry) => new Promise((res, rej) => {
         const req = indexedDB.open(name, 1);
         req.onsuccess = () => res(req.result);
-        req.onerror = () => rej(req.error);
+        req.onerror = () => {
+            if (isRetry) { rej(req.error); return; }
+            const del = indexedDB.deleteDatabase(name);
+            del.onsuccess = () => _openDB(name, store, true).then(res, rej);
+            del.onerror = () => rej(req.error);
+        };
         req.onupgradeneeded = (e) => {
             if (!e.target.result.objectStoreNames.contains(store)) {
                 e.target.result.createObjectStore(store, { keyPath: 'id' });

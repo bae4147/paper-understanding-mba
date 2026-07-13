@@ -55,10 +55,17 @@
             const [currentPaper, setCurrentPaper] = useState('');
             const [isLoading, setIsLoading] = useState(false);
 
-            const openPdfDatabase = () => {
+            const openPdfDatabase = (isRetry = false) => {
                 return new Promise((resolve, reject) => {
                     const request = indexedDB.open('CustomPdfDB', 1);
-                    request.onerror = () => reject(request.error);
+                    request.onerror = () => {
+                        // Chrome sometimes reports a corrupted per-origin backing store as
+                        // UnknownError; wiping and recreating the DB once clears it.
+                        if (isRetry) { reject(request.error); return; }
+                        const del = indexedDB.deleteDatabase('CustomPdfDB');
+                        del.onsuccess = () => openPdfDatabase(true).then(resolve, reject);
+                        del.onerror = () => reject(request.error);
+                    };
                     request.onsuccess = () => resolve(request.result);
                     request.onupgradeneeded = (event) => {
                         const db = event.target.result;
@@ -221,7 +228,10 @@ Return format: {"title": "...", "firstAuthorLastName": "...", "year": 2023, "ven
                     setPdfProgress(`✓ Ready! (${numPages} pages)`);
                 } catch (error) {
                     console.error('PDF processing error:', error);
-                    setPdfError(`Failed to process PDF: ${error.message}`);
+                    const hint = error.name === 'UnknownError'
+                        ? ' — your browser\'s local storage for this site may be corrupted; try clearing site data for this page or opening it in a private/incognito window.'
+                        : '';
+                    setPdfError(`Failed to process PDF: ${error.message}${hint}`);
                     setPdfFile(null);
                 } finally {
                     setPdfProcessing(false);

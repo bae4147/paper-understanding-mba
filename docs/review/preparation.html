@@ -23,9 +23,14 @@
             videoSlideshow: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateVideoSlideshow'
         };
 
-        const openDB = (name, storeName) => new Promise((resolve, reject) => {
+        const openDB = (name, storeName, isRetry = false) => new Promise((resolve, reject) => {
             const req = indexedDB.open(name, 1);
-            req.onerror = () => reject(req.error);
+            req.onerror = () => {
+                if (isRetry) { reject(req.error); return; }
+                const del = indexedDB.deleteDatabase(name);
+                del.onsuccess = () => openDB(name, storeName, true).then(resolve, reject);
+                del.onerror = () => reject(req.error);
+            };
             req.onsuccess = () => resolve(req.result);
             req.onupgradeneeded = (e) => {
                 const db = e.target.result;

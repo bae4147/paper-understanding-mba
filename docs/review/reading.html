@@ -174,10 +174,15 @@
             const pdfDocRef = useRef(null);
 
             // IndexedDB helper for loading large PDF files
-            const loadPdfFromIndexedDB = async () => {
+            const loadPdfFromIndexedDB = async (isRetry = false) => {
                 return new Promise((resolve, reject) => {
                     const request = indexedDB.open('CustomPdfDB', 1);
-                    request.onerror = () => reject(request.error);
+                    request.onerror = () => {
+                        if (isRetry) { reject(request.error); return; }
+                        const del = indexedDB.deleteDatabase('CustomPdfDB');
+                        del.onsuccess = () => loadPdfFromIndexedDB(true).then(resolve, reject);
+                        del.onerror = () => reject(request.error);
+                    };
                     request.onsuccess = () => {
                         const db = request.result;
                         const transaction = db.transaction(['pdfs'], 'readonly');
@@ -550,16 +555,22 @@
             useEffect(() => {
                 (async () => {
                     try {
-                        const db = await new Promise((res, rej) => {
+                        const openMediaDb = (isRetry = false) => new Promise((res, rej) => {
                             const req = indexedDB.open('ReviewMediaDB', 1);
                             req.onsuccess = () => res(req.result);
-                            req.onerror = () => rej(req.error);
+                            req.onerror = () => {
+                                if (isRetry) { rej(req.error); return; }
+                                const del = indexedDB.deleteDatabase('ReviewMediaDB');
+                                del.onsuccess = () => openMediaDb(true).then(res, rej);
+                                del.onerror = () => rej(req.error);
+                            };
                             req.onupgradeneeded = (e) => {
                                 if (!e.target.result.objectStoreNames.contains('media')) {
                                     e.target.result.createObjectStore('media', { keyPath: 'id' });
                                 }
                             };
                         });
+                        const db = await openMediaDb();
                         const media = await new Promise((res, rej) => {
                             const req = db.transaction(['media'], 'readonly').objectStore('media').get('generatedMedia');
                             req.onsuccess = () => res(req.result);
