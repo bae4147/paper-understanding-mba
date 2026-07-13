@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIMO Chatbot — Example Conversations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .msg-ai h3 { font-size: 0.8rem; font-weight: 700; margin: 0.6rem 0 0.2rem; color: #1e293b; }
+    .msg-ai ul { list-style: disc; padding-left: 1.1rem; margin: 0.2rem 0; }
+    .msg-ai li { margin: 0.1rem 0; font-size: 0.8rem; }
+    .msg-ai p { margin: 0.2rem 0; font-size: 0.8rem; line-height: 1.5; }
+    .msg-ai hr { border: none; border-top: 1px solid #e2e8f0; margin: 0.6rem 0; }
+    .msg-ai em { font-style: italic; color: #64748b; }
+    .msg-ai b { font-weight: 600; }
+  </style>
+</head>
+<body class="p-8">
+
+  <div style="max-width: 1600px; margin: 0 auto;">
+    <div class="text-center mb-8">
+      <span class="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full mb-2">CIMO Condition</span>
+      <h1 class="text-2xl font-bold text-gray-900">AI Research Assistant — Example Conversations</h1>
+      <p class="text-sm text-gray-500 mt-1">Participants reading leadership papers with an EBM-guided chatbot</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+
+      <!-- Case 1 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-4 border-b border-gray-100">
+          <div class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Case 1</div>
+          <div class="text-sm font-semibold text-gray-800 leading-snug">Transformational Leadership &amp; Work Engagement in Remote Settings</div>
+        </div>
+        <div class="p-4 space-y-4 overflow-y-auto" style="max-height: 680px;">
+
+          <!-- User -->
+          <div class="flex justify-end">
+            <div class="bg-blue-600 text-white text-sm rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-xs shadow-sm">
+              Give me a summary of the uploaded article
+            </div>
+          </div>
+
+          <!-- Assistant -->
+          <div class="flex justify-start">
+            <div class="bg-gray-50 border border-gray-100 text-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm msg-ai" style="max-width: 90%;">
+              <p>This article examines the relationship between <b>transformational leadership</b> and <b>work engagement</b> in <b>remote work settings</b>, focusing on the role of a supervisor's <b>digital communication skills</b> as a moderator.</p>
+
+              <h3>Context (Research Setting)</h3>
+              <p>The study was conducted with <b>410 consultants</b> in Italy who worked remotely during the <b>Covid-19 pandemic</b>, exploring how leadership dynamics function in a fully remote environment.</p>
+
+              <h3>Intervention (What Was Tested)</h3>
+              <p>The researchers tested a <b>moderated mediation model</b> examining how transformational leadership influences work engagement through perceived supervisor support, and how supervisors' digital communication skills affect this relationship.</p>
+
+              <h3>Mechanism (Why It Worked)</h3>
+              <ul>
+                <li><b>Transformational leaders</b> can engage remote workers by providing support and motivation, even at a distance.</li>
+                <li>Supervisors' <b>digital communication skills</b> enhance their psychological presence, crucial for reducing feelings of isolation.</li>
+              </ul>
+
+              <h3>Outcome (Results)</h3>
+              <ul>
+                <li>Transformational leadership → perceived supervisor support (+)</li>
+                <li>Perceived supervisor support → work engagement (+)</li>
+                <li>Supervisors' digital skills moderate this relationship</li>
+              </ul>
+
+              <h3>Takeaway</h3>
+              <p>Developing supervisors' digital communication skills is essential to effectively support and engage remote employees.</p>
+
+              <hr>
+              <p><em>Are you considering applying these insights in your own remote work situation? If so, what specific aspects are you interested in exploring further?</em></p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Case 2 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+        <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-5 py-4 border-b border-gray-100">
+          <div class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Case 2</div>
+          <div class="text-sm font-semibold text-gray-800 leading-snug">Discovering Your Authentic Leadership</div>
+        </div>
+        <div class="p-4 space-y-4 overflow-y-auto" style="max-height: 680px;">
+
+          <!-- User -->
+          <div class="flex justify-end">
+            <div class="bg-purple-600 text-white text-sm rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-xs shadow-sm">
+              Please summarize the paper
+            </div>
+          </div>
+
+          <!-- Assistant -->
+          <div class="flex justify-start">
+            <div class="bg-gray-50 border border-gray-100 text-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm msg-ai" style="max-width: 90%;">
+              <p>This article explores the concept of <b>authentic leadership</b> and how individuals can develop their leadership abilities through self-awareness and personal growth.</p>
+
+              <h3>Context (Research Setting)</h3>
+              <p>The research was based on interviews with <b>125 leaders</b> from diverse backgrounds — including CEOs and mid-career leaders — who shared their life stories, personal struggles, and transformative experiences.</p>
+
+              <h3>Intervention (What Was Tested)</h3>
+              <p>The authors investigated how individuals could become authentic leaders by:</p>
+              <ul>
+                <li>Framing their life stories to gain self-awareness</li>
+                <li>Practicing their values and principles consistently</li>
+                <li>Balancing intrinsic and extrinsic motivations</li>
+                <li>Building strong support teams</li>
+              </ul>
+
+              <h3>Mechanism (Why It Worked)</h3>
+              <ul>
+                <li>Authentic leaders emerge from their <b>unique life stories</b>, which shape their leadership styles</li>
+                <li><b>Self-awareness</b> is crucial — leaders need to understand their motivations and values</li>
+                <li>Authentic leaders practice their values even under pressure</li>
+              </ul>
+
+              <h3>Outcome (Results)</h3>
+              <p>Authentic leadership leads to:</p>
+              <ul>
+                <li>More effective leadership as individuals inspire and empower others</li>
+                <li>Sustainable long-term results in organizations</li>
+                <li>A deeper sense of fulfillment and connection to purpose</li>
+              </ul>
+
+              <h3>Takeaway</h3>
+              <p>Authentic leadership is not about imitating others but about understanding and embracing one's own story and values.</p>
+
+              <hr>
+              <p><em>How does the concept of authentic leadership resonate with your own experiences or leadership style?</em></p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

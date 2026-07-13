@@ -4,6 +4,10 @@ const admin = require("firebase-admin");
 const pdfParse = require("pdf-parse");
 const { GoogleAuth } = require("google-auth-library");
 const nodemailer = require("nodemailer");
+const { fetch: undiciFetch, Agent } = require("undici");
+
+// TTS agent with no timeout — OpenAI TTS generates audio before sending headers
+const ttsAgent = new Agent({ headersTimeout: 0, bodyTimeout: 0 });
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -277,7 +281,7 @@ Generate the podcast script now:`;
         // Limit text length for TTS (max 4096 chars)
         const text = segment.text.substring(0, 4000);
 
-        const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+        const ttsResponse = await undiciFetch("https://api.openai.com/v1/audio/speech", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -288,7 +292,8 @@ Generate the podcast script now:`;
             input: text,
             voice: segment.voice,
             response_format: "mp3"
-          })
+          }),
+          dispatcher: ttsAgent
         });
 
         if (!ttsResponse.ok) {

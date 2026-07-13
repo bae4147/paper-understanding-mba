@@ -545,6 +545,60 @@
             // Each call is entirely client-side (fetch -> blob URL); nothing is stored server-side
             // beyond the stateless generation call itself, and no identity is ever sent.
             const reviewMediaStartedRef = useRef(false);
+
+            // Load pre-generated media from preparation.html if available (runs before PDF loads)
+            useEffect(() => {
+                (async () => {
+                    try {
+                        const db = await new Promise((res, rej) => {
+                            const req = indexedDB.open('ReviewMediaDB', 1);
+                            req.onsuccess = () => res(req.result);
+                            req.onerror = () => rej(req.error);
+                            req.onupgradeneeded = (e) => {
+                                if (!e.target.result.objectStoreNames.contains('media')) {
+                                    e.target.result.createObjectStore('media', { keyPath: 'id' });
+                                }
+                            };
+                        });
+                        const media = await new Promise((res, rej) => {
+                            const req = db.transaction(['media'], 'readonly').objectStore('media').get('generatedMedia');
+                            req.onsuccess = () => res(req.result);
+                            req.onerror = () => rej(req.error);
+                        });
+                        if (!media) return;
+
+                        reviewMediaStartedRef.current = true;
+
+                        if (media.audioBase64) {
+                            const blob = new Blob([Uint8Array.from(atob(media.audioBase64), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+                            setResourceContent(prev => ({ ...prev, audio: URL.createObjectURL(blob), audioType: 'audio/mpeg' }));
+                        }
+                        if (media.imageBase64) {
+                            const blob = new Blob([Uint8Array.from(atob(media.imageBase64), c => c.charCodeAt(0))], { type: media.imageMimeType || 'image/png' });
+                            setResourceContent(prev => ({ ...prev, infographics: URL.createObjectURL(blob) }));
+                        }
+                        if (media.videoDataUrl) {
+                            const sceneData = await (await fetch(media.videoDataUrl)).json();
+                            if (sceneData?.scenes?.length > 0) {
+                                setVideoSlideshow({
+                                    title: sceneData.title,
+                                    scenes: sceneData.scenes.map(s => ({
+                                        sceneNumber: s.sceneNumber,
+                                        imageUrl: `data:image/png;base64,${s.imageBase64}`,
+                                        audioUrl: `data:audio/mpeg;base64,${s.audioBase64}`,
+                                        duration: s.duration || 9,
+                                        narration: s.narration
+                                    })),
+                                    totalScenes: sceneData.totalScenes || sceneData.scenes.length
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.log('No pre-generated media found, will generate on demand:', e.message);
+                    }
+                })();
+            }, []);
+
             useEffect(() => {
                 if (!customPdfData?.base64 || reviewMediaStartedRef.current) return;
                 reviewMediaStartedRef.current = true;
@@ -897,24 +951,7 @@
                 return () => window.removeEventListener('popstate', handlePopState);
             }, []);
 
-            // Auto-save on browser close
-            useEffect(() => {
-                const handleBeforeUnload = (e) => {
-                    // Firebase saving disabled
-                    // if (phase === 'reading' && unsavedEventsCount.current > 0) {
-                    //     saveEventsToFirebase(events, false);
-                    // }
-                    // Skip warning if we're intentionally redirecting
-                    if (phase === 'reading' && !isRedirecting) {
-                        e.preventDefault();
-                        e.returnValue = '';
-                        return '';
-                    }
-                };
-
-                window.addEventListener('beforeunload', handleBeforeUnload);
-                return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-            }, [phase, events, isRedirecting]);
+            // Auto-save on browser close (beforeunload warning disabled for reviewer preview)
 
             // Auto-scroll chat to bottom
             useEffect(() => {

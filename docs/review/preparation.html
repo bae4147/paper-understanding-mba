@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preparing Your Reading Materials</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Pre-generated sample paper media -->
+    <script src="sample-media.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const ENDPOINTS = {
+            podcast: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generatePodcast',
+            infographic: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateInfographic',
+            videoSlideshow: 'https://us-central1-mba-paper-reading.cloudfunctions.net/generateVideoSlideshow'
+        };
+
+        const openDB = (name, storeName) => new Promise((resolve, reject) => {
+            const req = indexedDB.open(name, 1);
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => resolve(req.result);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(storeName)) {
+                    db.createObjectStore(storeName, { keyPath: 'id' });
+                }
+            };
+        });
+
+        const loadPdf = async () => {
+            const db = await openDB('CustomPdfDB', 'pdfs');
+            return new Promise((resolve, reject) => {
+                const req = db.transaction(['pdfs'], 'readonly').objectStore('pdfs').get('customPdf');
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        };
+
+        const saveGeneratedMedia = async (media) => {
+            const db = await openDB('ReviewMediaDB', 'media');
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(['media'], 'readwrite');
+                tx.objectStore('media').put({ id: 'generatedMedia', ...media });
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+        };
+
+        function Preparation() {
+            const [podcastStatus, setPodcastStatus] = useState('pending');
+            const [infographicStatus, setInfographicStatus] = useState('pending');
+            const [videoStatus, setVideoStatus] = useState('pending');
+            const [allDone, setAllDone] = useState(false);
+            const [errorLogs, setErrorLogs] = useState([]);
+            const [sampleLoading, setSampleLoading] = useState(false);
+            const startedRef = useRef(false);
+
+            const handleUseSample = async () => {
+                setSampleLoading(true);
+                try {
+                    await window.loadSampleAndGo(condition);
+                } catch (e) {
+                    console.error('Failed to load sample:', e);
+                    setSampleLoading(false);
+                }
+            };
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('sessionId') || sessionStorage.getItem('currentSessionId') || '';
+            const condition = urlParams.get('condition') || 'control';
+            const mode = urlParams.get('mode') || 'review';
+            const paper = urlParams.get('paper') || 'custom';
+
+            const readingUrl = `reading.html?sessionId=${encodeURIComponent(sessionId)}&mode=${mode}&condition=${condition}&paper=${paper}`;
+
+            const addError = (msg) => setErrorLogs(prev => [...prev, `[${new Date().toISOString()}] ${msg}`]);
+
+            useEffect(() => {
+                if (!sessionId) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                if (startedRef.current) return;
+                startedRef.current = true;
+                runGeneration();
+            }, []);
+
+            const runGeneration = async () => {
+                let pdfData;
+                try {
+                    pdfData = await loadPdf();
+                } catch (e) {
+                    addError('Could not load PDF: ' + e.message);
+                    window.location.href = 'index.html';
+                    return;
+                }
+                if (!pdfData?.base64) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                const base64 = pdfData.base64;
+                const media = {};
+
+                await Promise.allSettled([
+                    (async () => {
+                        setPodcastStatus('generating');
+                        try {
+                            const res = await fetch(ENDPOINTS.podcast, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ pdfBase64: base64, duration: 5 })
+                            });
+                            if (!res.ok) throw new Error('API error ' + res.status);
+                            const data = await res.json();
+                            if (!data.success || !data.audioBase64) throw new Error('No audio returned');
+                            media.audioBase64 = data.audioBase64;
+                            setPodcastStatus('done');
+                        } catch (e) {
+                            setPodcastStatus('error');
+                            addError('Podcast: ' + e.message);
+                        }
+                    })(),
+
+                    (async () => {
+                        setVideoStatus('generating');
+                        try {
+                            const res = await fetch(ENDPOINTS.videoSlideshow, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ pdfBase64: base64 })
+                            });
+                            if (!res.ok) throw new Error('API error ' + res.status);
+                            const data = await res.json();
+                            if (!data.success || !data.dataUrl) throw new Error('No video returned');
+                            media.videoDataUrl = data.dataUrl;
+                            setVideoStatus('done');
+                        } catch (e) {
+                            setVideoStatus('error');
+                            addError('Video: ' + e.message);
+                        }
+                    })(),
+
+                    (async () => {
+                        setInfographicStatus('generating');
+                        try {
+                            const res = await fetch(ENDPOINTS.infographic, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ pdfBase64: base64 })
+                            });
+                            if (!res.ok) throw new Error('API error ' + res.status);
+                            const data = await res.json();
+                            if (!data.success || !data.imageBase64) throw new Error('No image returned');
+                            media.imageBase64 = data.imageBase64;
+                            media.imageMimeType = data.mimeType || 'image/png';
+                            setInfographicStatus('done');
+                        } catch (e) {
+                            setInfographicStatus('error');
+                            addError('Infographic: ' + e.message);
+                        }
+                    })()
+                ]);
+
+                try {
+                    await saveGeneratedMedia(media);
+                } catch (e) {
+                    addError('Could not save media to browser storage: ' + e.message);
+                }
+
+                if (media.audioBase64 && media.videoDataUrl && media.imageBase64) {
+                    setAllDone(true);
+                }
+            };
+
+            const StatusItem = ({ label, status }) => {
+                const icon = status === 'done'
+                    ? <span className="text-green-500 text-xl">✓</span>
+                    : status === 'error'
+                    ? <span className="text-red-500 text-xl">✗</span>
+                    : status === 'generating'
+                    ? (
+                        <svg className="animate-spin h-5 w-5 text-blue-500" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                    )
+                    : <span className="text-gray-400">○</span>;
+
+                const label2text = { pending: 'Waiting...', generating: 'Generating...', done: 'Ready', error: 'Failed' };
+
+                return (
+                    <div className="flex items-center justify-between py-2 px-4 bg-gray-50 rounded-lg">
+                        <span className="text-gray-700">{label}</span>
+                        <div className="flex items-center space-x-2">
+                            <span className={`text-sm ${status === 'done' ? 'text-green-600' : status === 'error' ? 'text-red-600' : 'text-gray-500'}`}>
+                                {label2text[status] || ''}
+                            </span>
+                            {icon}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+                    <div className="max-w-2xl mx-auto">
+                        <div className="bg-white rounded-xl shadow-2xl p-8">
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold text-gray-800">
+                                    {allDone
+                                        ? <span className="text-green-600">GenAI has finished generating content!</span>
+                                        : 'GenAI is reading the paper and generating content...'}
+                                </h1>
+                            </div>
+
+                            {!allDone && (
+                                <p className="text-sm text-amber-600 mb-4">
+                                    ⚠️ Please do not close this window during generation. (Estimated time: 5 minutes)
+                                </p>
+                            )}
+
+                            <div className="space-y-2 mb-8">
+                                <StatusItem label="Podcast" status={podcastStatus} />
+                                <StatusItem label="Video overview" status={videoStatus} />
+                                <StatusItem label="Infographic" status={infographicStatus} />
+                            </div>
+
+                            <button
+                                onClick={() => window.location.href = readingUrl}
+                                disabled={!allDone}
+                                className={`w-full px-6 py-4 rounded-lg font-medium text-lg transition-all ${
+                                    allDone
+                                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
+                            >
+                                {allDone ? 'Start Reading' : 'Please wait...'}
+                            </button>
+
+                            <div className="relative flex items-center py-3">
+                                <div className="flex-grow border-t border-gray-200"></div>
+                                <span className="mx-3 text-xs text-gray-400">or skip generation</span>
+                                <div className="flex-grow border-t border-gray-200"></div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleUseSample}
+                                disabled={sampleLoading}
+                                className={`w-full px-6 py-3 rounded-lg font-medium transition-colors border-2 flex items-center justify-center gap-2 ${
+                                    sampleLoading
+                                        ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'border-blue-300 text-blue-700 hover:bg-blue-50'
+                                }`}
+                            >
+                                {sampleLoading ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                        </svg>
+                                        Loading sample paper...
+                                    </>
+                                ) : '📄 Skip generation and read sample paper'}
+                            </button>
+
+                            <p className="text-xs text-gray-400 text-center mt-6">
+                                This is demo for academic peer review — nothing is saved to any server.
+                            </p>
+
+                            {errorLogs.length > 0 && (
+                                <div className="mt-4 border-t pt-4">
+                                    <p className="text-xs text-gray-500 mb-1">Error details (copy and share if needed):</p>
+                                    <textarea
+                                        readOnly
+                                        value={errorLogs.join('\n')}
+                                        className="w-full text-xs font-mono bg-gray-50 border border-gray-200 rounded p-2 h-24 resize-none"
+                                        onClick={e => e.target.select()}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<Preparation />, document.getElementById('root'));
+    </script>
+</body>
+</html>
