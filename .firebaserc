@@ -1,0 +1,16 @@
+{
+  "projects": {},
+  "targets": {
+    "mba-paper-reading": {
+      "hosting": {
+        "demo": [
+          "study2-demo"
+        ],
+        "main": [
+          "mba-paper-reading"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
