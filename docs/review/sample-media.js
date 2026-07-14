@@ -13,50 +13,14 @@ const SAMPLE_VIDEO_DATA_URL = "https://storage.googleapis.com/mba-paper-reading.
 
 // Helper: save sample PDF + pre-generated media to IndexedDB, then redirect to reading.html
 window.loadSampleAndGo = async function(condition) {
-    const _openDB = (name, store, isRetry) => new Promise((res, rej) => {
-        const req = indexedDB.open(name, 1);
-        req.onsuccess = () => res(req.result);
-        req.onerror = () => {
-            if (isRetry) { rej(req.error); return; }
-            const del = indexedDB.deleteDatabase(name);
-            del.onsuccess = () => _openDB(name, store, true).then(res, rej);
-            del.onerror = () => rej(req.error);
-        };
-        req.onupgradeneeded = (e) => {
-            if (!e.target.result.objectStoreNames.contains(store)) {
-                e.target.result.createObjectStore(store, { keyPath: 'id' });
-            }
-        };
-    });
-    const _put = (db, store, data) => new Promise((res, rej) => {
-        const tx = db.transaction([store], 'readwrite');
-        tx.objectStore(store).put(data);
-        tx.oncomplete = res;
-        tx.onerror = () => rej(tx.error);
-    });
-
-    const pdfDb = await _openDB('CustomPdfDB', 'pdfs');
-    await _put(pdfDb, 'pdfs', {
-        id: 'customPdf',
-        base64: SAMPLE_PDF_B64,
-        title: SAMPLE_PAPER_METADATA.title,
-        numPages: SAMPLE_PAPER_METADATA.numPages,
-        metadata: SAMPLE_PAPER_METADATA
-    });
-
-    const mediaDb = await _openDB('ReviewMediaDB', 'media');
-    await _put(mediaDb, 'media', {
-        id: 'generatedMedia',
-        audioBase64: SAMPLE_AUDIO_B64,
-        imageBase64: SAMPLE_IMAGE_B64,
-        imageMimeType: SAMPLE_IMAGE_MIME,
-        videoDataUrl: SAMPLE_VIDEO_DATA_URL
-    });
-
+    // No IndexedDB round-trip: reading.html loads this same script and reads the
+    // SAMPLE_* constants directly once useBuiltInSample is set, so this never touches
+    // storage APIs that can be broken/blocked in a reviewer's browser.
     const suffix = Math.random().toString(36).substring(2, 10);
     const sessionId = 'review_' + Date.now() + '_' + suffix;
     sessionStorage.setItem('currentSessionId', sessionId);
     sessionStorage.setItem('hasCustomPdf', 'true');
+    sessionStorage.setItem('useBuiltInSample', 'true');
     sessionStorage.setItem('customPaperTitle', SAMPLE_PAPER_METADATA.title);
     sessionStorage.setItem('paperMetadata', JSON.stringify(SAMPLE_PAPER_METADATA));
 

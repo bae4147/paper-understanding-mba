@@ -26,6 +26,9 @@
     <!-- Papers data -->
     <script src="papers-data.js"></script>
 
+    <!-- Built-in sample paper media, used directly when useBuiltInSample is set (no IndexedDB round-trip) -->
+    <script src="sample-media.js"></script>
+
     <!--
         Reviewer preview build: no Firebase, no auth, no server-side logging.
         window.firebaseAuth / firebaseDb / firebaseStorage are intentionally left
@@ -409,8 +412,19 @@
                 if (!currentPaper) return;
 
                 const hasCustomPdf = sessionStorage.getItem('hasCustomPdf');
+                const useBuiltInSample = sessionStorage.getItem('useBuiltInSample');
 
-                if (hasCustomPdf) {
+                if (useBuiltInSample && typeof SAMPLE_PDF_B64 !== 'undefined') {
+                    // Built-in sample: read straight from the bundled JS constants, no IndexedDB needed
+                    setIsCustomPdf(true);
+                    setCustomPdfData({
+                        base64: SAMPLE_PDF_B64,
+                        title: SAMPLE_PAPER_METADATA.title || 'Sample Paper',
+                        sections: [],
+                        numPages: SAMPLE_PAPER_METADATA.numPages || 1
+                    });
+                    setPdfLoading(false);
+                } else if (hasCustomPdf) {
                     // Load from IndexedDB
                     setPdfLoading(true);
                     loadPdfFromIndexedDB().then(pdfData => {
@@ -555,27 +569,40 @@
             useEffect(() => {
                 (async () => {
                     try {
-                        const openMediaDb = (isRetry = false) => new Promise((res, rej) => {
-                            const req = indexedDB.open('ReviewMediaDB', 1);
-                            req.onsuccess = () => res(req.result);
-                            req.onerror = () => {
-                                if (isRetry) { rej(req.error); return; }
-                                const del = indexedDB.deleteDatabase('ReviewMediaDB');
-                                del.onsuccess = () => openMediaDb(true).then(res, rej);
-                                del.onerror = () => rej(req.error);
+                        const useBuiltInSample = sessionStorage.getItem('useBuiltInSample');
+                        let media;
+
+                        if (useBuiltInSample && typeof SAMPLE_AUDIO_B64 !== 'undefined') {
+                            // Built-in sample: read straight from the bundled JS constants, no IndexedDB needed
+                            media = {
+                                audioBase64: SAMPLE_AUDIO_B64,
+                                imageBase64: SAMPLE_IMAGE_B64,
+                                imageMimeType: SAMPLE_IMAGE_MIME,
+                                videoDataUrl: SAMPLE_VIDEO_DATA_URL
                             };
-                            req.onupgradeneeded = (e) => {
-                                if (!e.target.result.objectStoreNames.contains('media')) {
-                                    e.target.result.createObjectStore('media', { keyPath: 'id' });
-                                }
-                            };
-                        });
-                        const db = await openMediaDb();
-                        const media = await new Promise((res, rej) => {
-                            const req = db.transaction(['media'], 'readonly').objectStore('media').get('generatedMedia');
-                            req.onsuccess = () => res(req.result);
-                            req.onerror = () => rej(req.error);
-                        });
+                        } else {
+                            const openMediaDb = (isRetry = false) => new Promise((res, rej) => {
+                                const req = indexedDB.open('ReviewMediaDB', 1);
+                                req.onsuccess = () => res(req.result);
+                                req.onerror = () => {
+                                    if (isRetry) { rej(req.error); return; }
+                                    const del = indexedDB.deleteDatabase('ReviewMediaDB');
+                                    del.onsuccess = () => openMediaDb(true).then(res, rej);
+                                    del.onerror = () => rej(req.error);
+                                };
+                                req.onupgradeneeded = (e) => {
+                                    if (!e.target.result.objectStoreNames.contains('media')) {
+                                        e.target.result.createObjectStore('media', { keyPath: 'id' });
+                                    }
+                                };
+                            });
+                            const db = await openMediaDb();
+                            media = await new Promise((res, rej) => {
+                                const req = db.transaction(['media'], 'readonly').objectStore('media').get('generatedMedia');
+                                req.onsuccess = () => res(req.result);
+                                req.onerror = () => rej(req.error);
+                            });
+                        }
                         if (!media) return;
 
                         reviewMediaStartedRef.current = true;
